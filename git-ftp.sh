@@ -13,17 +13,20 @@ AUTHOR='rene moser <mail@renemoser.net>'
 # Setup Environment
 # ------------------------------------------------------------
 
+# General config
 VERBOSE=1
 GIT_FTP_HOME="`pwd`/.git/git_ftp"
 DEPLOYED_FILE="deployed_sha1"
 GIT_BIN="/usr/bin/git"
 LCK_FILE="`basename $0`.lck"
 
-
-FTP_HOST='ftp.example.com'
-FTP_USER='john'
-FTP_PASSWD='s3cret'
-FTP_REMOTE_DIR='public_html/'
+# ------------------------------------------------------------
+# Defaults
+# ------------------------------------------------------------
+FTP_HOST=""
+FTP_USER=""
+FTP_PASSWD=""
+FTP_REMOTE_DIR=""
 
 # ------------------------------------------------------------
 # Pre checks
@@ -42,7 +45,7 @@ releaseLock() {
     rm -f "${LCK_FILE}"
 }
 
-# Copy 'n' pasted ini parser func 
+# Copy 'n' pasted simple bash ini parser func 
 # from http://ajdiaz.wordpress.com/2008/02/09/bash-ini-parser/
 cfg.parser () {
     IFS=$'\n' && ini=( $(<$1) )              # convert to line-array
@@ -99,10 +102,9 @@ if [ ${DIRTY_REPO} -eq 1 ]; then
     exit 0
 fi 
 
-
 # Check if are at master branch (temp solution)
-CURRENT_BRANCH="`${GIT_BIN} git branch | grep '*' | cut -d ' ' -f 2`" 
-if [ ${CURRENT_BRANCH} != "master" ]; then 
+CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
+if [ "${CURRENT_BRANCH}" != "master" ]; then 
     writeLog "Not master branch? Exiting..."
     releaseLock
     exit 0
@@ -110,6 +112,33 @@ fi
 
 # create home if not exists
 mkdir -p ${GIT_FTP_HOME}
+
+# Check if there is a config file containing FTP stuff
+if [ ! -f "${GIT_FTP_HOME}/${CFG_FILE}" ]; then
+    writeLog "Config file not found. See example config file. Exiting..."
+    releaseLock
+    exit 0
+else 
+    writeLog "Config file found."
+    cfg.parser "${GIT_FTP_HOME}/${CFG_FILE}"
+    cfg.section.FTP
+    
+    HAS_ERROR=0
+    if [ -z ${FTP_HOST} ]; then
+        writeLog "FTP host not set in config file"
+        HAS_ERROR=1
+    fi
+    
+    if [ -z ${FTP_USER} ]; then
+        writeLog "FTP user not set in config file"
+        HAS_ERROR=1
+    fi
+    
+    if [ ${HAS_ERROR} != 0 ]; then
+        releaseLock
+        exit 0
+    fi
+fi
 
 # Check if we already deployed by FTP
 if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
