@@ -211,6 +211,16 @@ EOFTP
 EOFTP
     else
         writeLog "Not existing file ${file}"
+        # Removing file
+        writeLog "Removing ${file}"
+
+        ftp -in ${FTP_HOST} <<EOFTP
+        quote USER ${FTP_USER}
+        quote PASS ${FTP_PASSWD}
+        cd ${FTP_REMOTE_DIR}
+        delete ${file}
+        quit
+EOFTP
     fi
 done
  
