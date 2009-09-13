@@ -17,6 +17,7 @@ AUTHOR='rene moser <mail@renemoser.net>'
 VERBOSE=1
 GIT_FTP_HOME="`pwd`/.git/git_ftp"
 DEPLOYED_FILE="deployed_sha1"
+CFG_FILE="cfg.ini"
 GIT_BIN="/usr/bin/git"
 LCK_FILE="`basename $0`.lck"
 
@@ -150,18 +151,20 @@ fi
 DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_FILE} | cut -d ' ' -f 2`"
 if [ "${DEPLOYED_SHA1}" != "" ]; then
     writeLog "Last deployed SHA1 is ${DEPLOYED_SHA1}"
+
+    # Get the files changed since then
+    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`"
+    if [ "${FILES_CHANGED}" != "" ]; then 
+        writeLog "Having changed files";
+    else 
+        writeLog "No changed files. Giving up..."
+        releaseLock
+        exit 0
+    fi
 else 
     writeLog "No last deployed SHA1 found"
-fi
-
-# Get the files changed since then
-FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`"
-if [ "${FILES_CHANGED}" != "" ]; then 
-    writeLog "Having changed files";
-else 
-    writeLog "No changed files. Giving up..."
-    releaseLock
-    exit 0
+    FILES_CHANGED="`${GIT_BIN} ls-files`"
+    writeLog "Taking all files"
 fi
 
 # Upload to ftp
