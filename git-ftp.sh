@@ -41,6 +41,7 @@ OPTIONS:
         -h      Show this message
         -u      FTP login name
         -p      FTP password
+        -i      FTP password shell prompt
         -H      FTP host URL p.e. ftp.example.com
         -P      FTP remote path p.e. public_ftp/
         -v      Verbose
@@ -48,9 +49,9 @@ OPTIONS:
 EOF
 }
 
-while getopts haH:u:p:v OPTION
+while getopts haH:u:ip:v OPTION
 do
-    if [ `echo "$OPTARG" | egrep '^-' | wc -l` -eq 1 ]
+    if [ `echo "${OPTARG}" | egrep '^-' | wc -l` -eq 1 ]
     then
         echo "options value are not allowed to begin with -"
         exit 1
@@ -62,16 +63,23 @@ do
             exit 1
             ;;
         H)
-            FTP_HOST=$OPTARG
+            FTP_HOST=${OPTARG}
             ;;
         u)
-            FTP_USER=$OPTARG
+            FTP_USER=${OPTARG}
             ;;
         p)
-            FTP_PASSWD=$OPTARG
+            FTP_PASSWD=${OPTARG}
+            ;;
+        i) 
+            echo -n "Password: "
+            stty -echo
+            read FTP_PASSWD=${OPTARG}
+            stty echo
+            echo ""            
             ;;
         P)
-            FTP_REMOTE_PATH=$OPTARG
+            FTP_REMOTE_PATH=${OPTARG}
             ;;
         a)
             IGNORE_DEPLOYED=1
@@ -96,7 +104,20 @@ write_log() {
 
 # Simple error writer
 write_error() {
-    echo "fatal: $1"
+    if [ $VERBOSE -eq 0 ]; then
+        echo "Fatal: $1"
+    else
+        write_log "Fatal: $1"
+    fi
+}
+
+# Simple info writer
+write_info() {
+    if [ $VERBOSE -eq 0 ]; then
+        echo "Info: $1"
+    else
+        write_log "Info: $1"
+    fi
 }
 
 # Release lock func
@@ -150,7 +171,7 @@ CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`"
 if [ "${CURRENT_BRANCH}" != "master" ]; then 
     write_error "Not master branch? Exiting..."
     release_lock
-    exit 0
+    exit 1
 fi 
 
 # create home if not exists
@@ -168,10 +189,10 @@ if [ -z ${FTP_USER} ]; then
     HAS_ERROR=1
 fi
 
-if [ ${HAS_ERROR} != 0 ]; then
+if [ ${HAS_ERROR} -ne 0 ]; then
     usage
     release_lock
-    exit 0
+    exit 1
 fi
 
 # Check if we already deployed by FTP
@@ -190,7 +211,7 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
     if [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
-        write_log "No changed files. Giving up..."
+        write_info "No changed files. Giving up..."
         release_lock
         exit 0
     fi
@@ -202,16 +223,15 @@ fi
 
 # Upload to ftp
 for file in ${FILES_CHANGED}; do 
-    
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_log "Uploading ${file} to ftp://${FTP_HOST}/${file}"
-        ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}
+        write_info "Uploading ${file} to ftp://${FTP_HOST}/${file}"
+        ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file} > /dev/null 2>&1
+        write_info "${file} done!"
     else
-        write_log "Not existing file ${file}"
         # Removing file
-        write_log "Removing ${file}"
+        write_info "Not existing file ${file}, removing..."
         ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
     fi
 done
