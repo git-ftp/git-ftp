@@ -1,0 +1,62 @@
+git-ftp.sh
+==========
+
+(c) René Moser, <mail@renemoser.net>, 2010
+This application is licenced under GNU Lesser General Public License, Version 3.0
+http://www.gnu.org/licenses/lgpl-3.0-standalone.html
+
+Summary
+-------
+Use git-ftp.sh to only deploy files to a FTP server, which were modified since
+the last deployment. This saves time and bandwith.
+
+About
+-----
+I use git-ftp.sh for my script based projects, mostly PHP. Most of the low-cost
+web hoster does not provide SSH nor git support, only FTP. 
+
+That is why I needed a easy way to deploy my git tracked projects. Instead to transfer
+the whole project, I thought, why not only transfer the files which changed since 
+the last time, git can tell me those files. 
+
+And git-ftp.sh was born.
+
+
+Installing
+----------
+Make sure git and curl is installed.
+    # aptitude install git-core curl
+
+The easiest way is to use git for installing:
+   
+    $ mkdir -p ~/dev/git-ftp.sh.git
+    $ cd ~/dev/git-ftp.sh.git
+    $ git clone http://github.com/resmo/git-ftp.sh.git .    
+    $ cd ~/bin/   
+    $ ln -s ~/dev/git-ftp.sh.git git-ftp
+    
+After this you can use 'git ftp' or 'git-ftp'
+
+
+Usage
+-----
+The first time, git-ftp.sh will upload all files and remembers the sha1.
+
+    $ cd my_git_tracked_project
+    $ git ftp -H <ftp.example.com> -u <user> -p <password>
+    
+Later only the changed files will be uploaded
+    $ git ftp -H <ftp.example.com> -u <user> -p <password>
+    
+You can also use the -i option for prompting the password
+
+    $ git ftp -H <ftp.example.com> -u <user> -i
+    
+    
+Note
+----
+I found it useful to only allow uploading on master branch.
+
+Contributions
+-------------
+Don't hesitate to use GitHub to improve this tool.
