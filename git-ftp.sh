@@ -1,24 +1,18 @@
-#!/bin/bash
-# ------------------------------------------------------------
-# File        : git-ftp.sh
-# Author      : René Moser
-# Date        : 2009-09-01
-# Description : Deployes git tracked changed files by FTP
-# ------------------------------------------------------------
-
-VERSION='0.0.1'
-AUTHOR='rene moser <mail@renemoser.net>'
+#!/bin/sh
+#
+# Copyright (c) 2010 René Moser
+#
 
 # ------------------------------------------------------------
 # Setup Environment
 # ------------------------------------------------------------
 
 # General config
-VERBOSE=1
-GIT_FTP_HOME="`pwd`/.git/git_ftp"
-DEPLOYED_FILE="deployed_sha1"
-CFG_FILE="cfg.ini"
+VERBOSE=0
+GIT_FTP_HOME=".git/git-ftp"
+DEPLOYED_FILE="deployed-sha1"
 GIT_BIN="/usr/bin/git"
+CURL_BIN="/usr/bin/curl"
 LCK_FILE="`basename $0`.lck"
 
 # ------------------------------------------------------------
@@ -27,11 +21,67 @@ LCK_FILE="`basename $0`.lck"
 FTP_HOST=""
 FTP_USER=""
 FTP_PASSWD=""
-FTP_REMOTE_DIR=""
+FTP_REMOTE_PATH=""
 
-# ------------------------------------------------------------
-# Pre checks
-# ------------------------------------------------------------
+VERSION='0.0.2'
+AUTHOR='Rene Moser <mail@renemoser.net>'
+ 
+usage()
+{
+cat << EOF
+Usage: $0 -H <ftp_host> -u <ftp_login> -p <ftp_password>
+
+Version $VERSION
+Author $AUTHOR
+
+Uploads all files in master branch which have changed since last FTP upload. 
+ 
+OPTIONS:
+        -h      Show this message
+        -u      FTP login name
+        -p      FTP password
+        -H      FTP host URL p.e. ftp.example.com
+        -P      FTP remote path p.e. public_ftp/
+        -v      Verbose
+        
+EOF
+}
+
+while getopts hH:u:p:v OPTION
+do
+    if [ `echo "$OPTARG" | egrep '^-' | wc -l` -eq 1 ]
+    then
+        echo "options value are not allowed to begin with -"
+        exit 1
+     fi
+ 
+    case $OPTION in
+        h)
+            usage
+            exit 1
+            ;;
+        H)
+            FTP_HOST=$OPTARG
+            ;;
+        u)
+            FTP_USER=$OPTARG
+            ;;
+        p)
+            FTP_PASSWD=$OPTARG
+            ;;
+        P)
+            FTP_REMOTE_PATH=$OPTARG
+            ;;
+        v)
+            VERBOSE=1
+            ;;
+        ?)
+            usage
+            exit 1
+            ;;
+     esac
+done
+
 
 # Simple log func
 writeLog() {
@@ -44,22 +94,6 @@ writeLog() {
 releaseLock() {
     writeLog "Releasing lock"
     rm -f "${LCK_FILE}"
-}
-
-# Copy 'n' pasted simple bash ini parser func 
-# from http://ajdiaz.wordpress.com/2008/02/09/bash-ini-parser/
-cfg.parser () {
-    IFS=$'\n' && ini=( $(<$1) )              # convert to line-array
-    ini=( ${ini[*]//;*/} )                   # remove comments
-    ini=( ${ini[*]/#[/\}$'\n'cfg.section.} ) # set section prefix
-    ini=( ${ini[*]/%]/ \(} )                 # convert text2function (1)
-    ini=( ${ini[*]/=/=\( } )                 # convert item to array
-    ini=( ${ini[*]/%/ \)} )                  # close array parenthesis
-    ini=( ${ini[*]/%\( \)/\(\) \{} )         # convert text2function (2)
-    ini=( ${ini[*]/%\} \)/\}} )              # remove extra parenthesis
-    ini[0]=''                                # remove first element
-    ini[${#ini[*]} + 1]='}'                  # add the last brace
-    eval "$(echo "${ini[*]}")"               # eval the result
 }
 
 # Checks locking, make sure this only run once a time
@@ -88,8 +122,8 @@ fi
 # ------------------------------------------------------------
 
 # Check if this is a git project here
-NOT_GIT_DIR=`${GIT_BIN} status > /dev/null 2>&1 | grep -c fatal`
-if [ ${NOT_GIT_DIR} -eq 1 ]; then
+if [ ! -d ".git" ]; then
+    VERBOSE=1
     writeLog "Not a git project? Exiting..."
     releaseLock
     exit 0
@@ -98,6 +132,7 @@ fi
 # Check if the git working dir is dirty
 DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l ` 
 if [ ${DIRTY_REPO} -eq 1 ]; then 
+    VERBOSE=1
     writeLog "Dirty Repo? Exiting..."
     releaseLock
     exit 0
@@ -106,6 +141,7 @@ fi
 # Check if are at master branch (temp solution)
 CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
 if [ "${CURRENT_BRANCH}" != "master" ]; then 
+    VERBOSE=1
     writeLog "Not master branch? Exiting..."
     releaseLock
     exit 0
@@ -114,31 +150,24 @@ fi
 # create home if not exists
 mkdir -p ${GIT_FTP_HOME}
 
-# Check if there is a config file containing FTP stuff
-if [ ! -f "${GIT_FTP_HOME}/${CFG_FILE}" ]; then
-    writeLog "Config file not found. See example config file. Exiting..."
+# Check if there is a config file containing FTP stuff   
+HAS_ERROR=0
+if [ -z ${FTP_HOST} ]; then
+    VERBOSE=1
+    writeLog "FTP host not set"
+    HAS_ERROR=1
+fi
+
+if [ -z ${FTP_USER} ]; then
+    VERBOSE=1
+    writeLog "FTP user not set in config file"
+    HAS_ERROR=1
+fi
+
+if [ ${HAS_ERROR} != 0 ]; then
+    usage
     releaseLock
     exit 0
-else 
-    writeLog "Config file found."
-    cfg.parser "${GIT_FTP_HOME}/${CFG_FILE}"
-    cfg.section.FTP
-    
-    HAS_ERROR=0
-    if [ -z ${FTP_HOST} ]; then
-        writeLog "FTP host not set in config file"
-        HAS_ERROR=1
-    fi
-    
-    if [ -z ${FTP_USER} ]; then
-        writeLog "FTP user not set in config file"
-        HAS_ERROR=1
-    fi
-    
-    if [ ${HAS_ERROR} != 0 ]; then
-        releaseLock
-        exit 0
-    fi
 fi
 
 # Check if we already deployed by FTP
@@ -171,56 +200,15 @@ fi
 for file in ${FILES_CHANGED}; do 
     
     # File exits?
-    if [ -f ${file} ]; then
-    
-        # Path contains dirs? See Parameter Expansion
-        COUNT_DIRS=${file//[!\/]/}        
-        writeLog "${file} has ${#COUNT_DIRS} directories"
-        
-        if [ ${#COUNT_DIRS} -gt 0 ]; then
-
-            # Create dirs on ftp server
-            i=1
-            MKDIR_PATH=""
-            while [ $i -le ${#COUNT_DIRS} ]; do
-                
-                MKDIR="`echo ${file} | cut -d '/' -f ${i}`"
-                writeLog "Making dir if not exists ${FTP_REMOTE_DIR}${MKDIR_PATH}/${MKDIR}"
-                
-                ftp -in ${FTP_HOST} <<EOFTP
-                quote USER ${FTP_USER}
-                quote PASS ${FTP_PASSWD}
-                cd ${FTP_REMOTE_DIR}${MKDIR_PATH}
-                mkdir ${MKDIR}
-                quit
-EOFTP
-            i=$(( $i + 1 ))
-            MKDIR_PATH="/${MKDIR}"
-            done
-        fi
-        
+    if [ -f ${file} ]; then 
         # Uploading file
-        writeLog "Uploading ${file}"
-
-        ftp -in ${FTP_HOST} <<EOFTP
-        quote USER ${FTP_USER}
-        quote PASS ${FTP_PASSWD}
-        cd ${FTP_REMOTE_DIR}
-        put ${file}
-        quit
-EOFTP
+        writeLog "Uploading ${file} to ftp://${FTP_HOST}/${file}"
+        ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}
     else
         writeLog "Not existing file ${file}"
         # Removing file
         writeLog "Removing ${file}"
-
-        ftp -in ${FTP_HOST} <<EOFTP
-        quote USER ${FTP_USER}
-        quote PASS ${FTP_PASSWD}
-        cd ${FTP_REMOTE_DIR}
-        delete ${file}
-        quit
-EOFTP
+        ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
     fi
 done
  

@@ -1,5 +1,0 @@
-[FTP]
-FTP_HOST='ftp.example.com'
-FTP_USER='john'
-FTP_PASSWD='s3cret'
-FTP_REMOTE_DIR='public_html/'
