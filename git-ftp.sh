@@ -30,7 +30,7 @@ AUTHOR='Rene Moser <mail@renemoser.net>'
 usage()
 {
 cat << EOF
-Usage: $0 -H <ftp_host> -u <ftp_login> -p <ftp_password>
+Usage: git ftp -H <ftp_host> -u <ftp_login> -p <ftp_password>
 
 Version $VERSION
 Author $AUTHOR
@@ -88,20 +88,20 @@ done
 
 
 # Simple log func
-writeLog() {
+write_log() {
     if [ $VERBOSE -eq 1 ]; then
         echo "`date`: $1"
     fi
 }
 
 # Simple error writer
-writeError() {
+write_error() {
     echo "fatal: $1"
 }
 
 # Release lock func
-releaseLock() {
-    writeLog "Releasing lock"
+release_lock() {
+    write_log "Releasing lock"
     rm -f "${LCK_FILE}"
 }
 
@@ -115,14 +115,14 @@ if [ -f "${LCK_FILE}" ]; then
 
     if [ -z "${TEST_RUNNING}" ]; then
         # The process is not running echo current PID into lock file
-        writeLog "Not running"
+        write_log "Not running"
         echo $$ > "${LCK_FILE}"
     else
-        writeLog "`basename $0` is already running [${MYPID}]"
+        write_log "`basename $0` is already running [${MYPID}]"
         exit 0
     fi
 else
-    writeLog "Not running"
+    write_log "Not running"
     echo $$ > "${LCK_FILE}"
 fi
 
@@ -132,24 +132,24 @@ fi
 
 # Check if this is a git project here
 if [ ! -d ".git" ]; then
-    writeError "Not a git project? Exiting..."
-    releaseLock
+    write_error "Not a git project? Exiting..."
+    release_lock
     exit 0
 fi 
 
 # Check if the git working dir is dirty
 DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l ` 
 if [ ${DIRTY_REPO} -eq 1 ]; then 
-    writeError "Dirty Repo? Exiting..."
-    releaseLock
+    write_error "Dirty Repo? Exiting..."
+    release_lock
     exit 0
 fi 
 
 # Check if are at master branch (temp solution)
 CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
 if [ "${CURRENT_BRANCH}" != "master" ]; then 
-    writeError "Not master branch? Exiting..."
-    releaseLock
+    write_error "Not master branch? Exiting..."
+    release_lock
     exit 0
 fi 
 
@@ -159,45 +159,45 @@ mkdir -p ${GIT_FTP_HOME}
 # Check if there is a config file containing FTP stuff   
 HAS_ERROR=0
 if [ -z ${FTP_HOST} ]; then
-    writeError "FTP host not set"
+    write_error "FTP host not set"
     HAS_ERROR=1
 fi
 
 if [ -z ${FTP_USER} ]; then
-    writeError "FTP user not set in config file"
+    write_error "FTP user not set in config file"
     HAS_ERROR=1
 fi
 
 if [ ${HAS_ERROR} != 0 ]; then
     usage
-    releaseLock
+    release_lock
     exit 0
 fi
 
 # Check if we already deployed by FTP
 if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
     touch ${GIT_FTP_HOME}/${DEPLOYED_FILE}
-    writeLog "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
+    write_log "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
 fi 
 
 # Get the last commit (SHA) we deployed if not ignored or not found
 DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_FILE} | cut -d ' ' -f 2`"
 if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
-    writeLog "Last deployed SHA1 is ${DEPLOYED_SHA1}"
+    write_log "Last deployed SHA1 is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`"
     if [ "${FILES_CHANGED}" != "" ]; then 
-        writeLog "Having changed files";
+        write_log "Having changed files";
     else 
-        writeLog "No changed files. Giving up..."
-        releaseLock
+        write_log "No changed files. Giving up..."
+        release_lock
         exit 0
     fi
 else 
-    writeLog "No last deployed SHA1 found or ignoring it"
+    write_log "No last deployed SHA1 found or ignoring it"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
-    writeLog "Taking all files"
+    write_log "Taking all files"
 fi
 
 # Upload to ftp
@@ -206,24 +206,24 @@ for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        writeLog "Uploading ${file} to ftp://${FTP_HOST}/${file}"
+        write_log "Uploading ${file} to ftp://${FTP_HOST}/${file}"
         ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}
     else
-        writeLog "Not existing file ${file}"
+        write_log "Not existing file ${file}"
         # Removing file
-        writeLog "Removing ${file}"
+        write_log "Removing ${file}"
         ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
     fi
 done
  
 # if successful, remember the SHA1 of last commit
 ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_FILE}
-writeLog "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_FILE}`";
+write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_FILE}`";
 
 # ------------------------------------------------------------
 # Cleanup
 # ------------------------------------------------------------
-releaseLock
+release_lock
 
 # ------------------------------------------------------------
 # Done
