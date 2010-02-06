@@ -8,7 +8,6 @@
 # ------------------------------------------------------------
 
 # General config
-VERBOSE=0
 GIT_FTP_HOME=".git/git-ftp"
 DEPLOYED_FILE="deployed-sha1"
 GIT_BIN="/usr/bin/git"
@@ -22,6 +21,8 @@ FTP_HOST=""
 FTP_USER=""
 FTP_PASSWD=""
 FTP_REMOTE_PATH=""
+VERBOSE=0
+IGNORE_DEPLOYED=0
 
 VERSION='0.0.2'
 AUTHOR='Rene Moser <mail@renemoser.net>'
@@ -47,7 +48,7 @@ OPTIONS:
 EOF
 }
 
-while getopts hH:u:p:v OPTION
+while getopts haH:u:p:v OPTION
 do
     if [ `echo "$OPTARG" | egrep '^-' | wc -l` -eq 1 ]
     then
@@ -71,6 +72,9 @@ do
             ;;
         P)
             FTP_REMOTE_PATH=$OPTARG
+            ;;
+        a)
+            IGNORE_DEPLOYED=1
             ;;
         v)
             VERBOSE=1
@@ -176,9 +180,9 @@ if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
     writeLog "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
 fi 
 
-# Get the last commit (SHA) we deployed
+# Get the last commit (SHA) we deployed if not ignored or not found
 DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_FILE} | cut -d ' ' -f 2`"
-if [ "${DEPLOYED_SHA1}" != "" ]; then
+if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
     writeLog "Last deployed SHA1 is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
@@ -191,7 +195,7 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
         exit 0
     fi
 else 
-    writeLog "No last deployed SHA1 found"
+    writeLog "No last deployed SHA1 found or ignoring it"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
     writeLog "Taking all files"
 fi
