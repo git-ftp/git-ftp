@@ -94,6 +94,11 @@ writeLog() {
     fi
 }
 
+# Simple error writer
+writeError() {
+    echo "fatal: $1"
+}
+
 # Release lock func
 releaseLock() {
     writeLog "Releasing lock"
@@ -127,8 +132,7 @@ fi
 
 # Check if this is a git project here
 if [ ! -d ".git" ]; then
-    VERBOSE=1
-    writeLog "Not a git project? Exiting..."
+    writeError "Not a git project? Exiting..."
     releaseLock
     exit 0
 fi 
@@ -136,8 +140,7 @@ fi
 # Check if the git working dir is dirty
 DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l ` 
 if [ ${DIRTY_REPO} -eq 1 ]; then 
-    VERBOSE=1
-    writeLog "Dirty Repo? Exiting..."
+    writeError "Dirty Repo? Exiting..."
     releaseLock
     exit 0
 fi 
@@ -145,8 +148,7 @@ fi
 # Check if are at master branch (temp solution)
 CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
 if [ "${CURRENT_BRANCH}" != "master" ]; then 
-    VERBOSE=1
-    writeLog "Not master branch? Exiting..."
+    writeError "Not master branch? Exiting..."
     releaseLock
     exit 0
 fi 
@@ -157,14 +159,12 @@ mkdir -p ${GIT_FTP_HOME}
 # Check if there is a config file containing FTP stuff   
 HAS_ERROR=0
 if [ -z ${FTP_HOST} ]; then
-    VERBOSE=1
-    writeLog "FTP host not set"
+    writeError "FTP host not set"
     HAS_ERROR=1
 fi
 
 if [ -z ${FTP_USER} ]; then
-    VERBOSE=1
-    writeLog "FTP user not set in config file"
+    writeError "FTP user not set in config file"
     HAS_ERROR=1
 fi
 
