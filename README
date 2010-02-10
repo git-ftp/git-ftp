@@ -51,11 +51,6 @@ Later only the changed files will be uploaded
 You can also use the -i option for prompting the password
 
     $ git ftp -H <ftp.example.com> -u <user> -i
-    
-    
-Note
-----
-I found it useful to only allow uploading on master branch.
 
 Contributions
 -------------
