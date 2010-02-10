@@ -76,7 +76,7 @@ write_info() {
     fi
 }
 
-while getopts haH:u:ip:Dv OPTION
+while getopts haH:u:ip:P:Dv OPTION
 do
     if [ `echo "${OPTARG}" | egrep '^-' | wc -l` -eq 1 ]
     then
@@ -238,14 +238,14 @@ for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_info "Uploading ${file} to ftp://${FTP_HOST}/${file}"
+        write_info "Uploading ${file} to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}/${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
             ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file} > /dev/null 2>&1
         fi
         write_info "${file} done!"
     else
         # Removing file
-        write_info "Not existing file ${file}, removing..."
+        write_info "Not existing file ${FTP_REMOTE_PATH}/${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
             ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
         fi
