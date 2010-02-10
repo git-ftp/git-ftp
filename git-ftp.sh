@@ -24,7 +24,7 @@ FTP_REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 
-VERSION='0.0.2'
+VERSION='0.0.3'
 AUTHOR='Rene Moser <mail@renemoser.net>'
  
 usage()
@@ -74,7 +74,7 @@ do
         i) 
             echo -n "Password: "
             stty -echo
-            read FTP_PASSWD=${OPTARG}
+            read FTP_PASSWD
             stty echo
             echo ""            
             ;;
@@ -211,7 +211,7 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
     if [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
-        write_info "No changed files. Giving up..."
+        write_info "No changed files. Everything up-to-date."
         release_lock
         exit 0
     fi
