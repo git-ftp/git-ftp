@@ -23,6 +23,7 @@ FTP_PASSWD=""
 FTP_REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
+DRY_RUN=0
 
 VERSION='0.0.3'
 AUTHOR='Rene Moser <mail@renemoser.net>'
@@ -44,12 +45,38 @@ OPTIONS:
         -i      FTP password shell prompt
         -H      FTP host URL p.e. ftp.example.com
         -P      FTP remote path p.e. public_ftp/
+        -D      Dry run: Does not upload anything
         -v      Verbose
         
 EOF
 }
 
-while getopts haH:u:ip:v OPTION
+# Simple log func
+write_log() {
+    if [ $VERBOSE -eq 1 ]; then
+        echo "`date`: $1"
+    fi
+}
+
+# Simple error writer
+write_error() {
+    if [ $VERBOSE -eq 0 ]; then
+        echo "Fatal: $1"
+    else
+        write_log "Fatal: $1"
+    fi
+}
+
+# Simple info writer
+write_info() {
+    if [ $VERBOSE -eq 0 ]; then
+        echo "Info: $1"
+    else
+        write_log "Info: $1"
+    fi
+}
+
+while getopts haH:u:ip:Dv OPTION
 do
     if [ `echo "${OPTARG}" | egrep '^-' | wc -l` -eq 1 ]
     then
@@ -84,6 +111,10 @@ do
         a)
             IGNORE_DEPLOYED=1
             ;;
+        D)
+            DRY_RUN=1
+            write_info "Running dry, won't do anything"            
+            ;;
         v)
             VERBOSE=1
             ;;
@@ -95,30 +126,6 @@ do
 done
 
 
-# Simple log func
-write_log() {
-    if [ $VERBOSE -eq 1 ]; then
-        echo "`date`: $1"
-    fi
-}
-
-# Simple error writer
-write_error() {
-    if [ $VERBOSE -eq 0 ]; then
-        echo "Fatal: $1"
-    else
-        write_log "Fatal: $1"
-    fi
-}
-
-# Simple info writer
-write_info() {
-    if [ $VERBOSE -eq 0 ]; then
-        echo "Info: $1"
-    else
-        write_log "Info: $1"
-    fi
-}
 
 # Release lock func
 release_lock() {
@@ -232,17 +239,23 @@ for file in ${FILES_CHANGED}; do
     if [ -f ${file} ]; then 
         # Uploading file
         write_info "Uploading ${file} to ftp://${FTP_HOST}/${file}"
-        ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file} > /dev/null 2>&1
+        if [ ${DRY_RUN} -ne 1 ]; then
+            ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file} > /dev/null 2>&1
+        fi
         write_info "${file} done!"
     else
         # Removing file
         write_info "Not existing file ${file}, removing..."
-        ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
+        if [ ${DRY_RUN} -ne 1 ]; then
+            ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
+        fi
     fi
 done
  
 # if successful, remember the SHA1 of last commit
-${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_FILE}
+if [ ${DRY_RUN} -ne 1 ]; then
+    ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_FILE}
+fi
 write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_FILE}`";
 
 # ------------------------------------------------------------
