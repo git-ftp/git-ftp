@@ -166,12 +166,17 @@ if [ ${DIRTY_REPO} -eq 1 ]; then
     exit 0
 fi 
 
-# Check if are at master branch (temp solution)
+# Check if are at master branch
 CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
 if [ "${CURRENT_BRANCH}" != "master" ]; then 
-    write_error "Not master branch? Exiting..."
-    release_lock
-    exit 1
+    write_info "You are not on master branch.
+Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
+    read answer_branch
+    if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
+        write_info "Aborting..."
+        release_lock
+        exit 0
+    fi
 fi 
 
 # create home if not exists
