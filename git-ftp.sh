@@ -10,6 +10,7 @@
 # General config
 GIT_FTP_HOME=".git/git-ftp"
 DEPLOYED_FILE="deployed-sha1"
+DEPLOYED_DIR="deployed-sha1s"
 GIT_BIN="/usr/bin/git"
 CURL_BIN="/usr/bin/curl"
 LCK_FILE="`basename $0`.lck"
@@ -25,7 +26,7 @@ VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
 
-VERSION='0.0.3'
+VERSION='0.0.4'
 AUTHOR='Rene Moser <mail@renemoser.net>'
  
 usage()
@@ -208,27 +209,43 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Check if we already deployed by FTP
-if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
-    touch ${GIT_FTP_HOME}/${DEPLOYED_FILE}
-    write_log "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
+if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then
+    mkdir -p ${GIT_FTP_HOME}/${DEPLOYED_DIR}
+    touch ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
+    write_log "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}"
+
+    # For backward compatibility
+    if [ -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
+        write_info "Multi FTP host exsisting sha1 backward compatibility
+Should existing sha1 be marked as used for ${FTP_HOST}? [Y/n]"
+        read answer_convert
+        if [ "${answer_convert}" = "n" ] || [ "${answer_convert}" = "N" ]; then
+            write_info "Was not ${FTP_HOST}, continuing..."
+        else
+            write_info "Converting ${GIT_FTP_HOME}/${DEPLOYED_FILE} to ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}"
+            cat ${GIT_FTP_HOME}/${DEPLOYED_FILE} > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
+            write_info "Removing old unneeded file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
+            rm  ${GIT_FTP_HOME}/${DEPLOYED_FILE}
+        fi
+    fi
 fi 
 
 # Get the last commit (SHA) we deployed if not ignored or not found
-DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_FILE} | cut -d ' ' -f 2`"
+DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST} | cut -d ' ' -f 2`"
 if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
-    write_log "Last deployed SHA1 is ${DEPLOYED_SHA1}"
+    write_log "Last deployed SHA1 for ${FTP_HOST} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`"
     if [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
-        write_info "No changed files. Everything up-to-date."
+        write_info "No changed files for ${FTP_HOST}. Everything up-to-date."
         release_lock
         exit 0
     fi
 else 
-    write_log "No last deployed SHA1 found or ignoring it"
+    write_log "No last deployed SHA1 for ${FTP_HOST} found or ignoring it"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
     write_log "Taking all files"
 fi
@@ -253,9 +270,9 @@ done
  
 # if successful, remember the SHA1 of last commit
 if [ ${DRY_RUN} -ne 1 ]; then
-    ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_FILE}
+    ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
 fi
-write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_FILE}`";
+write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}`";
 
 # ------------------------------------------------------------
 # Cleanup
