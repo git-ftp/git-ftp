@@ -52,6 +52,14 @@ OPTIONS:
 EOF
 }
 
+# Checks if last comand was successful
+check_exit_status() {
+    if [ $? -ne 0 ]; then
+        write_error "Error detected, exiting..." 
+        exit 1
+    fi
+}
+
 # Simple log func
 write_log() {
     if [ $VERBOSE -eq 1 ]; then
@@ -163,7 +171,7 @@ fi
 if [ ! -d ".git" ]; then
     write_error "Not a git project? Exiting..."
     release_lock
-    exit 0
+    exit 1
 fi 
 
 # Check if the git working dir is dirty
@@ -171,7 +179,7 @@ DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l `
 if [ ${DIRTY_REPO} -eq 1 ]; then 
     write_error "Dirty Repo? Exiting..."
     release_lock
-    exit 0
+    exit 1
 fi 
 
 # Check if are at master branch
@@ -257,13 +265,15 @@ for file in ${FILES_CHANGED}; do
         # Uploading file
         write_info "Uploading ${file} to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
-            ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file} > /dev/null 2>&1
+            ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}
+            check_exit_status
         fi
     else
         # Removing file
         write_info "Not existing file ${FTP_REMOTE_PATH}${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
-            ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST} > /dev/null 2>&1
+            ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST}             
+            check_exit_status
         fi
     fi
 done
