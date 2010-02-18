@@ -47,6 +47,7 @@ OPTIONS:
         -H      FTP host URL p.e. ftp.example.com
         -P      FTP remote path p.e. public_ftp/
         -D      Dry run: Does not upload anything
+        -f      Forces to upload all files
         -v      Verbose
         
 EOF
@@ -85,7 +86,7 @@ write_info() {
     fi
 }
 
-while getopts haH:u:ip:P:Dv OPTION
+while getopts hfH:u:ip:P:Dv OPTION
 do
     if [ `echo "${OPTARG}" | egrep '^-' | wc -l` -eq 1 ]
     then
@@ -117,7 +118,7 @@ do
         P)
             FTP_REMOTE_PATH=${OPTARG}
             ;;
-        a)
+        f)
             IGNORE_DEPLOYED=1
             ;;
         D)
@@ -253,9 +254,8 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
         exit 0
     fi
 else 
-    write_log "No last deployed SHA1 for ${FTP_HOST} found or ignoring it"
+    write_log "No last deployed SHA1 for ${FTP_HOST} found or forced to take all files"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
-    write_log "Taking all files"
 fi
 
 # Upload to ftp
