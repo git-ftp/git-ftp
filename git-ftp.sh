@@ -29,28 +29,44 @@ DRY_RUN=0
 VERSION='0.0.4'
 AUTHOR='Rene Moser <mail@renemoser.net>'
  
-usage()
+usage_long()
 {
 cat << EOF
-Usage: git ftp -H <ftp_host> -u <ftp_login> -p <ftp_password>
+Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
 
 Version $VERSION
 Author $AUTHOR
 
-Uploads all files in master branch which have changed since last FTP upload. 
+Uploads all files branch which have changed since last FTP upload. 
  
 OPTIONS:
-        -h      Show this message
-        -u      FTP login name
-        -p      FTP password
-        -i      FTP password shell prompt
-        -H      FTP host URL p.e. ftp.example.com
-        -P      FTP remote path p.e. public_ftp/
-        -D      Dry run: Does not upload anything
-        -f      Forces to upload all files
-        -v      Verbose
+        -h, --help      Show this message
+        -u, --user      FTP login name
+        -p, --passwd    FTP password
+        -H, --host      FTP host URL p.e. ftp.example.com
+        -P, --path      FTP remote path p.e. public_ftp/
+        -D, --dry-run   Dry run: Does not upload anything
+        -f              Forces to upload all files
+        -v              Verbose
         
 EOF
+exit 0
+}
+
+usage()
+{
+cat << EOF
+Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
+EOF
+exit 0
+}
+
+ask_for_passwd() {
+    echo -n "Password: "
+    stty -echo
+    read FTP_PASSWD
+    stty echo
+    echo ""
 }
 
 # Checks if last comand was successful
@@ -86,56 +102,94 @@ write_info() {
     fi
 }
 
-while getopts hfH:u:ip:P:Dv OPTION
+while test $# != 0
 do
-    if [ `echo "${OPTARG}" | egrep '^-' | wc -l` -eq 1 ]
-    then
-        echo "options value are not allowed to begin with -"
-        exit 1
-     fi
- 
-    case $OPTION in
-        h)
-            usage
-            exit 1
+	case "$1" in
+	    -h|--h|--he|--hel|--help)
+		    usage_long
+		    ;;
+        -H|--host*)
+            case "$#,$1" in
+                *,*=*)
+                    FTP_HOST=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    ;;
+                1,*)
+                    usage 
+                    ;;
+                *)
+                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+                        FTP_HOST="$2"
+                        shift
+                    fi
+                    ;;
+            esac
             ;;
-        H)
-            FTP_HOST=${OPTARG}
+        -u|--user*)
+            case "$#,$1" in
+                *,*=*)
+                    FTP_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    ;;
+                1,*)
+                    usage 
+                    ;;
+                *)
+                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+                        FTP_USER="$2"
+                        shift                        
+                    fi
+                    ;;                      
+            esac
             ;;
-        u)
-            FTP_USER=${OPTARG}
+        -p|--passwd*)
+            case "$#,$1" in
+                *,*=*)
+                    FTP_PASSWD=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    ;;
+                1,*)
+                    ask_for_passwd 
+                    ;;
+                *)
+                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+                        FTP_PASSWD="$2"
+                        shift
+                    else 
+                        ask_for_passwd
+                    fi
+                    ;;
+            esac
             ;;
-        p)
-            FTP_PASSWD=${OPTARG}
+        -P|--path*)
+            case "$#,$1" in
+                *,*=*)
+                    FTP_REMOTE_PATH==`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    ;;
+                1,*)
+                    usage
+                    ;;
+                *)
+
+                    FTP_REMOTE_PATH="$2"
+                    shift
+                    ;;
+            esac
             ;;
-        i) 
-            echo -n "Password: "
-            stty -echo
-            read FTP_PASSWD
-            stty echo
-            echo ""            
-            ;;
-        P)
-            FTP_REMOTE_PATH=${OPTARG}
-            ;;
-        f)
+        -f)
             IGNORE_DEPLOYED=1
             ;;
-        D)
+        -D|--dry-run)
             DRY_RUN=1
             write_info "Running dry, won't do anything"            
             ;;
-        v)
+        -v)
             VERBOSE=1
+            ;;		
+        *)
+            # Pass thru anything that may be meant for fetch.
+            break
             ;;
-        ?)
-            usage
-            exit 1
-            ;;
-     esac
+    esac
+    shift
 done
-
-
 
 # Release lock func
 release_lock() {
