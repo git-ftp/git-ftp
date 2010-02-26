@@ -167,9 +167,10 @@ do
                     usage
                     ;;
                 *)
-
-                    FTP_REMOTE_PATH="$2"
-                    shift
+                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+                        FTP_REMOTE_PATH="$2"
+                        shift
+                    fi
                     ;;
             esac
             ;;
