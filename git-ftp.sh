@@ -19,7 +19,7 @@ LCK_FILE="`basename $0`.lck"
 # Defaults
 # ------------------------------------------------------------
 FTP_HOST=""
-FTP_USER=""
+FTP_USER=${USER}
 FTP_PASSWD=""
 FTP_REMOTE_PATH=""
 VERBOSE=0
@@ -277,6 +277,10 @@ if [ ${HAS_ERROR} -ne 0 ]; then
     exit 1
 fi
 
+write_info "Host is '${FTP_HOST}'"
+write_info "User is '${FTP_USER}'"
+write_info "Paht is '${FTP_REMOTE_PATH}'"
+
 # Check if we already deployed by FTP
 if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then
     mkdir -p ${GIT_FTP_HOME}/${DEPLOYED_DIR}
@@ -319,7 +323,7 @@ else
 fi
 
 # Upload to ftp
-for file in ${FILES_CHANGED}; do 
+for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
