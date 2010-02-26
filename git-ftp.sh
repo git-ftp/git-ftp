@@ -254,7 +254,7 @@ fi
 # create home if not exists
 mkdir -p ${GIT_FTP_HOME}
 
-# Check if there is a config file containing FTP stuff   
+# Some error checks
 HAS_ERROR=0
 if [ -z ${FTP_HOST} ]; then
     write_error "FTP host not set"
@@ -264,6 +264,11 @@ fi
 if [ -z ${FTP_USER} ]; then
     write_error "FTP user not set"
     HAS_ERROR=1
+fi
+
+if [ ! -z ${FTP_REMOTE_PATH} ] && [ `echo "${FTP_REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
+    write_error "Missing trailing / in --path, -P"
+    HAS_ERROR=1  
 fi
 
 if [ ${HAS_ERROR} -ne 0 ]; then
