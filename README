@@ -5,33 +5,38 @@ git-ftp.sh
 This application is licenced under GNU General Public License, Version 3.0
 http://www.gnu.org/licenses/gpl-3.0-standalone.html
 
+
 Summary
 -------
-Use git-ftp.sh to only deploy files to a FTP server, which were modified since
-the last deployment. This saves time and bandwith.
+Use git-ftp.sh to upload only the files to a FTP server, which have changed 
+since the last upload. This saves time and bandwith.
+
 
 About
 -----
 I use git-ftp.sh for my script based projects, mostly PHP. Most of the low-cost
 web hoster does not provide SSH nor git support, only FTP. 
 
-That is why I needed a easy way to deploy my git tracked projects. Instead to transfer
-the whole project, I thought, why not only transfer the files which changed since 
-the last time, git can tell me those files. 
+That is why I needed a easy way to deploy my git tracked projects. Instead to 
+transfer always the whole project, I thought, why not only transfer the files 
+which changed since the last time, git can tell me those files.
 
-And git-ftp.sh was born.
+Even if you are playing with different branches, git-ftp.sh knows which files
+are different. No ordinary FTP client can do that.
 
 
 Installing
 ----------
 Make sure git and curl is installed.
+
     # aptitude install git-core curl
 
 The easiest way is to use git for installing:
    
     $ mkdir -p ~/dev/git-ftp.sh.git
     $ cd ~/dev/git-ftp.sh.git
-    $ git clone http://github.com/resmo/git-ftp.sh.git .    
+    $ git clone http://github.com/resmo/git-ftp.sh.git .
+    $ chmod 0755 git-ftp.sh
     $ cd ~/bin/   
     $ ln -s ~/dev/git-ftp.sh.git git-ftp
     
@@ -43,14 +48,20 @@ Usage
 The first time, git-ftp.sh will upload all files and remembers the sha1.
 
     $ cd my_git_tracked_project
-    $ git ftp -H <ftp.example.com> -u <user> -p <password>
+    $ git ftp --host <ftp.example.com> -user <user> -p <password>
     
 Later only the changed files will be uploaded
+
     $ git ftp -H <ftp.example.com> -u <user> -p <password>
     
 You can also use the -i option for prompting the password
 
-    $ git ftp -H <ftp.example.com> -u <user> -i
+    $ git ftp -H <ftp.example.com> -u <user> -p
+    
+For more options see
+
+    $ git ftp -h
+
 
 Contributions
 -------------
