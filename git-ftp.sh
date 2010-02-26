@@ -58,7 +58,7 @@ usage()
 cat << EOF
 Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
 EOF
-exit 0
+exit 1
 }
 
 ask_for_passwd() {
