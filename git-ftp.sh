@@ -34,10 +34,10 @@ usage_long()
 cat << EOF
 Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
 
+Uploads all files which have changed since last upload. 
+
 Version $VERSION
 Author $AUTHOR
-
-Uploads all files branch which have changed since last FTP upload. 
  
 OPTIONS:
         -h, --help      Show this message
@@ -261,7 +261,7 @@ if [ -z ${FTP_HOST} ]; then
 fi
 
 if [ -z ${FTP_USER} ]; then
-    write_error "FTP user not set in config file"
+    write_error "FTP user not set"
     HAS_ERROR=1
 fi
 
