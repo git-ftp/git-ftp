@@ -31,7 +31,7 @@ AUTHOR='Rene Moser <mail@renemoser.net>'
 usage_long()
 {
 cat << EOF
-Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
+Usage: git ftp -H <ftp_host> [-u <ftp_login>] [-p [<ftp_passwd>]]
 
 Uploads all files which have changed since last upload. 
 
@@ -55,7 +55,7 @@ exit 0
 usage()
 {
 cat << EOF
-Usage: git ftp -H <ftp_host> -u <ftp_login> [-p [<ftp_passwd>]]
+Usage: git ftp -H <ftp_host> [-u <ftp_login>] [-p [<ftp_passwd>]]
 EOF
 exit 1
 }
@@ -278,7 +278,7 @@ fi
 
 write_info "Host is '${FTP_HOST}'"
 write_info "User is '${FTP_USER}'"
-write_info "Paht is '${FTP_REMOTE_PATH}'"
+write_info "Path is '${FTP_REMOTE_PATH}'"
 
 # Check if we already deployed by FTP
 if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then

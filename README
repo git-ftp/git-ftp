@@ -48,7 +48,7 @@ Usage
 The first time, git-ftp.sh will upload all files and remembers the sha1.
 
     $ cd my_git_tracked_project
-    $ git ftp --host <ftp.example.com> -user <user> -p <password>
+    $ git ftp --host <ftp.example.com> --user <user> -p <password>
     
 Later only the changed files will be uploaded
 
