@@ -9,7 +9,6 @@
 
 # General config
 GIT_FTP_HOME=".git/git-ftp"
-DEPLOYED_FILE="deployed-sha1"
 DEPLOYED_DIR="deployed-sha1s"
 GIT_BIN="/usr/bin/git"
 CURL_BIN="/usr/bin/curl"
@@ -286,21 +285,6 @@ if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then
     mkdir -p ${GIT_FTP_HOME}/${DEPLOYED_DIR}
     touch ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
     write_log "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}"
-
-    # For backward compatibility
-    if [ -f "${GIT_FTP_HOME}/${DEPLOYED_FILE}" ]; then
-        write_info "Multi FTP host exsisting sha1 backward compatibility
-Should existing sha1 be marked as used for ${FTP_HOST}? [Y/n]"
-        read answer_convert
-        if [ "${answer_convert}" = "n" ] || [ "${answer_convert}" = "N" ]; then
-            write_info "Was not ${FTP_HOST}, continuing..."
-        else
-            write_info "Converting ${GIT_FTP_HOME}/${DEPLOYED_FILE} to ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}"
-            cat ${GIT_FTP_HOME}/${DEPLOYED_FILE} > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
-            write_info "Removing old unneeded file ${GIT_FTP_HOME}/${DEPLOYED_FILE}"
-            rm  ${GIT_FTP_HOME}/${DEPLOYED_FILE}
-        fi
-    fi
 fi 
 
 # Get the last commit (SHA) we deployed if not ignored or not found
