@@ -74,7 +74,7 @@ ask_for_passwd() {
 # Checks if last comand was successful
 check_exit_status() {
     if [ $? -ne 0 ]; then
-        write_error "Error detected, exiting..." 
+        write_error "$1, exiting..." 
         exit 1
     fi
 }
@@ -302,15 +302,15 @@ if [ ${HAS_ERROR} -ne 0 ]; then
     exit 1
 fi
 
-write_info "Host is '${FTP_HOST}'"
-write_info "User is '${FTP_USER}'"
-write_info "Path is '${FTP_REMOTE_PATH}'"
+write_log "Host is '${FTP_HOST}'"
+write_log "User is '${FTP_USER}'"
+write_log "Path is '${FTP_REMOTE_PATH}'"
 
 # Try to get last commit log message from remote
 if [ ${GET_REMOTE_COMMIT} -eq 1 ]; then
     write_log "Retrieving last commit from ftp://${FTP_HOST}/${FTP_REMOTE_PATH}"
     retrieve_file ${REMOTE_COMMIT_FILE}
-    check_exit_status
+    check_exit_status "Could not get file"
     release_lock
     exit 0
 fi
@@ -349,14 +349,14 @@ for file in ${FILES_CHANGED}; do
         write_info "Uploading ${file} to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
             upload_file ${file}
-            check_exit_status            
+            check_exit_status "Could not upload"
         fi
     else
         # Removing file
         write_info "Not existing file ${FTP_REMOTE_PATH}${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
             remove_file ${file}             
-            check_exit_status
+            check_exit_status "Could not remove file ${FTP_REMOTE_PATH}${file}"
         fi
     fi
 done
@@ -367,7 +367,7 @@ if [ ${DRY_RUN} -ne 1 ]; then
     ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
     write_info "Uploading commit log to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${REMOTE_COMMIT_FILE}"
     upload_file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST} ${REMOTE_COMMIT_FILE}
-    check_exit_status
+    check_exit_status "Could not upload"
 fi
 write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}`";
 
