@@ -27,7 +27,7 @@ IGNORE_DEPLOYED=0
 DRY_RUN=0
 GET_REMOTE_COMMIT=0
 
-VERSION='0.0.4'
+VERSION='0.0.5'
 AUTHOR='Rene Moser <mail@renemoser.net>'
  
 usage_long()
