@@ -10,6 +10,7 @@
 # General config
 GIT_FTP_HOME=".git/git-ftp"
 DEPLOYED_DIR="deployed-sha1s"
+REMOTE_COMMIT_FILE=".git-ftp.log"
 GIT_BIN="/usr/bin/git"
 CURL_BIN="/usr/bin/curl"
 LCK_FILE="`basename $0`.lck"
@@ -24,6 +25,7 @@ FTP_REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
+GET_REMOTE_COMMIT=0
 
 VERSION='0.0.4'
 AUTHOR='Rene Moser <mail@renemoser.net>'
@@ -46,6 +48,7 @@ OPTIONS:
         -P, --path      FTP remote path p.e. public_ftp/
         -D, --dry-run   Dry run: Does not upload anything
         -f              Forces to upload all files
+        -t              Show remote stored commit message log
         -v              Verbose
         
 EOF
@@ -99,6 +102,26 @@ write_info() {
     else
         write_log "Info: $1"
     fi
+}
+
+upload_file() {
+    source_file=${1}
+    dest_file=${2}
+    if [ -z ${dest_file} ]; then
+        dest_file=${source_file}
+    fi
+    ${CURL_BIN} -T ${source_file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${dest_file}
+}
+
+remove_file() {
+    file=${1}
+    ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST}
+}
+
+retrieve_file() {
+    source_file=${1}
+    dest_file=${2}
+    ${CURL_BIN} -#L --user ${FTP_USER}:${FTP_PASSWD} ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${source_file}
 }
 
 while test $# != 0
@@ -175,6 +198,9 @@ do
             ;;
         -f)
             IGNORE_DEPLOYED=1
+            ;;
+        -t)
+            GET_REMOTE_COMMIT=1    
             ;;
         -D|--dry-run)
             DRY_RUN=1
@@ -280,6 +306,15 @@ write_info "Host is '${FTP_HOST}'"
 write_info "User is '${FTP_USER}'"
 write_info "Path is '${FTP_REMOTE_PATH}'"
 
+# Try to get last commit log message from remote
+if [ ${GET_REMOTE_COMMIT} -eq 1 ]; then
+    write_log "Retrieving last commit from ftp://${FTP_HOST}/${FTP_REMOTE_PATH}"
+    retrieve_file ${REMOTE_COMMIT_FILE}
+    check_exit_status
+    release_lock
+    exit 0
+fi
+
 # Check if we already deployed by FTP
 if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then
     mkdir -p ${GIT_FTP_HOME}/${DEPLOYED_DIR}
@@ -313,14 +348,14 @@ for file in ${FILES_CHANGED}; do
         # Uploading file
         write_info "Uploading ${file} to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
-            ${CURL_BIN} -T ${file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}
-            check_exit_status
+            upload_file ${file}
+            check_exit_status            
         fi
     else
         # Removing file
         write_info "Not existing file ${FTP_REMOTE_PATH}${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
-            ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST}             
+            remove_file ${file}             
             check_exit_status
         fi
     fi
@@ -328,7 +363,11 @@ done
  
 # if successful, remember the SHA1 of last commit
 if [ ${DRY_RUN} -ne 1 ]; then
+    write_log "Remembering sha1 on local and remote site"
     ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
+    write_info "Uploading commit log to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${REMOTE_COMMIT_FILE}"
+    upload_file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST} ${REMOTE_COMMIT_FILE}
+    check_exit_status
 fi
 write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}`";
 
