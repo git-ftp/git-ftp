@@ -1,6 +1,8 @@
 #!/bin/sh
 #
-# Copyright (c) 2010 René Moser
+# Copyright (c) 2010 
+# René Moser <mail@renemoser.net>
+# Eric Greve <ericgreve@gmail.com>
 #
 
 # ------------------------------------------------------------
@@ -25,7 +27,7 @@ IGNORE_DEPLOYED=0
 DRY_RUN=0
 
 VERSION='0.0.5'
-AUTHOR='Rene Moser <mail@renemoser.net>'
+AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>'
  
 usage_long()
 {
@@ -35,7 +37,7 @@ Usage: git ftp -H <ftp_host> [-u <ftp_login>] [-p [<ftp_passwd>]]
 Uploads all files which have changed since last upload. 
 
 Version $VERSION
-Author $AUTHOR
+Authors $AUTHORS
  
 OPTIONS:
         -h, --help      Show this message
