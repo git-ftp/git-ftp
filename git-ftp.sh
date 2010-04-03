@@ -25,6 +25,7 @@ FTP_REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
+FORCE=0
 
 VERSION='0.0.6'
 AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>'
@@ -46,7 +47,8 @@ OPTIONS:
         -H, --host      FTP host URL p.e. ftp.example.com
         -P, --path      FTP remote path p.e. public_ftp/
         -D, --dry-run   Dry run: Does not upload anything
-        -a, --all       Uploads all files, ignores deployed SHA1 hash              
+        -a, --all       Uploads all files, ignores deployed SHA1 hash
+        -f              Force, does not ask questions
         -v              Verbose
         
 EOF
@@ -202,6 +204,10 @@ do
             ;;
         -v)
             VERBOSE=1
+            ;;
+        -f)
+            FORCE=1
+            write_log "Forced mode enabled"
             ;;		
         *)
             # Pass thru anything that may be meant for fetch.
@@ -257,18 +263,20 @@ if [ ${DIRTY_REPO} -eq 1 ]; then
     exit 1
 fi 
 
-# Check if are at master branch
-CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
-if [ "${CURRENT_BRANCH}" != "master" ]; then 
-    write_info "You are not on master branch.
+if [ ${FORCE} -ne 1 ]; then
+    # Check if are at master branch
+    CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
+    if [ "${CURRENT_BRANCH}" != "master" ]; then 
+        write_info "You are not on master branch.
 Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
-    read answer_branch
-    if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
-        write_info "Aborting..."
-        release_lock
-        exit 0
-    fi
-fi 
+        read answer_branch
+        if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
+            write_info "Aborting..."
+            release_lock
+            exit 0
+        fi
+    fi 
+fi
 
 # Some error checks
 HAS_ERROR=0
