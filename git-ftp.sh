@@ -8,9 +8,7 @@
 # ------------------------------------------------------------
 
 # General config
-GIT_FTP_HOME=".git/git-ftp"
-DEPLOYED_DIR="deployed-sha1s"
-REMOTE_COMMIT_FILE=".git-ftp.log"
+DEPLOYED_SHA1_FILE=".git-ftp.log"
 GIT_BIN="/usr/bin/git"
 CURL_BIN="/usr/bin/curl"
 LCK_FILE="`basename $0`.lck"
@@ -25,7 +23,6 @@ FTP_REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
-GET_REMOTE_COMMIT=0
 
 VERSION='0.0.5'
 AUTHOR='Rene Moser <mail@renemoser.net>'
@@ -48,7 +45,6 @@ OPTIONS:
         -P, --path      FTP remote path p.e. public_ftp/
         -D, --dry-run   Dry run: Does not upload anything
         -f              Forces to upload all files
-        -t              Show remote stored commit message log
         -v              Verbose
         
 EOF
@@ -118,10 +114,9 @@ remove_file() {
     ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST}
 }
 
-retrieve_file() {
+get_file_content() {
     source_file=${1}
-    dest_file=${2}
-    ${CURL_BIN} -#L --user ${FTP_USER}:${FTP_PASSWD} ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${source_file}
+    ${CURL_BIN} -s --user ${FTP_USER}:${FTP_PASSWD} ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${source_file}
 }
 
 while test $# != 0
@@ -199,9 +194,6 @@ do
         -f)
             IGNORE_DEPLOYED=1
             ;;
-        -t)
-            GET_REMOTE_COMMIT=1    
-            ;;
         -D|--dry-run)
             DRY_RUN=1
             write_info "Running dry, won't do anything"            
@@ -276,9 +268,6 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
     fi
 fi 
 
-# create home if not exists
-mkdir -p ${GIT_FTP_HOME}
-
 # Some error checks
 HAS_ERROR=0
 if [ -z ${FTP_HOST} ]; then
@@ -306,30 +295,26 @@ write_log "Host is '${FTP_HOST}'"
 write_log "User is '${FTP_USER}'"
 write_log "Path is '${FTP_REMOTE_PATH}'"
 
-# Try to get last commit log message from remote
-if [ ${GET_REMOTE_COMMIT} -eq 1 ]; then
+DEPLOYED_SHA1=""
+if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
+    # Get the last commit (SHA) we deployed if not ignored or not found
     write_log "Retrieving last commit from ftp://${FTP_HOST}/${FTP_REMOTE_PATH}"
-    retrieve_file ${REMOTE_COMMIT_FILE}
-    check_exit_status "Could not get file"
-    release_lock
-    exit 0
+    DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
+    if [ $? -ne 0 ]; then
+        write_info "Could not get last commit or it does not exist"
+        DEPLOYED_SHA1=""
+    fi
 fi
 
-# Check if we already deployed by FTP
-if [ ! -f "${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}" ]; then
-    mkdir -p ${GIT_FTP_HOME}/${DEPLOYED_DIR}
-    touch ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
-    write_log "Created empty file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}"
-fi 
-
-# Get the last commit (SHA) we deployed if not ignored or not found
-DEPLOYED_SHA1="`head -n 1 ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST} | cut -d ' ' -f 2`"
-if [ ${IGNORE_DEPLOYED} -ne 1 ] && [ "${DEPLOYED_SHA1}" != "" ]; then
+if [ "${DEPLOYED_SHA1}" != "" ]; then
     write_log "Last deployed SHA1 for ${FTP_HOST} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
-    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`"
-    if [ "${FILES_CHANGED}" != "" ]; then 
+    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`" 
+    if [ $? -ne 0 ]; then
+        write_info "Unknown SHA1 object, taking all files"
+        FILES_CHANGED="`${GIT_BIN} ls-files`"    
+    elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
         write_info "No changed files for ${FTP_HOST}. Everything up-to-date."
@@ -363,13 +348,12 @@ done
  
 # if successful, remember the SHA1 of last commit
 if [ ${DRY_RUN} -ne 1 ]; then
-    write_log "Remembering sha1 on local and remote site"
-    ${GIT_BIN} log -n 1 > ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}
-    write_info "Uploading commit log to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${REMOTE_COMMIT_FILE}"
-    upload_file ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST} ${REMOTE_COMMIT_FILE}
+    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
+    write_info "Uploading commit log to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+    echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
     check_exit_status "Could not upload"
 fi
-write_log "Last deployment changed to `cat ${GIT_FTP_HOME}/${DEPLOYED_DIR}/${FTP_HOST}`";
+write_log "Last deployment changed to ${DEPLOYED_SHA1}";
 
 # ------------------------------------------------------------
 # Cleanup
