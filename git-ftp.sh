@@ -26,7 +26,7 @@ VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
 
-VERSION='0.0.5'
+VERSION='0.0.6'
 AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>'
  
 usage_long()
