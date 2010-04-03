@@ -310,9 +310,9 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     write_log "Last deployed SHA1 for ${FTP_HOST} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
-    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1}`" 
+    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
     if [ $? -ne 0 ]; then
-        write_info "Unknown SHA1 object, taking all files"
+        write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
         FILES_CHANGED="`${GIT_BIN} ls-files`"    
     elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
