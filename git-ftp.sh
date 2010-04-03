@@ -46,7 +46,7 @@ OPTIONS:
         -H, --host      FTP host URL p.e. ftp.example.com
         -P, --path      FTP remote path p.e. public_ftp/
         -D, --dry-run   Dry run: Does not upload anything
-        -f              Forces to upload all files
+        -a, --all       Uploads all files, ignores deployed SHA1 hash              
         -v              Verbose
         
 EOF
@@ -193,7 +193,7 @@ do
                     ;;
             esac
             ;;
-        -f)
+        -a|--all)
             IGNORE_DEPLOYED=1
             ;;
         -D|--dry-run)
