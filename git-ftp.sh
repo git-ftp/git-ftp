@@ -322,8 +322,22 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     # Get the files changed since then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
     if [ $? -ne 0 ]; then
-        write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-        FILES_CHANGED="`${GIT_BIN} ls-files`"    
+        if [ ${FORCE} -ne 1 ]; then
+        write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date. 
+Do you want to ignore and upload all files again? [y/N]"
+        read answer_state
+        if [ "${answer_state}" != "y" ] && [ "${answer_state}" != "Y" ]; then
+            write_info "Aborting..."
+            release_lock
+            exit 0
+        else
+            write_log "Taking all files";
+            FILES_CHANGED="`${GIT_BIN} ls-files`"
+        fi
+        else 
+            write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+            FILES_CHANGED="`${GIT_BIN} ls-files`"
+        fi    
     elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
