@@ -10,6 +10,7 @@
 # ------------------------------------------------------------
 
 # General config
+DEFAULT_PROTOCOL="ftp"
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 GIT_BIN="/usr/bin/git"
 CURL_BIN="/usr/bin/curl"
@@ -18,6 +19,8 @@ LCK_FILE="`basename $0`.lck"
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
+URL=""
+REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=${USER}
 REMOTE_PASSWD=""
@@ -33,24 +36,31 @@ AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>'
 usage_long()
 {
 cat << EOF
-Usage: git ftp -H <ftp_host> [-u <ftp_login>] [-p [<ftp_passwd>]]
+USAGE: 
+        git ftp [<options>] <url> [<options>]
 
-Uploads all files which have changed since last upload. 
+DESCRIPTION:
+        Uploads all files which have changed since last upload. 
 
-Version $VERSION
-Authors $AUTHORS
- 
+        Version $VERSION
+        Authors $AUTHORS
+
+URL:
+        .   default     host.example.com[:<port>][/<remote path>]
+        .   FTP         ftp://host.example.com[:<port>][/<remote path>]
+
 OPTIONS:
         -h, --help      Show this message
         -u, --user      FTP login name
         -p, --passwd    FTP password
-        -H, --host      FTP host URL p.e. ftp.example.com
-        -P, --path      FTP remote path p.e. public_ftp/
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
         -f              Force, does not ask questions
         -v              Verbose
         
+EXAMPLES:
+        .   git ftp -u john ftp://ftp.example.com:4445/public_ftp -p -v
+        .   git ftp -p -u john -v ftp.example.com:4445:/public_ftp 
 EOF
 exit 0
 }
@@ -58,7 +68,7 @@ exit 0
 usage()
 {
 cat << EOF
-Usage: git ftp -H <ftp_host> [-u <ftp_login>] [-p [<ftp_passwd>]]
+git ftp [<options>] <url> [<options>]
 EOF
 exit 1
 }
@@ -110,17 +120,17 @@ upload_file() {
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
-    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${dest_file}
+    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ftp://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
     file=${1}
-    ${CURL_BIN} --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q '-DELE ${REMOTE_REMOTE_PATH}${file}' ftp://${REMOTE_HOST}
+    ${CURL_BIN} --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q '-DELE ${REMOTE_PATH}${file}' ftp://${REMOTE_HOST}
 }
 
 get_file_content() {
     source_file=${1}
-    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${source_file}
+    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ftp://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
 }
 
 while test $# != 0
@@ -129,22 +139,6 @@ do
 	    -h|--h|--he|--hel|--help)
 		    usage_long
 		    ;;
-        -H|--host*)
-            case "$#,$1" in
-                *,*=*)
-                    REMOTE_HOST=`expr "z$1" : 'z-[^=]*=\(.*\)'`
-                    ;;
-                1,*)
-                    usage 
-                    ;;
-                *)
-                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_HOST="$2"
-                        shift
-                    fi
-                    ;;
-            esac
-            ;;
         -u|--user*)
             case "$#,$1" in
                 *,*=*)
@@ -179,22 +173,6 @@ do
                     ;;
             esac
             ;;
-        -P|--path*)
-            case "$#,$1" in
-                *,*=*)
-                    REMOTE_REMOTE_PATH==`expr "z$1" : 'z-[^=]*=\(.*\)'`
-                    ;;
-                1,*)
-                    usage
-                    ;;
-                *)
-                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_REMOTE_PATH="$2"
-                        shift
-                    fi
-                    ;;
-            esac
-            ;;
         -a|--all)
             IGNORE_DEPLOYED=1
             ;;
@@ -211,7 +189,7 @@ do
             ;;		
         *)
             # Pass thru anything that may be meant for fetch.
-            break
+            URL=${1}
             ;;
     esac
     shift
@@ -278,6 +256,12 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
     fi 
 fi
 
+# Split host from url
+REMOTE_HOST=`expr match "${URL}" '.*:\/\/\([a-z0-9\.:-]*\).*'`
+if [ -z ${REMOTE_HOST} ]; then
+    REMOTE_HOST=`expr match "${URL}" '^\([a-z0-9\.:-]*\).*'`
+fi
+
 # Some error checks
 HAS_ERROR=0
 if [ -z ${REMOTE_HOST} ]; then
@@ -290,25 +274,38 @@ if [ -z ${REMOTE_USER} ]; then
     HAS_ERROR=1
 fi
 
-if [ ! -z ${REMOTE_REMOTE_PATH} ] && [ `echo "${REMOTE_REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
-    write_error "Missing trailing / in --path, -P"
-    HAS_ERROR=1  
-fi
-
 if [ ${HAS_ERROR} -ne 0 ]; then
     usage
     release_lock
     exit 1
 fi
 
+# Split protocol from url 
+REMOTE_PROTOCOL=`expr match "${URL}" '\(ftp\|ssh\).*'`
+
+# Check supported protocol
+if [ -z ${REMOTE_PROTOCOL} ]; then
+    write_log "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
+    REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
+fi
+
+# Split remote path from url
+REMOTE_PATH=`expr match "${URL}" '.*\.[a-z0-9:]*\/\(.*\)'`
+
+# Add trailing slash if missing 
+if [ ! -z ${REMOTE_PATH} ] && [ `echo "${REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
+    write_log "Added missing trailing / in path"
+    REMOTE_PATH="${REMOTE_PATH}/"  
+fi
+
 write_log "Host is '${REMOTE_HOST}'"
 write_log "User is '${REMOTE_USER}'"
-write_log "Path is '${REMOTE_REMOTE_PATH}'"
+write_log "Path is '${REMOTE_PATH}'"
 
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
     # Get the last commit (SHA) we deployed if not ignored or not found
-    write_log "Retrieving last commit from ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}"
+    write_log "Retrieving last commit from ftp://${REMOTE_HOST}/${REMOTE_PATH}"
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     if [ $? -ne 0 ]; then
         write_info "Could not get last commit or it does not exist"
@@ -355,17 +352,17 @@ for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_info "Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${file}"
+        write_info "Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
             upload_file ${file}
             check_exit_status "Could not upload"
         fi
     else
         # Removing file
-        write_info "Not existing file ${REMOTE_REMOTE_PATH}${file}, removing..."
+        write_info "Not existing file ${REMOTE_PATH}${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
             remove_file ${file}             
-            check_exit_status "Could not remove file ${REMOTE_REMOTE_PATH}${file}"
+            check_exit_status "Could not remove file ${REMOTE_PATH}${file}"
         fi
     fi
 done
@@ -373,7 +370,7 @@ done
 # if successful, remember the SHA1 of last commit
 if [ ${DRY_RUN} -ne 1 ]; then
     DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
-    write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+    write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
     echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
     check_exit_status "Could not upload"
 fi
