@@ -18,10 +18,10 @@ LCK_FILE="`basename $0`.lck"
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
-FTP_HOST=""
-FTP_USER=${USER}
-FTP_PASSWD=""
-FTP_REMOTE_PATH=""
+REMOTE_HOST=""
+REMOTE_USER=${USER}
+REMOTE_PASSWD=""
+REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
@@ -66,7 +66,7 @@ exit 1
 ask_for_passwd() {
     echo -n "Password: "
     stty -echo
-    read FTP_PASSWD
+    read REMOTE_PASSWD
     stty echo
     echo ""
 }
@@ -110,17 +110,17 @@ upload_file() {
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
-    ${CURL_BIN} -T ${source_file} --user ${FTP_USER}:${FTP_PASSWD} --ftp-create-dirs -# ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${dest_file}
+    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
     file=${1}
-    ${CURL_BIN} --user ${FTP_USER}:${FTP_PASSWD} -Q '-DELE ${FTP_REMOTE_PATH}${file}' ftp://${FTP_HOST}
+    ${CURL_BIN} --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q '-DELE ${REMOTE_REMOTE_PATH}${file}' ftp://${REMOTE_HOST}
 }
 
 get_file_content() {
     source_file=${1}
-    ${CURL_BIN} -s --user ${FTP_USER}:${FTP_PASSWD} ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${source_file}
+    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${source_file}
 }
 
 while test $# != 0
@@ -132,14 +132,14 @@ do
         -H|--host*)
             case "$#,$1" in
                 *,*=*)
-                    FTP_HOST=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_HOST=`expr "z$1" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     usage 
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        FTP_HOST="$2"
+                        REMOTE_HOST="$2"
                         shift
                     fi
                     ;;
@@ -148,14 +148,14 @@ do
         -u|--user*)
             case "$#,$1" in
                 *,*=*)
-                    FTP_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     usage 
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        FTP_USER="$2"
+                        REMOTE_USER="$2"
                         shift                        
                     fi
                     ;;                      
@@ -164,14 +164,14 @@ do
         -p|--passwd*)
             case "$#,$1" in
                 *,*=*)
-                    FTP_PASSWD=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_PASSWD=`expr "z$1" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     ask_for_passwd 
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        FTP_PASSWD="$2"
+                        REMOTE_PASSWD="$2"
                         shift
                     else 
                         ask_for_passwd
@@ -182,14 +182,14 @@ do
         -P|--path*)
             case "$#,$1" in
                 *,*=*)
-                    FTP_REMOTE_PATH==`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_REMOTE_PATH==`expr "z$1" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     usage
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        FTP_REMOTE_PATH="$2"
+                        REMOTE_REMOTE_PATH="$2"
                         shift
                     fi
                     ;;
@@ -280,17 +280,17 @@ fi
 
 # Some error checks
 HAS_ERROR=0
-if [ -z ${FTP_HOST} ]; then
+if [ -z ${REMOTE_HOST} ]; then
     write_error "FTP host not set"
     HAS_ERROR=1
 fi
 
-if [ -z ${FTP_USER} ]; then
+if [ -z ${REMOTE_USER} ]; then
     write_error "FTP user not set"
     HAS_ERROR=1
 fi
 
-if [ ! -z ${FTP_REMOTE_PATH} ] && [ `echo "${FTP_REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
+if [ ! -z ${REMOTE_REMOTE_PATH} ] && [ `echo "${REMOTE_REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
     write_error "Missing trailing / in --path, -P"
     HAS_ERROR=1  
 fi
@@ -301,14 +301,14 @@ if [ ${HAS_ERROR} -ne 0 ]; then
     exit 1
 fi
 
-write_log "Host is '${FTP_HOST}'"
-write_log "User is '${FTP_USER}'"
-write_log "Path is '${FTP_REMOTE_PATH}'"
+write_log "Host is '${REMOTE_HOST}'"
+write_log "User is '${REMOTE_USER}'"
+write_log "Path is '${REMOTE_REMOTE_PATH}'"
 
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
     # Get the last commit (SHA) we deployed if not ignored or not found
-    write_log "Retrieving last commit from ftp://${FTP_HOST}/${FTP_REMOTE_PATH}"
+    write_log "Retrieving last commit from ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}"
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     if [ $? -ne 0 ]; then
         write_info "Could not get last commit or it does not exist"
@@ -317,7 +317,7 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
 fi
 
 if [ "${DEPLOYED_SHA1}" != "" ]; then
-    write_log "Last deployed SHA1 for ${FTP_HOST} is ${DEPLOYED_SHA1}"
+    write_log "Last deployed SHA1 for ${REMOTE_HOST} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
@@ -341,12 +341,12 @@ Do you want to ignore and upload all files again? [y/N]"
     elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
-        write_info "No changed files for ${FTP_HOST}. Everything up-to-date."
+        write_info "No changed files for ${REMOTE_HOST}. Everything up-to-date."
         release_lock
         exit 0
     fi
 else 
-    write_log "No last deployed SHA1 for ${FTP_HOST} found or forced to take all files"
+    write_log "No last deployed SHA1 for ${REMOTE_HOST} found or forced to take all files"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
 fi
 
@@ -355,17 +355,17 @@ for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_info "Uploading ${file} to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${file}"
+        write_info "Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
             upload_file ${file}
             check_exit_status "Could not upload"
         fi
     else
         # Removing file
-        write_info "Not existing file ${FTP_REMOTE_PATH}${file}, removing..."
+        write_info "Not existing file ${REMOTE_REMOTE_PATH}${file}, removing..."
         if [ ${DRY_RUN} -ne 1 ]; then
             remove_file ${file}             
-            check_exit_status "Could not remove file ${FTP_REMOTE_PATH}${file}"
+            check_exit_status "Could not remove file ${REMOTE_REMOTE_PATH}${file}"
         fi
     fi
 done
@@ -373,7 +373,7 @@ done
 # if successful, remember the SHA1 of last commit
 if [ ${DRY_RUN} -ne 1 ]; then
     DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
-    write_info "Uploading commit log to ftp://${FTP_HOST}/${FTP_REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+    write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
     echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
     check_exit_status "Could not upload"
 fi
