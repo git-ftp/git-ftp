@@ -55,8 +55,8 @@ OPTIONS:
         -p, --passwd    FTP password
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
-        -f              Force, does not ask questions
-        -v              Verbose
+        -f, --force     Force, does not ask questions
+        -v, --verbose   Verbose
         
 EXAMPLES:
         .   git ftp -u john ftp://ftp.example.com:4445/public_ftp -p -v
@@ -180,10 +180,10 @@ do
             DRY_RUN=1
             write_info "Running dry, won't do anything"            
             ;;
-        -v)
+        -v|--verbose)
             VERBOSE=1
             ;;
-        -f)
+        -f|--force)
             FORCE=1
             write_log "Forced mode enabled"
             ;;		
