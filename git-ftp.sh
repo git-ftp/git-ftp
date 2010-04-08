@@ -281,11 +281,11 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Split protocol from url 
-REMOTE_PROTOCOL=`expr match "${URL}" '\(ftp\|ssh\).*'`
+REMOTE_PROTOCOL=`expr match "${URL}" '\(ftp\).*'`
 
 # Check supported protocol
 if [ -z ${REMOTE_PROTOCOL} ]; then
-    write_log "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
+    write_info "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
     REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
 fi
 
