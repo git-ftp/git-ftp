@@ -368,9 +368,9 @@ for file in ${FILES_CHANGED}; do
 done
  
 # if successful, remember the SHA1 of last commit
+DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
+write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
 if [ ${DRY_RUN} -ne 1 ]; then
-    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
-    write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
     echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
     check_exit_status "Could not upload"
 fi
