@@ -44,23 +44,23 @@ The easiest way is to use git for installing:
 After this you can use 'git ftp' or 'git-ftp'
 
 
+Updating
+--------
+Update to the latest version is simple as:
+    
+    $ cd ~/dev/git-ftp.sh.git
+    $ git pull
+
+
 Usage
 -----
-The first time, git-ftp.sh will upload all files and remembers the sha1.
-
     $ cd my_git_tracked_project
-    $ git ftp --host <ftp.example.com> --user <user> -p <password>
+    $ git ftp ftp://host.example.com/public_html --user <user> -p <password>
     
-Later only the changed files will be uploaded
-
-    $ git ftp -H <ftp.example.com> -u <user> -p <password>
+For interactive password prompt use:
+    $ git ftp ftp://host.example.com/public_html --user <user> -p
     
-You can also use the -i option for prompting the password
-
-    $ git ftp -H <ftp.example.com> -u <user> -p
-    
-For more options see
-
+For more options see:
     $ git ftp -h
 
 
