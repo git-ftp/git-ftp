@@ -3,6 +3,7 @@
 # Copyright (c) 2010 
 # René Moser <mail@renemoser.net>
 # Eric Greve <ericgreve@gmail.com>
+# Timo Besenreuther <timo.besenreuther@gmail.com>
 #
 
 # ------------------------------------------------------------
@@ -31,7 +32,7 @@ DRY_RUN=0
 FORCE=0
 
 VERSION='0.0.6'
-AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>'
+AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo.besenreuther@gmail.com>'
  
 usage_long()
 {
@@ -257,9 +258,9 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
 fi
 
 # Split host from url
-REMOTE_HOST=`expr match "${URL}" '.*:\/\/\([a-z0-9\.:-]*\).*'`
+REMOTE_HOST=`echo "${URL}" | sed "s/.*:\/\/\([a-z0-9\.:-]*\).*/\1/"`
 if [ -z ${REMOTE_HOST} ]; then
-    REMOTE_HOST=`expr match "${URL}" '^\([a-z0-9\.:-]*\).*'`
+    REMOTE_HOST=`echo "${URL}" | sed "s/^\([a-z0-9\.:-]*\).*/\1/"`
 fi
 
 # Some error checks
@@ -281,7 +282,7 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Split protocol from url 
-REMOTE_PROTOCOL=`expr match "${URL}" '\(ftp\).*'`
+REMOTE_PROTOCOL=`echo "${URL}" | sed "s/\(ftp\).*/\1/"`
 
 # Check supported protocol
 if [ -z ${REMOTE_PROTOCOL} ]; then
@@ -290,7 +291,7 @@ if [ -z ${REMOTE_PROTOCOL} ]; then
 fi
 
 # Split remote path from url
-REMOTE_PATH=`expr match "${URL}" '.*\.[a-z0-9:]*\/\(.*\)'`
+REMOTE_PATH=`echo "${URL}" | sed "s/.*\.[a-z0-9:]*\/\(.*\)/\1/"`
 
 # Add trailing slash if missing 
 if [ ! -z ${REMOTE_PATH} ] && [ `echo "${REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
