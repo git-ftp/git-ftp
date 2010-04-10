@@ -3,7 +3,7 @@
 # Copyright (c) 2010 
 # René Moser <mail@renemoser.net>
 # Eric Greve <ericgreve@gmail.com>
-# Timo Besenreuther <timo.besenreuther@gmail.com>
+# Timo Besenreuther <timo@ezdesign.de>
 #
 
 # ------------------------------------------------------------
@@ -32,7 +32,7 @@ DRY_RUN=0
 FORCE=0
 
 VERSION='0.0.6'
-AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo.besenreuther@gmail.com>'
+AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
  
 usage_long()
 {
@@ -348,12 +348,19 @@ else
     FILES_CHANGED="`${GIT_BIN} ls-files`"
 fi
 
+# Calculate total file count
+done_items=0
+total_items=`echo ${FILES_CHANGED} | wc -w`
+total_items=$((total_items+0)) # trims whitespaces produced by wc
+write_log "There are ${total_items} changed files"
+
 # Upload to ftp
 for file in ${FILES_CHANGED}; do
+    done_items=$(($done_items+1))
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_info "Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+        write_info "[${done_items} of ${total_items}] Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
         if [ ${DRY_RUN} -ne 1 ]; then
             upload_file ${file}
             check_exit_status "Could not upload"
