@@ -128,7 +128,7 @@ upload_file() {
 
 remove_file() {
     file=${1}
-    ${CURL_BIN} --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q '-DELE ${REMOTE_PATH}${file}' ftp://${REMOTE_HOST}
+    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ftp://${REMOTE_HOST} > /dev/null 2>&1
 }
 
 get_file_content() {
@@ -376,7 +376,7 @@ if [ $CATCHUP -ne 1 ]; then
             # Removing file
             write_info "Not existing file ${REMOTE_PATH}${file}, removing..."
             if [ ${DRY_RUN} -ne 1 ]; then
-                remove_file ${file}             
+                remove_file ${file}
                 check_exit_status "Could not remove file ${REMOTE_PATH}${file}"
             fi
         fi
