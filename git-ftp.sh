@@ -29,6 +29,7 @@ REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
+CATCHUP=0
 FORCE=0
 
 VERSION='0.0.6'
@@ -56,6 +57,7 @@ OPTIONS:
         -p, --passwd    FTP password
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
+        -c, --catchup   Updates SHA1 hash without uploading files
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
         
@@ -176,6 +178,10 @@ do
             ;;
         -a|--all)
             IGNORE_DEPLOYED=1
+            ;;
+        -c|--catchup)
+            CATCHUP=1
+            write_info "Catching up, only SHA1 hash will be uploaded"
             ;;
         -D|--dry-run)
             DRY_RUN=1
@@ -355,25 +361,27 @@ total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
 # Upload to ftp
-for file in ${FILES_CHANGED}; do
-    done_items=$(($done_items+1))
-    # File exits?
-    if [ -f ${file} ]; then 
-        # Uploading file
-        write_info "[${done_items} of ${total_items}] Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
-        if [ ${DRY_RUN} -ne 1 ]; then
-            upload_file ${file}
-            check_exit_status "Could not upload"
+if [ $CATCHUP -ne 1 ]; then
+    for file in ${FILES_CHANGED}; do
+        done_items=$(($done_items+1))
+        # File exits?
+        if [ -f ${file} ]; then 
+            # Uploading file
+            write_info "[${done_items} of ${total_items}] Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+            if [ ${DRY_RUN} -ne 1 ]; then
+                upload_file ${file}
+                check_exit_status "Could not upload"
+            fi
+        else
+            # Removing file
+            write_info "Not existing file ${REMOTE_PATH}${file}, removing..."
+            if [ ${DRY_RUN} -ne 1 ]; then
+                remove_file ${file}             
+                check_exit_status "Could not remove file ${REMOTE_PATH}${file}"
+            fi
         fi
-    else
-        # Removing file
-        write_info "Not existing file ${REMOTE_PATH}${file}, removing..."
-        if [ ${DRY_RUN} -ne 1 ]; then
-            remove_file ${file}             
-            check_exit_status "Could not remove file ${REMOTE_PATH}${file}"
-        fi
-    fi
-done
+    done
+fi
  
 # if successful, remember the SHA1 of last commit
 DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
