@@ -264,9 +264,9 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
 fi
 
 # Split host from url
-REMOTE_HOST=`echo "${URL}" | sed "s/.*:\/\/\([a-z0-9\.:-]*\).*/\1/"`
+REMOTE_HOST=`expr "${URL}" : ".*:\/\/\([a-z0-9\.:-]*\).*"`
 if [ -z ${REMOTE_HOST} ]; then
-    REMOTE_HOST=`echo "${URL}" | sed "s/^\([a-z0-9\.:-]*\).*/\1/"`
+    REMOTE_HOST=`expr "${URL}" : "^\([a-z0-9\.:-]*\).*"`
 fi
 
 # Some error checks
@@ -288,7 +288,7 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Split protocol from url 
-REMOTE_PROTOCOL=`echo "${URL}" | sed "s/\(ftp\).*/\1/"`
+REMOTE_PROTOCOL=`expr "${URL}" : "\(ftp\).*"`
 
 # Check supported protocol
 if [ -z ${REMOTE_PROTOCOL} ]; then
@@ -297,7 +297,7 @@ if [ -z ${REMOTE_PROTOCOL} ]; then
 fi
 
 # Split remote path from url
-REMOTE_PATH=`echo "${URL}" | sed "s/.*\.[a-z0-9:]*\/\(.*\)/\1/"`
+REMOTE_PATH=`expr "${URL}" : ".*\.[a-z0-9:]*\/\(.*\)"`
 
 # Add trailing slash if missing 
 if [ ! -z ${REMOTE_PATH} ] && [ `echo "${REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
