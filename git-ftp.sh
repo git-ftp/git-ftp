@@ -374,10 +374,9 @@ if [ $CATCHUP -ne 1 ]; then
             fi
         else
             # Removing file
-            write_info "Not existing file ${REMOTE_PATH}${file}, removing..."
+            write_info "[${done_items} of ${total_items}] Not existing file ${REMOTE_PATH}${file}, removing..."
             if [ ${DRY_RUN} -ne 1 ]; then
                 remove_file ${file}
-                check_exit_status "Could not remove file ${REMOTE_PATH}${file}"
             fi
         fi
     done
