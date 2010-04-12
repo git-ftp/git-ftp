@@ -32,7 +32,7 @@ DRY_RUN=0
 CATCHUP=0
 FORCE=0
 
-VERSION='0.0.6'
+VERSION='0.0.7'
 AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
  
 usage_long()
