@@ -48,8 +48,10 @@ DESCRIPTION:
         Authors $AUTHORS
 
 URL:
-        .   default     host.example.com[:<port>][/<remote path>]
-        .   FTP         ftp://host.example.com[:<port>][/<remote path>]
+        . FTP (default) host.example.com[:<port>][/<remote path>]
+        . FTP           ftp://host.example.com[:<port>][/<remote path>]
+        . SFTP          sftp://host.example.com[:<port>][/<remote path>]
+        . FTPS          ftps://host.example.com[:<port>][/<remote path>]
 
 OPTIONS:
         -h, --help      Show this message
@@ -123,17 +125,17 @@ upload_file() {
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
-    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ftp://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
+    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
     file=${1}
-    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ftp://${REMOTE_HOST} > /dev/null 2>&1
+    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ${REMOTE_PROTOCOL}://${REMOTE_HOST} > /dev/null 2>&1
 }
 
 get_file_content() {
     source_file=${1}
-    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ftp://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
+    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
 }
 
 while test $# != 0
@@ -288,7 +290,7 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Split protocol from url 
-REMOTE_PROTOCOL=`expr "${URL}" : "\(ftp\).*"`
+REMOTE_PROTOCOL=`expr "${URL}" : "\(ftp\|sftp\|ftps\).*"`
 
 # Check supported protocol
 if [ -z ${REMOTE_PROTOCOL} ]; then
@@ -312,7 +314,7 @@ write_log "Path is '${REMOTE_PATH}'"
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
     # Get the last commit (SHA) we deployed if not ignored or not found
-    write_log "Retrieving last commit from ftp://${REMOTE_HOST}/${REMOTE_PATH}"
+    write_log "Retrieving last commit from ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     if [ $? -ne 0 ]; then
         write_info "Could not get last commit or it does not exist"
@@ -367,7 +369,7 @@ if [ $CATCHUP -ne 1 ]; then
         # File exits?
         if [ -f ${file} ]; then 
             # Uploading file
-            write_info "[${done_items} of ${total_items}] Uploading ${file} to ftp://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+            write_info "[${done_items} of ${total_items}] Uploading ${file} to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
             if [ ${DRY_RUN} -ne 1 ]; then
                 upload_file ${file}
                 check_exit_status "Could not upload"
@@ -384,7 +386,7 @@ fi
  
 # if successful, remember the SHA1 of last commit
 DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
-write_info "Uploading commit log to ftp://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+write_info "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
 if [ ${DRY_RUN} -ne 1 ]; then
     echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
     check_exit_status "Could not upload"
