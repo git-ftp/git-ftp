@@ -356,7 +356,7 @@ fi
 
 # Calculate total file count
 done_items=0
-total_items=`echo ${FILES_CHANGED} | wc -w`
+total_items=`echo "${FILES_CHANGED}" | wc -w`
 total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
