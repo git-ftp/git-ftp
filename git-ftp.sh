@@ -243,8 +243,8 @@ if [ ! -d ".git" ]; then
 fi 
 
 # Check if the git working dir is dirty
-DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l ` 
-if [ ${DIRTY_REPO} -eq 1 ]; then 
+CLEAN_REPO=`${GIT_BIN} status -uno | egrep "nothing to commit*" | wc -l` 
+if [ ${CLEAN_REPO} -ne 1 ]; then 
     write_error "Dirty Repo? Exiting..."
     release_lock
     exit 1
@@ -358,7 +358,7 @@ fi
 
 # Calculate total file count
 done_items=0
-total_items=`echo ${FILES_CHANGED} | wc -w`
+total_items=`echo "${FILES_CHANGED}" | wc -w`
 total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
