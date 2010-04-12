@@ -70,12 +70,9 @@ EOF
 exit 0
 }
 
-usage()
-{
-cat << EOF
-git ftp [<options>] <url> [<options>]
-EOF
-exit 1
+usage() {
+    echo "git ftp [<options>] <url> [<options>]"
+    exit 1
 }
 
 ask_for_passwd() {
@@ -89,7 +86,7 @@ ask_for_passwd() {
 # Checks if last comand was successful
 check_exit_status() {
     if [ $? -ne 0 ]; then
-        write_error "$1, exiting..." 
+        write_error "${1}, exiting..."
         release_lock
         exit 1
     fi
@@ -98,31 +95,31 @@ check_exit_status() {
 # Simple log func
 write_log() {
     if [ $VERBOSE -eq 1 ]; then
-        echo "`date`: $1"
+        echo "`date`: ${1}"
     fi
 }
 
 # Simple error writer
 write_error() {
     if [ $VERBOSE -eq 0 ]; then
-        echo "Fatal: $1"
+        echo "fatal: ${1}"
     else
-        write_log "Fatal: $1"
+        write_log "fatal: ${1}"
     fi
 }
 
 # Simple info writer
 write_info() {
     if [ $VERBOSE -eq 0 ]; then
-        echo "Info: $1"
+        echo "${1}"
     else
-        write_log "Info: $1"
+        write_log "${1}"
     fi
 }
 
 upload_file() {
-    source_file=${1}
-    dest_file=${2}
+    source_file="${1}"
+    dest_file="${2}"
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
@@ -141,21 +138,21 @@ get_file_content() {
 
 while test $# != 0
 do
-	case "$1" in
+	case "${1}" in
 	    -h|--h|--he|--hel|--help)
 		    usage_long
 		    ;;
         -u|--user*)
-            case "$#,$1" in
+            case "$#,${1}" in
                 *,*=*)
-                    REMOTE_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_USER=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     usage 
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_USER="$2"
+                        REMOTE_USER="${2}"
                         shift                        
                     fi
                     ;;                      
@@ -164,14 +161,14 @@ do
         -p|--passwd*)
             case "$#,$1" in
                 *,*=*)
-                    REMOTE_PASSWD=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+                    REMOTE_PASSWD=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
                     ;;
                 1,*)
                     ask_for_passwd 
                     ;;
                 *)
                     if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_PASSWD="$2"
+                        REMOTE_PASSWD="${2}"
                         shift
                     else 
                         ask_for_passwd
@@ -224,7 +221,7 @@ if [ -f "${LCK_FILE}" ]; then
         write_log "Not running"
         echo $$ > "${LCK_FILE}"
     else
-        write_log "`basename $0` is already running [${MYPID}]"
+        write_log "`basename ${0}` is already running [${MYPID}]"
         exit 0
     fi
 else
@@ -364,7 +361,7 @@ total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
 # Upload to ftp
-if [ $CATCHUP -ne 1 ]; then
+if [ ${CATCHUP} -ne 1 ]; then
     for file in ${FILES_CHANGED}; do
         done_items=$(($done_items+1))
         # File exits?
