@@ -241,8 +241,8 @@ if [ ! -d ".git" ]; then
 fi 
 
 # Check if the git working dir is dirty
-DIRTY_REPO=`${GIT_BIN} update-index --refresh | wc -l ` 
-if [ ${DIRTY_REPO} -eq 1 ]; then 
+CLEAN_REPO=`${GIT_BIN} status -uno | egrep "nothing to commit*" | wc -l` 
+if [ ${CLEAN_REPO} -ne 1 ]; then 
     write_error "Dirty Repo? Exiting..."
     release_lock
     exit 1
