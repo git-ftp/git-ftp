@@ -272,12 +272,12 @@ fi
 # Some error checks
 HAS_ERROR=0
 if [ -z ${REMOTE_HOST} ]; then
-    write_error "FTP host not set"
+    write_error "Remote host not set"
     HAS_ERROR=1
 fi
 
 if [ -z ${REMOTE_USER} ]; then
-    write_error "FTP user not set"
+    write_error "Remote user not set"
     HAS_ERROR=1
 fi
 
