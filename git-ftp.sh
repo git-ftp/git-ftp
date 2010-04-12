@@ -90,6 +90,7 @@ ask_for_passwd() {
 check_exit_status() {
     if [ $? -ne 0 ]; then
         write_error "$1, exiting..." 
+        release_lock
         exit 1
     fi
 }
