@@ -33,13 +33,13 @@ Make sure git and curl is installed.
 
 The easiest way is to use git for installing:
    
-    $ mkdir -p ~/dev/git-ftp.sh.git
-    $ cd ~/dev/git-ftp.sh.git
-    $ git clone http://github.com/resmo/git-ftp.sh.git .
+    $ mkdir -p ~/dev/git-ftp.git
+    $ cd ~/dev/git-ftp.git
+    $ git clone http://github.com/resmo/git-ftp.git .
     $ chmod 0755 git-ftp.sh
     $ mkdir ~/bin
     $ cd ~/bin/
-    $ ln -s ~/dev/git-ftp.sh.git/git-ftp.sh git-ftp
+    $ ln -s ~/dev/git-ftp.git/git-ftp.sh git-ftp
     
 After this you can use 'git ftp' or 'git-ftp'
 
@@ -48,7 +48,7 @@ Updating
 --------
 Update to the latest version is simple as:
     
-    $ cd ~/dev/git-ftp.sh.git
+    $ cd ~/dev/git-ftp.git
     $ git pull
 
 
