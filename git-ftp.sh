@@ -356,30 +356,38 @@ fi
 
 # Calculate total file count
 done_items=0
-total_items=`echo "${FILES_CHANGED}" | wc -w`
+total_items=`echo "${FILES_CHANGED}" | wc -l`
 total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
 # Upload to ftp
 if [ ${CATCHUP} -ne 1 ]; then
+
+    # Changing internal field separator, file names could have spaces
+    OIFS="${IFS}"
+    NIFS=`echo '\n$'`
+    IFS="${NIFS}"
+    
     for file in ${FILES_CHANGED}; do
         done_items=$(($done_items+1))
         # File exits?
         if [ -f ${file} ]; then 
             # Uploading file
-            write_info "[${done_items} of ${total_items}] Uploading ${file} to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+            write_info "[${done_items} of ${total_items}] Uploading '${file}' to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
             if [ ${DRY_RUN} -ne 1 ]; then
                 upload_file ${file}
                 check_exit_status "Could not upload"
             fi
         else
             # Removing file
-            write_info "[${done_items} of ${total_items}] Not existing file ${REMOTE_PATH}${file}, removing..."
+            write_info "[${done_items} of ${total_items}] Not existing file '${file}', removing..."
             if [ ${DRY_RUN} -ne 1 ]; then
                 remove_file ${file}
             fi
         fi
     done
+    
+    IFS="${OIFS}"
 fi
  
 # if successful, remember the SHA1 of last commit
