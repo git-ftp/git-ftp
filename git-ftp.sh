@@ -183,14 +183,14 @@ do
             ;;
         -c|--catchup)
             CATCHUP=1
-            write_info "Catching up, only SHA1 hash will be uploaded"
+            write_log "Catching up, only SHA1 hash will be uploaded"
             ;;
         -s|--show)
             SHOW_LOG=1
             ;;
         -D|--dry-run)
             DRY_RUN=1
-            write_info "Running dry, won't do anything"            
+            write_log "Running dry, won't do anything"            
             ;;
         -v|--verbose)
             VERBOSE=1
@@ -282,7 +282,7 @@ REMOTE_PROTOCOL=`expr "${URL}" : "\(ftp\|sftp\|ftps\).*"`
 
 # Check supported protocol
 if [ -z ${REMOTE_PROTOCOL} ]; then
-    write_info "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
+    write_log "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
     REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
 fi
 
