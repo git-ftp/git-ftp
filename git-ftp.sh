@@ -31,6 +31,7 @@ IGNORE_DEPLOYED=0
 DRY_RUN=0
 CATCHUP=0
 FORCE=0
+SHOW_LOG=0
 
 VERSION='0.0.7'
 AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
@@ -60,6 +61,7 @@ OPTIONS:
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
         -c, --catchup   Updates SHA1 hash without uploading files
+        -s, --show      Shows log of uploaded SHA1
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
         
@@ -183,6 +185,9 @@ do
             CATCHUP=1
             write_info "Catching up, only SHA1 hash will be uploaded"
             ;;
+        -s|--show)
+            SHOW_LOG=1
+            ;;
         -D|--dry-run)
             DRY_RUN=1
             write_info "Running dry, won't do anything"            
@@ -248,21 +253,6 @@ if [ ${CLEAN_REPO} -ne 1 ]; then
     exit 1
 fi 
 
-if [ ${FORCE} -ne 1 ]; then
-    # Check if are at master branch
-    CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
-    if [ "${CURRENT_BRANCH}" != "master" ]; then 
-        write_info "You are not on master branch.
-Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
-        read answer_branch
-        if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
-            write_info "Aborting..."
-            release_lock
-            exit 0
-        fi
-    fi 
-fi
-
 # Split host from url
 REMOTE_HOST=`expr "${URL}" : ".*:\/\/\([a-z0-9\.:-]*\).*"`
 if [ -z ${REMOTE_HOST} ]; then
@@ -308,6 +298,30 @@ fi
 write_log "Host is '${REMOTE_HOST}'"
 write_log "User is '${REMOTE_USER}'"
 write_log "Path is '${REMOTE_PATH}'"
+
+DEPLOYED_SHA1=""
+if [ ${SHOW_LOG} -eq 1 ]; then
+    DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
+    check_exit_status "Could not get uploaded log file"
+    ${GIT_BIN} show "${DEPLOYED_SHA1}"
+    release_lock
+    exit 0
+fi
+
+if [ ${FORCE} -ne 1 ]; then
+    # Check if are at master branch
+    CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
+    if [ "${CURRENT_BRANCH}" != "master" ]; then 
+        write_info "You are not on master branch.
+Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
+        read answer_branch
+        if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
+            write_info "Aborting..."
+            release_lock
+            exit 0
+        fi
+    fi 
+fi
 
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
