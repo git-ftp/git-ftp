@@ -125,7 +125,7 @@ upload_file() {
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
-    ${CURL_BIN} -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
+    ${CURL_BIN} -s -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
@@ -136,6 +136,16 @@ remove_file() {
 get_file_content() {
     source_file=${1}
     ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
+}
+
+upload_local_sha1() {
+    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
+    write_log "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+    if [ ${DRY_RUN} -ne 1 ]; then
+        echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
+        check_exit_status "Could not upload"
+    fi
+    write_info "Last deployment changed to ${DEPLOYED_SHA1}";
 }
 
 while test $# != 0
@@ -323,6 +333,12 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
     fi 
 fi
 
+if [ ${CATCHUP} -eq 1 ]; then
+    upload_local_sha1
+    release_lock
+    exit 0
+fi 
+
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
     # Get the last commit (SHA) we deployed if not ignored or not found
@@ -374,44 +390,35 @@ total_items=`echo "${FILES_CHANGED}" | wc -l`
 total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
-# Upload to ftp
-if [ ${CATCHUP} -ne 1 ]; then
+# Changing internal field separator, file names could have spaces
+OIFS="${IFS}"
+NIFS=`echo '\n$'`
+IFS="${NIFS}"
 
-    # Changing internal field separator, file names could have spaces
-    OIFS="${IFS}"
-    NIFS=`echo '\n$'`
-    IFS="${NIFS}"
-    
-    for file in ${FILES_CHANGED}; do
-        done_items=$(($done_items+1))
-        # File exits?
-        if [ -f ${file} ]; then 
-            # Uploading file
-            write_info "[${done_items} of ${total_items}] Uploading '${file}' to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
-            if [ ${DRY_RUN} -ne 1 ]; then
-                upload_file ${file}
-                check_exit_status "Could not upload"
-            fi
-        else
-            # Removing file
-            write_info "[${done_items} of ${total_items}] Not existing file '${file}', removing..."
-            if [ ${DRY_RUN} -ne 1 ]; then
-                remove_file ${file}
-            fi
+# Upload to ftp
+for file in ${FILES_CHANGED}; do
+    done_items=$(($done_items+1))
+    # File exits?
+    if [ -f ${file} ]; then 
+        # Uploading file
+        write_info "[${done_items} of ${total_items}] Uploading '${file}' to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+        if [ ${DRY_RUN} -ne 1 ]; then
+            upload_file ${file}
+            check_exit_status "Could not upload"
         fi
-    done
-    
-    IFS="${OIFS}"
-fi
+    else
+        # Removing file
+        write_info "[${done_items} of ${total_items}] Not existing file '${file}', removing..."
+        if [ ${DRY_RUN} -ne 1 ]; then
+            remove_file ${file}
+        fi
+    fi
+done
+
+IFS="${OIFS}"
  
 # if successful, remember the SHA1 of last commit
-DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
-write_info "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
-if [ ${DRY_RUN} -ne 1 ]; then
-    echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
-    check_exit_status "Could not upload"
-fi
-write_log "Last deployment changed to ${DEPLOYED_SHA1}";
+upload_local_sha1
 
 # ------------------------------------------------------------
 # Cleanup
