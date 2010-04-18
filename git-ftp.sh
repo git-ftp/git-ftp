@@ -178,7 +178,7 @@ upload_local_sha1() {
     write_info "Last deployment changed to ${DEPLOYED_SHA1}";
 }
 
-# Set action
+# Handle action
 case "${1}" in
     push)
         ACTION="${1}"
@@ -193,7 +193,6 @@ case "${1}" in
         usage_long | less
         ;;
 esac
-shift
 
 if [ "${ACTION}" = "" ]; then
     usage
@@ -202,6 +201,8 @@ fi
 
 while test $# != 0
 do
+    shift # First arg was action
+    
 	case "${1}" in
 	    -h|--h|--he|--hel|--help)
 		    usage_long | less
@@ -259,7 +260,6 @@ do
             URL=${1}
             ;;
     esac
-    shift
 done
 
 # Release lock func
