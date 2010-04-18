@@ -64,6 +64,8 @@ ACTIONS
                 
                 This is useful if you used another FTP client to upload the 
                 files and now want to remember the SHA1.
+        . help
+                Shows this help
 
 
 URL
@@ -74,7 +76,7 @@ URL
 
 
 OPTIONS
-        -h, --help      Show this message
+        -h, --help      Show this help
         -u, --user      FTP login name
         -p, --passwd    FTP password
         -D, --dry-run   Dry run: Does not upload anything
