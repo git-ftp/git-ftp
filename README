@@ -55,13 +55,13 @@ Update to the latest version is simple as:
 Usage
 -----
     $ cd my_git_tracked_project
-    $ git ftp ftp://host.example.com/public_html --user <user> -p <password>
+    $ git ftp push ftp://host.example.com/public_html --user <user> -p <password>
     
 For interactive password prompt use:
-    $ git ftp ftp://host.example.com/public_html --user <user> -p
+    $ git ftp push ftp://host.example.com/public_html --user <user> -p
     
 For more options see:
-    $ git ftp -h
+    $ git ftp help
 
 
 Contributions
