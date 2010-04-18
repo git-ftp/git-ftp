@@ -29,9 +29,8 @@ REMOTE_PATH=""
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
-CATCHUP=0
 FORCE=0
-SHOW_LOG=0
+ACTION=""
 
 VERSION='0.0.7'
 AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
@@ -40,13 +39,31 @@ usage_long()
 {
 cat << EOF
 USAGE: 
-        git ftp [<options>] <url> [<options>]
+        git-ftp <action> [<options>] <url> [<options>]
 
 DESCRIPTION:
-        Uploads all files which have changed since last upload. 
-
+        git-ftp does FTP the GIT way. 
+        
+        It uses GIT to find out which files are different of the uploaded files 
+        and let you save time and bandwith by uploading only those files.
+        
+        It remembers the deployed state by uploading the SHA1 in a log file.  
+        
         Version $VERSION
         Authors $AUTHORS
+        
+ACTIONS:
+        . push
+                Uploads git tracked files which have changed since last upload.
+                
+        . show
+                Gets last uploaded SHA1 from log and hooks git show.
+                
+        . catchup
+                Uploads the current SHA1 to the log, does not upload any files. 
+                
+                This is useful if you used another FTP client to upload the 
+                files and now want to remember the SHA1.
 
 URL:
         . FTP (default) host.example.com[:<port>][/<remote path>]
@@ -60,20 +77,18 @@ OPTIONS:
         -p, --passwd    FTP password
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
-        -c, --catchup   Updates SHA1 hash without uploading files
-        -s, --show      Shows log of uploaded SHA1
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
         
 EXAMPLES:
-        .   git ftp -u john ftp://ftp.example.com:4445/public_ftp -p -v
-        .   git ftp -p -u john -v ftp.example.com:4445:/public_ftp 
+        .   git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
+        .   git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp 
 EOF
 exit 0
 }
 
 usage() {
-    echo "git ftp [<options>] <url> [<options>]"
+    echo "git-ftp <action> [<options>] <url> [<options>]"
     exit 1
 }
 
@@ -148,11 +163,33 @@ upload_local_sha1() {
     write_info "Last deployment changed to ${DEPLOYED_SHA1}";
 }
 
+# Set action
+case "${1}" in
+    push)
+        ACTION="${1}"
+        ;;
+    catchup)
+        ACTION="${1}"
+        ;;
+    show)
+        ACTION="${1}"
+        ;;
+    help)
+        usage_long | less
+        ;;
+esac
+shift
+
+if [ "${ACTION}" = "" ]; then
+    usage
+    exit 1
+fi
+
 while test $# != 0
 do
 	case "${1}" in
 	    -h|--h|--he|--hel|--help)
-		    usage_long
+		    usage_long | less
 		    ;;
         -u|--user*)
             case "$#,${1}" in
@@ -190,13 +227,6 @@ do
             ;;
         -a|--all)
             IGNORE_DEPLOYED=1
-            ;;
-        -c|--catchup)
-            CATCHUP=1
-            write_log "Catching up, only SHA1 hash will be uploaded"
-            ;;
-        -s|--show)
-            SHOW_LOG=1
             ;;
         -D|--dry-run)
             DRY_RUN=1
@@ -255,13 +285,15 @@ if [ ! -d ".git" ]; then
     exit 1
 fi 
 
-# Check if the git working dir is dirty
-CLEAN_REPO=`${GIT_BIN} status -uno | egrep "nothing to commit*" | wc -l` 
-if [ ${CLEAN_REPO} -ne 1 ]; then 
-    write_error "Dirty Repo? Exiting..."
-    release_lock
-    exit 1
-fi 
+# Check if the git working dir is dirty, except for show action
+if [ "${ACTION}" != "show" ]; then
+    CLEAN_REPO=`${GIT_BIN} status -uno | egrep "nothing to commit*" | wc -l` 
+    if [ ${CLEAN_REPO} -ne 1 ]; then 
+        write_error "Dirty Repo? Exiting..."
+        release_lock
+        exit 1
+    fi
+fi
 
 # Split host from url
 REMOTE_HOST=`expr "${URL}" : ".*:\/\/\([a-z0-9\.:-]*\).*"`
@@ -310,7 +342,7 @@ write_log "User is '${REMOTE_USER}'"
 write_log "Path is '${REMOTE_PATH}'"
 
 DEPLOYED_SHA1=""
-if [ ${SHOW_LOG} -eq 1 ]; then
+if [ "${ACTION}" = "show" ]; then
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     check_exit_status "Could not get uploaded log file"
     ${GIT_BIN} show "${DEPLOYED_SHA1}"
@@ -333,7 +365,7 @@ Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
     fi 
 fi
 
-if [ ${CATCHUP} -eq 1 ]; then
+if [ "${ACTION}" = "catchup" ]; then
     upload_local_sha1
     release_lock
     exit 0
