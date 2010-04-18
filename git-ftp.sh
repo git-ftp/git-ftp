@@ -355,6 +355,7 @@ fi
 write_log "Host is '${REMOTE_HOST}'"
 write_log "User is '${REMOTE_USER}'"
 write_log "Path is '${REMOTE_PATH}'"
+write_log "Action is '${ACTION}'"
 
 DEPLOYED_SHA1=""
 if [ "${ACTION}" = "show" ]; then
@@ -369,8 +370,8 @@ if [ ${FORCE} -ne 1 ]; then
     # Check if are at master branch
     CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
     if [ "${CURRENT_BRANCH}" != "master" ]; then 
-        write_info "You are not on master branch.
-Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n]"
+        write_info "You are not on master branch."
+        echo -n "Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n] "
         read answer_branch
         if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
             write_info "Aborting..."
@@ -404,8 +405,8 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
     if [ $? -ne 0 ]; then
         if [ ${FORCE} -ne 1 ]; then
-        write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date. 
-Do you want to ignore and upload all files again? [y/N]"
+        write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+        echo -n "Do you want to ignore and upload all files again? [y/N] "
         read answer_state
         if [ "${answer_state}" != "y" ] && [ "${answer_state}" != "Y" ]; then
             write_info "Aborting..."
