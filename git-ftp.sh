@@ -201,8 +201,6 @@ fi
 
 while test $# != 0
 do
-    shift # First arg was action
-    
 	case "${1}" in
 	    -h|--h|--he|--hel|--help)
 		    usage_long | less
@@ -260,6 +258,7 @@ do
             URL=${1}
             ;;
     esac
+    shift
 done
 
 # Release lock func
