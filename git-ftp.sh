@@ -32,7 +32,7 @@ DRY_RUN=0
 FORCE=0
 ACTION=""
 
-VERSION='0.0.7'
+VERSION='0.0.8'
 AUTHORS='Rene Moser <mail@renemoser.net>'
 CONTRIBUTORS='Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
  
