@@ -33,26 +33,26 @@ FORCE=0
 ACTION=""
 
 VERSION='0.0.7'
-AUTHORS='Rene Moser <mail@renemoser.net>, Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
+AUTHORS='Rene Moser <mail@renemoser.net>'
+CONTRIBUTORS='Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
  
 usage_long()
 {
 cat << EOF
-USAGE: 
+USAGE
         git-ftp <action> [<options>] <url> [<options>]
 
-DESCRIPTION:
+
+DESCRIPTION
         git-ftp does FTP the GIT way. 
         
         It uses GIT to find out which files are different of the uploaded files 
         and let you save time and bandwith by uploading only those files.
         
-        It remembers the deployed state by uploading the SHA1 in a log file.  
+        It remembers the deployed state by uploading the SHA1 in a log file.
         
-        Version $VERSION
-        Authors $AUTHORS
-        
-ACTIONS:
+
+ACTIONS
         . push
                 Uploads git tracked files which have changed since last upload.
                 
@@ -65,13 +65,15 @@ ACTIONS:
                 This is useful if you used another FTP client to upload the 
                 files and now want to remember the SHA1.
 
-URL:
+
+URL
         . FTP (default) host.example.com[:<port>][/<remote path>]
         . FTP           ftp://host.example.com[:<port>][/<remote path>]
         . SFTP          sftp://host.example.com[:<port>][/<remote path>]
         . FTPS          ftps://host.example.com[:<port>][/<remote path>]
 
-OPTIONS:
+
+OPTIONS
         -h, --help      Show this message
         -u, --user      FTP login name
         -p, --passwd    FTP password
@@ -80,9 +82,22 @@ OPTIONS:
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
         
-EXAMPLES:
+
+EXAMPLES
         .   git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
         .   git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp 
+
+
+VERSION
+        $VERSION
+
+
+AUTHORS
+        $AUTHORS
+
+
+CONTRIBUTORS
+        $CONTRIBUTORS
 EOF
 exit 0
 }
