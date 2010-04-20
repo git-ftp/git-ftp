@@ -38,7 +38,7 @@ CONTRIBUTORS='Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign
  
 usage_long()
 {
-cat << EOF
+less << EOF
 USAGE
         git-ftp <action> [<options>] <url> [<options>]
 
@@ -192,7 +192,7 @@ case "${1}" in
         ACTION="${1}"
         ;;
     help)
-        usage_long | less
+        usage_long
         ;;
 esac
 
@@ -205,7 +205,7 @@ while test $# != 0
 do
 	case "${1}" in
 	    -h|--h|--he|--hel|--help)
-		    usage_long | less
+		    usage_long
 		    ;;
         -u|--user*)
             case "$#,${1}" in
