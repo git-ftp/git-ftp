@@ -171,7 +171,7 @@ get_file_content() {
 }
 
 upload_local_sha1() {
-    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=%H`
+    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=format:%H`
     write_log "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
     if [ ${DRY_RUN} -ne 1 ]; then
         echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
