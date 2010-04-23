@@ -400,7 +400,7 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
 fi
 
 if [ "${DEPLOYED_SHA1}" != "" ]; then
-    write_log "Last deployed SHA1 for ${REMOTE_HOST} is ${DEPLOYED_SHA1}"
+    write_log "Last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
     FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
@@ -424,12 +424,12 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
     else 
-        write_info "No changed files for ${REMOTE_HOST}. Everything up-to-date."
+        write_info "No changed files for ${REMOTE_HOST}/${REMOTE_PATH}. Everything up-to-date."
         release_lock
         exit 0
     fi
 else 
-    write_log "No last deployed SHA1 for ${REMOTE_HOST} found or forced to take all files"
+    write_log "No last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} found or forced to take all files"
     FILES_CHANGED="`${GIT_BIN} ls-files`"
 fi
 
@@ -450,14 +450,14 @@ for file in ${FILES_CHANGED}; do
     # File exits?
     if [ -f ${file} ]; then 
         # Uploading file
-        write_info "[${done_items} of ${total_items}] Uploading '${file}' to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${file}"
+        write_info "[${done_items} of ${total_items}] Uploading '${file}'"
         if [ ${DRY_RUN} -ne 1 ]; then
             upload_file ${file}
             check_exit_status "Could not upload"
         fi
     else
         # Removing file
-        write_info "[${done_items} of ${total_items}] Not existing file '${file}', removing..."
+        write_info "[${done_items} of ${total_items}] Removing not existing file '${file}'"
         if [ ${DRY_RUN} -ne 1 ]; then
             remove_file ${file}
         fi
