@@ -13,8 +13,6 @@
 # General config
 DEFAULT_PROTOCOL="ftp"
 DEPLOYED_SHA1_FILE=".git-ftp.log"
-GIT_BIN="/usr/bin/git"
-CURL_BIN="/usr/bin/curl"
 LCK_FILE="`basename $0`.lck"
 
 # ------------------------------------------------------------
@@ -157,21 +155,21 @@ upload_file() {
     if [ -z ${dest_file} ]; then
         dest_file=${source_file}
     fi
-    ${CURL_BIN} -s -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
+    curl -s -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
     file=${1}
-    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ${REMOTE_PROTOCOL}://${REMOTE_HOST} > /dev/null 2>&1
+    curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ${REMOTE_PROTOCOL}://${REMOTE_HOST} > /dev/null 2>&1
 }
 
 get_file_content() {
     source_file=${1}
-    ${CURL_BIN} -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
+    curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
 }
 
 upload_local_sha1() {
-    DEPLOYED_SHA1=`${GIT_BIN} log -n 1 --pretty=format:%H`
+    DEPLOYED_SHA1=`git log -n 1 --pretty=format:%H`
     write_log "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
     if [ ${DRY_RUN} -ne 1 ]; then
         echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
@@ -303,7 +301,7 @@ fi
 
 # Check if the git working dir is dirty, except for show action
 if [ "${ACTION}" != "show" ]; then
-    CLEAN_REPO=`${GIT_BIN} status -uno | egrep "nothing to commit*" | wc -l` 
+    CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l` 
     if [ ${CLEAN_REPO} -ne 1 ]; then 
         write_error "Dirty Repo? Exiting..."
         release_lock
@@ -362,14 +360,14 @@ DEPLOYED_SHA1=""
 if [ "${ACTION}" = "show" ]; then
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     check_exit_status "Could not get uploaded log file"
-    ${GIT_BIN} show "${DEPLOYED_SHA1}"
+    git show "${DEPLOYED_SHA1}"
     release_lock
     exit 0
 fi
 
 if [ ${FORCE} -ne 1 ]; then
     # Check if are at master branch
-    CURRENT_BRANCH="`${GIT_BIN} branch | grep '*' | cut -d ' ' -f 2`" 
+    CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`" 
     if [ "${CURRENT_BRANCH}" != "master" ]; then 
         write_info "You are not on master branch."
         echo -n "Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n] "
@@ -403,7 +401,7 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     write_log "Last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
-    FILES_CHANGED="`${GIT_BIN} diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
+    FILES_CHANGED="`git diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`" 
     if [ $? -ne 0 ]; then
         if [ ${FORCE} -ne 1 ]; then
         write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -415,11 +413,11 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
             exit 0
         else
             write_log "Taking all files";
-            FILES_CHANGED="`${GIT_BIN} ls-files`"
+            FILES_CHANGED="`git ls-files`"
         fi
         else 
             write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-            FILES_CHANGED="`${GIT_BIN} ls-files`"
+            FILES_CHANGED="`git ls-files`"
         fi    
     elif [ "${FILES_CHANGED}" != "" ]; then 
         write_log "Having changed files";
@@ -430,7 +428,7 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     fi
 else 
     write_log "No last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} found or forced to take all files"
-    FILES_CHANGED="`${GIT_BIN} ls-files`"
+    FILES_CHANGED="`git ls-files`"
 fi
 
 # Calculate total file count
