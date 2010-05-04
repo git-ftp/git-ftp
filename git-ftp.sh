@@ -229,6 +229,12 @@ release_remote_lock() {
     remove_file ${REMOTE_LCK_FILE}
 }
 
+# Release lock func
+release_lock() {
+    write_log "Releasing lock"
+    rm -f "${LCK_FILE}"
+}
+
 # Handle action
 case "${1}" in
     push)
@@ -320,12 +326,6 @@ do
     esac
     shift
 done
-
-# Release lock func
-release_lock() {
-    write_log "Releasing lock"
-    rm -f "${LCK_FILE}"
-}
 
 # Checks locking, make sure this only run once a time
 if [ -f "${LCK_FILE}" ]; then
