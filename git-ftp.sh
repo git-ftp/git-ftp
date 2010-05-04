@@ -14,6 +14,7 @@
 DEFAULT_PROTOCOL="ftp"
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 LCK_FILE="`basename $0`.lck"
+REMOTE_LCK_FILE="`basename $0`.lck"
 
 # ------------------------------------------------------------
 # Defaults
@@ -29,6 +30,7 @@ IGNORE_DEPLOYED=0
 DRY_RUN=0
 FORCE=0
 ACTION=""
+ENABLE_REMOTE_LCK=0
 
 VERSION='0.0.8'
 AUTHORS='Rene Moser <mail@renemoser.net>'
@@ -79,6 +81,7 @@ OPTIONS
         -p, --passwd    FTP password
         -D, --dry-run   Dry run: Does not upload anything
         -a, --all       Uploads all files, ignores deployed SHA1 hash
+        -l, --lock      Enable/Disable remote locking
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
         
@@ -178,6 +181,54 @@ upload_local_sha1() {
     write_info "Last deployment changed to ${DEPLOYED_SHA1}";
 }
 
+check_remote_lock() {
+    if [ ${FORCE} -ne 0 ]; then
+        return;
+    fi
+
+    write_log "Checking remote lock"
+    lck_content="`get_file_content ${REMOTE_LCK_FILE} 2>/dev/null`"
+    if [ "${lck_content}" != "" ]; then
+        lck_sha1=`echo "${lck_content}" | head -n 1`
+        write_log "Remote lock sha1 ${lck_sha1}"
+        local_sha1=`git log -n 1 --pretty=format:%H`
+        write_log "Local sha1 ${local_sha1}"
+        if [ "${lck_sha1}" != "${local_sha1}" ]; then
+            lck_user=`echo "${lck_content}" | tail -n 1`
+            write_error "Remote locked by ${lck_user}"
+            release_lock
+            exit 1
+        fi
+    fi
+}
+
+remote_lock() {
+    if [ ${ENABLE_REMOTE_LCK} -ne 1 ]; then
+        return;
+    fi
+
+    check_remote_lock
+
+    local_sha1="`git log -n 1 --pretty=format:%H`"
+    local_hostname="`hostname --fqdn`"
+    date_utc="`date --utc --rfc-2822`"
+    lck_message="${USER}@${local_hostname} on ${date_utc}"
+
+    write_log "Remote locking ${lck_message}"
+    if [ ${DRY_RUN} -ne 1 ]; then
+        echo "${local_sha1}\n${lck_message}" | upload_file - ${REMOTE_LCK_FILE}
+        check_exit_status "Could not upload remote lock file"
+    fi
+}
+
+release_remote_lock() {
+    if [ ${ENABLE_REMOTE_LCK} != 1 ]; then
+        return;
+    fi
+    write_log "Releasing remote lock"
+    remove_file ${REMOTE_LCK_FILE}
+}
+
 # Handle action
 case "${1}" in
     push)
@@ -241,6 +292,15 @@ do
             ;;
         -a|--all)
             IGNORE_DEPLOYED=1
+            ;;
+        -l|--lock)
+            if [ ${ENABLE_REMOTE_LCK} -ne 1 ]; then
+                write_log "Enabling remote locking feature"
+                ENABLE_REMOTE_LCK=1
+            else
+                write_log "Disabling remote locking feature"
+                ENABLE_REMOTE_LCK=0
+            fi
             ;;
         -D|--dry-run)
             DRY_RUN=1
@@ -437,6 +497,9 @@ total_items=`echo "${FILES_CHANGED}" | wc -l`
 total_items=$((total_items+0)) # trims whitespaces produced by wc
 write_log "There are ${total_items} changed files"
 
+# Uploack remote lock file if enabled
+remote_lock
+
 # Changing internal field separator, file names could have spaces
 OIFS="${IFS}"
 NIFS=`echo '\n$'`
@@ -470,6 +533,7 @@ upload_local_sha1
 # ------------------------------------------------------------
 # Cleanup
 # ------------------------------------------------------------
+release_remote_lock
 release_lock
 
 # ------------------------------------------------------------
