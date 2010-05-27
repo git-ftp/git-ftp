@@ -84,6 +84,7 @@ OPTIONS
         -l, --lock      Enable/Disable remote locking
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
+        --version       Prints version
         
 
 EXAMPLES
@@ -313,7 +314,11 @@ do
         -f|--force)
             FORCE=1
             write_log "Forced mode enabled"
-            ;;		
+            ;;
+        --version)
+            echo "${VERSION}"
+            exit 0
+            ;;
         *)
             # Pass thru anything that may be meant for fetch.
             URL=${1}
