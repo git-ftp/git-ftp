@@ -13,7 +13,7 @@
   <!ENTITY dhsection   "1">
   <!-- TITLE should be something like "User commands" or similar (see
        http://www.tldp.org/HOWTO/Man-Page/q2.html). -->
-  <!ENTITY dhtitle     "git-ftp User Manual">
+  <!ENTITY dhtitle     "User Manual of git-ftp">
   <!ENTITY dhucpackage "GIT-FTP">
   <!ENTITY dhpackage   "git-ftp">
 ]>
@@ -54,7 +54,7 @@
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
-    <refpurpose>It does FTP the GIT way</refpurpose>
+    <refpurpose>It does FTP the git way</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -91,22 +91,53 @@
   </refsynopsisdiv>
   <refsect1 id="description">
     <title>DESCRIPTION</title>
-    <para>This manual page documents briefly the
-      <command>&dhpackage;</command> and <command>bar</command>
-      commands.</para>
-    <para>This manual page was written for the Debian distribution
-      because the original program does not have a manual page.</para>
-    <para><command>&dhpackage;</command> is a program that...</para>
+    <para>This manual page documents briefly the <command>&dhpackage;</command></para>
+    <para><command>&dhpackage;</command> is a program that does FTP with help of git. Instead 
+    of always uploading all files, it uploads only those git tracked files to a FTP server, 
+    which have changed since the last upload. This saves time and bandwith.</para>
+    <para>This is useful if you only have access to the server by FTP. There is no need for 
+    git to be installed on the server.</para>
+    <para>Even if you play with different branches, <command>&dhpackage;</command> knows 
+    which files are different and only uploads those files, no ordinary FTP client can do that.</para>
+    <para>It remembers the deployed state by uploading the SHA1 in a log file.</para>
+  </refsect1>
+  <refsect1 id="actions">
+    <title>ACTIONS</title>
+    <variablelist>
+      <varlistentry>
+        <term><option>push</option></term>
+        <listitem>
+          <para>Uploads git tracked files which have changed since last upload.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>show</option></term>
+        <listitem>
+          <para>Gets last uploaded SHA1 from log and hooks git show.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>catchup</option></term>
+        <listitem>
+          <para>Uploads the current SHA1 to the log, does not upload any files.</para>
+          <para>This is useful if you used another FTP client to upload the files and 
+          now want to remember the SHA1.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>help</option></term>
+        <listitem>
+          <para>Shows some help informations.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
   </refsect1>
   <refsect1 id="options">
     <title>OPTIONS</title>
     <para>The program follows the usual GNU command line syntax,
       with long options starting with two dashes (`-').  A summary of
-      options is included below.
+      options is included below.</para>
     <variablelist>
-      <!-- Use the variablelist.term.separator and the
-           variablelist.term.break.after parameters to
-           control the term elements. -->
       <varlistentry>
         <term><option>-u <replaceable>username</replaceable></option></term>
         <term><option>--username=<replaceable>username</replaceable></option></term>
@@ -129,7 +160,34 @@
         </listitem>
       </varlistentry>
       <varlistentry>
+        <term><option>-a</option></term>
+        <term><option>--all</option></term>
+        <listitem>
+          <para>Upload all files.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-f</option></term>
+        <term><option>--force</option></term>
+        <listitem>
+          <para>Do not ask, just do.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><option>-D</option></term>
+        <term><option>--dry-run</option></term>
+        <listitem>
+          <para>Say what you would do, but do nothing</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>-v</option></term>
+        <term><option>--verbose</option></term>
+        <listitem>
+          <para>Be verbosy.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>--version</option></term>
         <listitem>
           <para>Show version of program.</para>
@@ -137,41 +195,34 @@
       </varlistentry>
     </variablelist>
   </refsect1>
-  <refsect1 id="files">
-    <title>FILES</title>
+  <refsect1 id="url">
+    <title>URL</title>
     <variablelist>
       <varlistentry>
-        <term><filename>/etc/foo.conf</filename></term>
+        <term>
+            <option>ftp.example.com<arg choice="opt">:<replaceable>port</replaceable></arg><arg choice="opt">/<replaceable>path</replaceable></arg></option>
+        </term>
+        <term>
+            <option>ftp://ftp.example.com<arg choice="opt">:<replaceable>port</replaceable></arg><arg choice="opt">/<replaceable>path</replaceable></arg></option>
+        </term>
         <listitem>
-          <para>The system-wide configuration file to control the
-            behaviour of <application>&dhpackage;</application>. See
-            <citerefentry>
-              <refentrytitle>foo.conf</refentrytitle>
-              <manvolnum>5</manvolnum>
-            </citerefentry> for further details.</para>
+          <para>Use FTP protocol</para>
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><filename>${HOME}/.foo.conf</filename></term>
+        <term>
+            <option>sftp://ftp.example.com<arg choice="opt">:<replaceable>port</replaceable></arg><arg choice="opt">/<replaceable>path</replaceable></arg></option>
+        </term>
         <listitem>
-          <para>The per-user configuration file to control the
-             behaviour of <application>&dhpackage;</application>. See
-             <citerefentry>
-               <refentrytitle>foo.conf</refentrytitle>
-               <manvolnum>5</manvolnum>
-             </citerefentry> for further details.</para>
+          <para>Use SFTP protocol</para>
         </listitem>
       </varlistentry>
-    </variablelist>
-  </refsect1>
-  <refsect1 id="environment">
-    <title>ENVIONMENT</title>
-    <variablelist>
       <varlistentry>
-        <term><envar>FOO_CONF</envar></term>
+        <term>
+            <option>ftps://ftp.example.com<arg choice="opt">:<replaceable>port</replaceable></arg><arg choice="opt">/<replaceable>path</replaceable></arg></option>
+        </term>
         <listitem>
-          <para>If used, the defined file is used as configuration
-            file (see also <xref linkend="files"/>).</para>
+          <para>Use FTPS protocol</para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -182,11 +233,9 @@
       on <filename class="devicefile">stderr</filename>:</para>
     <variablelist>
       <varlistentry>
-        <term><errortext>Bad configuration file. Exiting.</errortext></term>
+        <term><errortext>Not a git project.</errortext></term>
         <listitem>
-          <para>The configuration file seems to contain a broken configuration
-            line. Use the <option>--verbose</option> option, to get more info.
-          </para>
+          <para><command>&dhpackage;</command> should be performed in your git project direcotry</para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -201,7 +250,7 @@
       </seglistitem>
       <seglistitem>
         <seg><errorcode>1</errorcode></seg>
-        <seg>The configuration file seems to be broken.</seg>
+        <seg>An error occured.</seg>
       </seglistitem>
     </segmentedlist>
   </refsect1>
@@ -210,25 +259,6 @@
     <title>BUGS</title>
     <para>The upstreams <acronym>BTS</acronym> can be found
       at <ulink url="http://github.com/resmo/git-ftp/issues"/>.</para>
-  </refsect1>
-  <refsect1 id="see_also">
-    <title>SEE ALSO</title>
-    <!-- In alpabetical order. -->
-    <para><citerefentry>
-        <refentrytitle>bar</refentrytitle>
-        <manvolnum>1</manvolnum>
-      </citerefentry>, <citerefentry>
-        <refentrytitle>baz</refentrytitle>
-        <manvolnum>1</manvolnum>
-      </citerefentry>, <citerefentry>
-        <refentrytitle>foo.conf</refentrytitle>
-        <manvolnum>5</manvolnum>
-      </citerefentry></para>
-    <para>The programs are documented fully by <citetitle>The Rise and
-      Fall of a Fooish Bar</citetitle> available via the <citerefentry>
-        <refentrytitle>info</refentrytitle>
-        <manvolnum>1</manvolnum>
-      </citerefentry> system.</para>
   </refsect1>
 </refentry>
 
