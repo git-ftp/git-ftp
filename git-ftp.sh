@@ -251,11 +251,6 @@ case "${1}" in
         ;;
 esac
 
-if [ "${ACTION}" = "" ]; then
-    usage
-    exit 1
-fi
-
 while test $# != 0
 do
 	case "${1}" in
@@ -326,6 +321,11 @@ do
     esac
     shift
 done
+
+if [ "${ACTION}" = "" ]; then
+    usage
+    exit 1
+fi
 
 # Checks locking, make sure this only run once a time
 if [ -f "${LCK_FILE}" ]; then
