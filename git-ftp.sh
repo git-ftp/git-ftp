@@ -84,6 +84,7 @@ OPTIONS
         -l, --lock      Enable/Disable remote locking
         -f, --force     Force, does not ask questions
         -v, --verbose   Verbose
+        --version       Prints version
         
 
 EXAMPLES
@@ -251,11 +252,6 @@ case "${1}" in
         ;;
 esac
 
-if [ "${ACTION}" = "" ]; then
-    usage
-    exit 1
-fi
-
 while test $# != 0
 do
 	case "${1}" in
@@ -318,7 +314,11 @@ do
         -f|--force)
             FORCE=1
             write_log "Forced mode enabled"
-            ;;		
+            ;;
+        --version)
+            echo "${VERSION}"
+            exit 0
+            ;;
         *)
             # Pass thru anything that may be meant for fetch.
             URL=${1}
@@ -326,6 +326,11 @@ do
     esac
     shift
 done
+
+if [ "${ACTION}" = "" ]; then
+    usage
+    exit 1
+fi
 
 # Checks locking, make sure this only run once a time
 if [ -f "${LCK_FILE}" ]; then
