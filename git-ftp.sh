@@ -375,7 +375,7 @@ if [ "${ACTION}" != "show" ]; then
 fi
 
 # Split host from url
-REMOTE_HOST=`expr "${URL}" : ".*:\/\/\([a-z0-9\.:-]*\).*"`
+REMOTE_HOST=`expr "${URL}" : ".*://\([a-z0-9\.:-]*\).*"`
 if [ -z ${REMOTE_HOST} ]; then
     REMOTE_HOST=`expr "${URL}" : "^\([a-z0-9\.:-]*\).*"`
 fi
@@ -399,16 +399,23 @@ if [ ${HAS_ERROR} -ne 0 ]; then
 fi
 
 # Split protocol from url 
-REMOTE_PROTOCOL=`expr "${URL}" : "\(ftp\|sftp\|ftps\).*"`
+REMOTE_PROTOCOL=`expr "${URL}" : "^\(ftp\|sftp\|ftps\)://.*"`
 
-# Check supported protocol
+# Handle supported protocols and remote path
 if [ -z ${REMOTE_PROTOCOL} ]; then
-    write_log "Protocol unknown or not set, using default protocol '${DEFAULT_PROTOCOL}'"
-    REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
+    UNKNOWN_PROTOCOL=`expr "${URL}" : "^\(.*:[/]*\).*"`
+    if [ -z ${UNKNOWN_PROTOCOL} ]; then
+        write_log "Protocol not set, using default protocol ${DEFAULT_PROTOCOL}://"
+        REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
+        REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 2-`
+    else
+        write_error "Protocol unknown '${UNKNOWN_PROTOCOL}'"
+        release_lock
+        exit 1
+    fi
+else
+    REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 4-`
 fi
-
-# Split remote path from url
-REMOTE_PATH=`expr "${URL}" : ".*\.[a-z0-9:]*\/\(.*\)"`
 
 # Add trailing slash if missing 
 if [ ! -z ${REMOTE_PATH} ] && [ `echo "${REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
