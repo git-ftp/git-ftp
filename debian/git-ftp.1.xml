@@ -62,12 +62,8 @@
       <arg choice="plain"><option>action</option></arg>
       <arg choice="opt">
         <group choice="req">
-          <arg choice="plain"><option>-u <replaceable>username</replaceable></option></arg>
-          <arg choice="plain"><option>--user=<replaceable>username</replaceable></option></arg>
-        </group>
-        <group choice="req">
-          <arg choice="plain"><option>-p <replaceable>password</replaceable></option></arg>
-          <arg choice="plain"><option>--passwd=<replaceable>password</replaceable></option></arg>
+          <arg choice="plain"><option>option <replaceable>option</replaceable></option></arg>
+          <arg choice="plain"><option>--option=<replaceable>option</replaceable></option></arg>
         </group>
       </arg>
        <arg choice="plain"><option>url</option></arg>
@@ -174,6 +170,13 @@
         </listitem>
       </varlistentry>
       <varlistentry>
+        <term><option>-l</option></term>
+        <term><option>--lock</option></term>
+        <listitem>
+          <para>Enable remote lock.</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
         <term><option>-D</option></term>
         <term><option>--dry-run</option></term>
         <listitem>
@@ -236,6 +239,12 @@
         <term><errortext>Not a git project.</errortext></term>
         <listitem>
           <para><command>&dhpackage;</command> should be performed in your git project direcotry</para>
+        </listitem>
+      </varlistentry>
+      <varlistentry>
+        <term><errortext>Protocol unknown '...'</errortext></term>
+        <listitem>
+          <para>You use an unknown protocol in URL</para>
         </listitem>
       </varlistentry>
     </variablelist>
