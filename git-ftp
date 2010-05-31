@@ -33,7 +33,7 @@ ACTION=""
 ENABLE_REMOTE_LCK=0
 
 VERSION='0.0.8'
-AUTHORS='Rene Moser <mail@renemoser.net>'
+AUTHORS='René Moser <mail@renemoser.net>'
 CONTRIBUTORS='Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
  
 usage_long()
