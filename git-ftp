@@ -40,7 +40,7 @@ usage_long()
 {
 less << EOF
 USAGE
-        git-ftp <action> [<options>] <url> [<options>]
+        git-ftp <action> [<options>] <url>
 
 
 DESCRIPTION
@@ -107,7 +107,7 @@ exit 0
 }
 
 usage() {
-    echo "git-ftp <action> [<options>] <url> [<options>]"
+    echo "git-ftp <action> [<options>] <url>"
     exit 1
 }
 
