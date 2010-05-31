@@ -11,7 +11,7 @@ override_dh_auto_build:
 	--param man.charmap.use.subset 0 \
 	-o debian/ \
 	http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl \
-	debian/git-ftp.1.xml
+	man/git-ftp.1.xml
 	dh_auto_build
 
 override_dh_clean:
