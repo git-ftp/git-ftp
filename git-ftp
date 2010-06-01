@@ -314,7 +314,7 @@ do
             write_log "Forced mode enabled"
             ;;
         --version)
-            echo "${VERSION}"
+            echo "git-ftp version ${VERSION}"
             exit 0
             ;;
         *)
