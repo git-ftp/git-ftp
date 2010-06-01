@@ -183,16 +183,12 @@ upload_local_sha1() {
 }
 
 check_remote_lock() {
-    if [ ${FORCE} -ne 0 ]; then
-        return;
-    fi
-
     write_log "Checking remote lock"
     lck_content="`get_file_content ${REMOTE_LCK_FILE} 2>/dev/null`"
     if [ "${lck_content}" != "" ]; then
         lck_sha1=`echo "${lck_content}" | head -n 1`
         write_log "Remote lock sha1 ${lck_sha1}"
-        local_sha1=`git log -n 1 --pretty=format:%H`
+        local_sha1="`git log -n 1 --pretty=format:%H`"
         write_log "Local sha1 ${local_sha1}"
         if [ "${lck_sha1}" != "${local_sha1}" ]; then
             lck_user=`echo "${lck_content}" | tail -n 1`
@@ -208,13 +204,15 @@ remote_lock() {
         return;
     fi
 
-    check_remote_lock
+    if [ ${FORCE} -ne 1 ]; then
+        check_remote_lock
+    fi
 
-    local_sha1="`git log -n 1 --pretty=format:%H`"
     local_hostname="`hostname --fqdn`"
     date_utc="`date --utc --rfc-2822`"
     lck_message="${USER}@${local_hostname} on ${date_utc}"
 
+    local_sha1="`git log -n 1 --pretty=format:%H`"
     write_log "Remote locking ${lck_message}"
     if [ ${DRY_RUN} -ne 1 ]; then
         echo "${local_sha1}\n${lck_message}" | upload_file - ${REMOTE_LCK_FILE}
@@ -380,22 +378,16 @@ if [ -z ${REMOTE_HOST} ]; then
     REMOTE_HOST=`expr "${URL}" : "^\([a-z0-9\.:-]*\).*"`
 fi
 
-# Some error checks
-HAS_ERROR=0
 if [ -z ${REMOTE_HOST} ]; then
     write_error "Remote host not set"
-    HAS_ERROR=1
+    usage
+    release_lock
 fi
 
 if [ -z ${REMOTE_USER} ]; then
     write_error "Remote user not set"
-    HAS_ERROR=1
-fi
-
-if [ ${HAS_ERROR} -ne 0 ]; then
     usage
     release_lock
-    exit 1
 fi
 
 # Split protocol from url 
@@ -428,7 +420,6 @@ write_log "User is '${REMOTE_USER}'"
 write_log "Path is '${REMOTE_PATH}'"
 write_log "Action is '${ACTION}'"
 
-DEPLOYED_SHA1=""
 if [ "${ACTION}" = "show" ]; then
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     check_exit_status "Could not get uploaded log file"
