@@ -357,7 +357,7 @@ fi
 
 # Check if this is a git project here
 if [ ! -d ".git" ]; then
-    write_error "Not a git project? Exiting..."
+    write_error "Not a Git project? Exiting..."
     release_lock
     exit 1
 fi 
@@ -366,7 +366,7 @@ fi
 if [ "${ACTION}" != "show" ]; then
     CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l` 
     if [ ${CLEAN_REPO} -ne 1 ]; then 
-        write_error "Dirty Repo? Exiting..."
+        write_error "Dirty repository: Having uncommited changes. You should handle those first! Exiting..."
         release_lock
         exit 1
     fi
