@@ -10,9 +10,9 @@ override_dh_auto_clean:
 
 override_dh_auto_build:
 	xsltproc --nonet \
-	--param make.year.ranges 1 \
-	--param make.single.year.ranges 1 \
-	--param man.charmap.use.subset 0 \
-	-o debian/ \
-	http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl \
-	man/git-ftp.1.xml
+		--param make.year.ranges 1 \
+		--param make.single.year.ranges 1 \
+		--param man.charmap.use.subset 0 \
+		-o debian/ \
+		http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl \
+		man/git-ftp.1.xml
