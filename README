@@ -8,17 +8,17 @@ http://www.gnu.org/licenses/gpl-3.0-standalone.html
 
 Summary
 -------
-Use git-ftp to upload only the files to a FTP server, which have changed 
+Use git-ftp to upload only the files to a FTP server, which have changed
 since the last upload. This saves time and bandwith.
 
 
 About
 -----
 I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
-web hoster does not provide SSH nor git support, only FTP. 
+web hoster does not provide SSH nor git support, only FTP.
 
-That is why I needed a easy way to deploy my git tracked projects. Instead to 
-transfer always the whole project, I thought, why not only transfer the files 
+That is why I needed a easy way to deploy my git tracked projects. Instead to
+transfer always the whole project, I thought, why not only transfer the files
 which changed since the last time, git can tell me those files.
 
 Even if you are playing with different branches, git-ftp knows which files
@@ -34,10 +34,10 @@ Usage
 -----
     $ cd my_git_tracked_project
     $ git ftp push ftp://host.example.com/public_html --user <user> -p <password>
-    
+
 For interactive password prompt use:
     $ git ftp push ftp://host.example.com/public_html --user <user> -p
-    
+
 For more options see:
     $ git ftp help
 

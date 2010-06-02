@@ -12,8 +12,8 @@ Package: git-ftp
 Architecture: any
 Depends: git-core (>= 1.6.0), curl (>=7.15.5), grep (>=2.5.1)
 Description: Uploads the git tracked files to a FTP server
- git-ftp is a shell script for uploading git tracked files to a FTP server. 
- By default, it uploads only those files which have changed since the last 
- upload. 
- This saves time and bandwith. You can even play with different branches. See 
+ git-ftp is a shell script for uploading git tracked files to a FTP server.
+ By default, it uploads only those files which have changed since the last
+ upload.
+ This saves time and bandwith. You can even play with different branches. See
  manpage for more options.
