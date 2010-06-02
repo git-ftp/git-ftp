@@ -8,7 +8,7 @@ Make sure git and curl is installed.
     # aptitude install git-core curl
 
 The easiest way is to use git for installing:
-   
+
     $ mkdir -p ~/dev/git-ftp.git
     $ cd ~/dev/git-ftp.git
     $ git clone http://github.com/resmo/git-ftp.git .
@@ -16,7 +16,7 @@ The easiest way is to use git for installing:
     $ mkdir ~/bin
     $ cd ~/bin/
     $ ln -s ~/dev/git-ftp.git/git-ftp git-ftp
-    
+
 After this you can use 'git ftp' or 'git-ftp'
 
 Update to the latest version is simple as:

@@ -88,12 +88,12 @@
   <refsect1 id="description">
     <title>DESCRIPTION</title>
     <para>This manual page documents briefly the <command>&dhpackage;</command></para>
-    <para><command>&dhpackage;</command> is a program that does FTP with help of git. Instead 
-    of always uploading all files, it uploads only those git tracked files to a FTP server, 
+    <para><command>&dhpackage;</command> is a program that does FTP with help of git. Instead
+    of always uploading all files, it uploads only those git tracked files to a FTP server,
     which have changed since the last upload. This saves time and bandwith.</para>
-    <para>This is useful if you only have access to the server by FTP. There is no need for 
+    <para>This is useful if you only have access to the server by FTP. There is no need for
     git to be installed on the server.</para>
-    <para>Even if you play with different branches, <command>&dhpackage;</command> knows 
+    <para>Even if you play with different branches, <command>&dhpackage;</command> knows
     which files are different and only uploads those files, no ordinary FTP client can do that.</para>
     <para>It remembers the deployed state by uploading the SHA1 in a log file.</para>
   </refsect1>
@@ -116,7 +116,7 @@
         <term><option>catchup</option></term>
         <listitem>
           <para>Uploads the current SHA1 to the log, does not upload any files.</para>
-          <para>This is useful if you used another FTP client to upload the files and 
+          <para>This is useful if you used another FTP client to upload the files and
           now want to remember the SHA1.</para>
         </listitem>
       </varlistentry>
@@ -270,4 +270,3 @@
       at <ulink url="http://github.com/resmo/git-ftp/issues"/>.</para>
   </refsect1>
 </refentry>
-

@@ -1,20 +1,18 @@
 #!/usr/bin/make -f
-# Uncomment this to turn on verbose mode.
-#export DH_VERBOSE=1
+
 %:
 	dh  $@
 
+override_dh_auto_clean:
+	dh_auto_clean
+
+	rm -f debian/git-ftp.1
+
 override_dh_auto_build:
 	xsltproc --nonet \
-	--param make.year.ranges 1 \
-	--param make.single.year.ranges 1 \
-	--param man.charmap.use.subset 0 \
-	-o debian/ \
-	http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl \
-	man/git-ftp.1.xml
-	dh_auto_build
-
-override_dh_clean:
-	dh_clean
-	rm -f debian/debhelper.log
-
+		--param make.year.ranges 1 \
+		--param make.single.year.ranges 1 \
+		--param man.charmap.use.subset 0 \
+		-o debian/ \
+		http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl \
+		man/git-ftp.1.xml
