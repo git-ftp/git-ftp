@@ -1,5 +1,5 @@
-git-ftp (0.8-1) stable; urgency=low
+git-ftp (0.0.9-1) stable; urgency=low
 
   * Initial version
 
- -- René Moser <mail@renemoser.net>  Tue, 18 May 2010 17:23:57 +0200
+ -- René Moser <mail@renemoser.net>  Tue, 01 Jun 2010 23:41:43 +0200
