@@ -54,7 +54,7 @@
   </refmeta>
   <refnamediv>
     <refname>&dhpackage;</refname>
-    <refpurpose>It does FTP the git way</refpurpose>
+    <refpurpose>It does FTP the Git way</refpurpose>
   </refnamediv>
   <refsynopsisdiv>
     <cmdsynopsis>
@@ -88,11 +88,11 @@
   <refsect1 id="description">
     <title>DESCRIPTION</title>
     <para>This manual page documents briefly the <command>&dhpackage;</command></para>
-    <para><command>&dhpackage;</command> is a program that does FTP with help of git. Instead
-    of always uploading all files, it uploads only those git tracked files to a FTP server,
+    <para><command>&dhpackage;</command> is a program that does FTP with help of Git. Instead
+    of always uploading all files, it uploads only those Git tracked files to a FTP server,
     which have changed since the last upload. This saves time and bandwith.</para>
     <para>This is useful if you only have access to the server by FTP. There is no need for
-    git to be installed on the server.</para>
+    Git to be installed on the server.</para>
     <para>Even if you play with different branches, <command>&dhpackage;</command> knows
     which files are different and only uploads those files, no ordinary FTP client can do that.</para>
     <para>It remembers the deployed state by uploading the SHA1 in a log file.</para>
@@ -103,20 +103,20 @@
       <varlistentry>
         <term><option>push</option></term>
         <listitem>
-          <para>Uploads git tracked files which have changed since last upload.</para>
+          <para>Uploads Git tracked files which have changed since last upload.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>show</option></term>
         <listitem>
-          <para>Gets last uploaded SHA1 from log and hooks git show.</para>
+          <para>Gets last uploaded SHA1 from log and hooks <command>git show</command>.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>catchup</option></term>
         <listitem>
-          <para>Uploads the current SHA1 to the log, does not upload any files.</para>
-          <para>This is useful if you used another FTP client to upload the files and
+          <para>Uploads the current SHA1 to the log, does not upload any files.
+          This is useful if you used another FTP client to upload the files and
           now want to remember the SHA1.</para>
         </listitem>
       </varlistentry>
@@ -236,9 +236,9 @@
       on <filename class="devicefile">stderr</filename>:</para>
     <variablelist>
       <varlistentry>
-        <term><errortext>Not a git project.</errortext></term>
+        <term><errortext>Not a Git project.</errortext></term>
         <listitem>
-          <para><command>&dhpackage;</command> should be performed in your git project direcotry</para>
+          <para><command>&dhpackage;</command> should be performed in your Git project direcotry</para>
         </listitem>
       </varlistentry>
       <varlistentry>
