@@ -2,7 +2,7 @@ Source: git-ftp
 Section: misc
 Priority: optional
 Maintainer: René Moser <mail@renemoser.net>
-Build-Depends: debhelper (>= 7), docbook-xsl, docbook-xml, xsltproc
+Build-Depends: debhelper (>= 7.0.50~), docbook-xsl, docbook-xml, xsltproc
 Standards-Version: 3.8.3
 Vcs-Git: git://github.com/resmo/git-ftp.git
 Vcs-browser: http://github.com/resmo/git-ftp
