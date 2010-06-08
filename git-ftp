@@ -455,6 +455,12 @@ if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
     write_log "Retrieving last commit from ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
     DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
     if [ $? -ne 0 ]; then
+        if [ ${FORCE} -ne 1 ]; then
+            write_error "Could not get last commit or it does not exist. Network down? Wrong URL?"
+            echo "If this is the first push or you want to force use option -f."
+            release_lock
+            exit 1
+        fi
         write_info "Could not get last commit or it does not exist"
         DEPLOYED_SHA1=""
     fi
