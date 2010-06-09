@@ -470,7 +470,7 @@ if [ "${DEPLOYED_SHA1}" != "" ]; then
     write_log "Last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} is ${DEPLOYED_SHA1}"
 
     # Get the files changed since then
-    FILES_CHANGED="`git diff --name-only ${DEPLOYED_SHA1} 2>/dev/null`"
+    FILES_CHANGED="`git diff --name-status ${DEPLOYED_SHA1} 2>/dev/null`"
     if [ $? -ne 0 ]; then
         if [ ${FORCE} -ne 1 ]; then
         write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -517,19 +517,20 @@ IFS="${NIFS}"
 # Upload to ftp
 for file in ${FILES_CHANGED}; do
     done_items=$(($done_items+1))
-    # File exits?
-    if [ -f ${file} ]; then
+    file_mode=`echo "$file" | cut -f 1`
+    file_name=`echo "$file" | cut -f 2`
+    if [ "$file_mode" != "D"  ]; then
         # Uploading file
-        write_info "[${done_items} of ${total_items}] Uploading '${file}'"
+        write_info "[${done_items} of ${total_items}] Uploading '${file_name}'"
         if [ ${DRY_RUN} -ne 1 ]; then
-            upload_file ${file}
+            upload_file ${file_name}
             check_exit_status "Could not upload"
         fi
     else
         # Removing file
-        write_info "[${done_items} of ${total_items}] Removing not existing file '${file}'"
+        write_info "[${done_items} of ${total_items}] Removing not existing file '${file_name}'"
         if [ ${DRY_RUN} -ne 1 ]; then
-            remove_file ${file}
+            remove_file ${file_name}
         fi
     fi
 done
