@@ -130,9 +130,7 @@ check_exit_status() {
 
 # Simple log func
 write_log() {
-    if [ $VERBOSE -eq 1 ]; then
-        echo "`date`: ${1}"
-    fi
+    [ $VERBOSE -eq 1 ] && echo "`date`: ${1}"
 }
 
 # Simple error writer
@@ -200,13 +198,8 @@ check_remote_lock() {
 }
 
 remote_lock() {
-    if [ ${ENABLE_REMOTE_LCK} -ne 1 ]; then
-        return;
-    fi
-
-    if [ ${FORCE} -ne 1 ]; then
-        check_remote_lock
-    fi
+    [ ${ENABLE_REMOTE_LCK} -ne 1 ] && return
+    [ ${FORCE} -ne 1 ] && check_remote_lock
 
     local_hostname="`hostname --fqdn`"
     date_utc="`date --utc --rfc-2822`"
@@ -221,9 +214,7 @@ remote_lock() {
 }
 
 release_remote_lock() {
-    if [ ${ENABLE_REMOTE_LCK} != 1 ]; then
-        return;
-    fi
+    [ ${ENABLE_REMOTE_LCK} != 1 ] && return;
     write_log "Releasing remote lock"
     remove_file ${REMOTE_LCK_FILE}
 }
