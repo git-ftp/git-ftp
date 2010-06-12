@@ -239,6 +239,10 @@ case "${1}" in
     help)
         usage_long
         ;;
+    *)
+        write_error "Action unknown"
+        exit 1;
+        ;;
 esac
 
 while test $# != 0
@@ -315,11 +319,6 @@ do
     esac
     shift
 done
-
-if [ "${ACTION}" = "" ]; then
-    usage
-    exit 1
-fi
 
 # Checks locking, make sure this only run once a time
 if [ -f "${LCK_FILE}" ]; then
