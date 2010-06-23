@@ -40,305 +40,305 @@ usage_long()
 {
 less << EOF
 USAGE
-        git-ftp <action> [<options>] <url>
+	git-ftp <action> [<options>] <url>
 
 
 DESCRIPTION
-        git-ftp does FTP the GIT way.
+	git-ftp does FTP the GIT way.
 
-        It uses GIT to find out which files are different of the uploaded files
-        and let you save time and bandwith by uploading only those files.
+	It uses GIT to find out which files are different of the uploaded files
+	and let you save time and bandwith by uploading only those files.
 
-        It remembers the deployed state by uploading the SHA1 in a log file.
+	It remembers the deployed state by uploading the SHA1 in a log file.
 
 
 ACTIONS
-        . push
-                Uploads git tracked files which have changed since last upload.
+	. push
+		Uploads git tracked files which have changed since last upload.
 
-        . show
-                Gets last uploaded SHA1 from log and hooks git show.
+	. show
+		Gets last uploaded SHA1 from log and hooks git show.
 
-        . catchup
-                Uploads the current SHA1 to the log, does not upload any files.
+	. catchup
+		Uploads the current SHA1 to the log, does not upload any files.
 
-                This is useful if you used another FTP client to upload the
-                files and now want to remember the SHA1.
-        . help
-                Shows this help
+		This is useful if you used another FTP client to upload the
+		files and now want to remember the SHA1.
+	. help
+		Shows this help
 
 
 URL
-        . FTP (default) host.example.com[:<port>][/<remote path>]
-        . FTP           ftp://host.example.com[:<port>][/<remote path>]
-        . SFTP          sftp://host.example.com[:<port>][/<remote path>]
-        . FTPS          ftps://host.example.com[:<port>][/<remote path>]
+	. FTP (default)	host.example.com[:<port>][/<remote path>]
+	. FTP			ftp://host.example.com[:<port>][/<remote path>]
+	. SFTP			sftp://host.example.com[:<port>][/<remote path>]
+	. FTPS			ftps://host.example.com[:<port>][/<remote path>]
 
 
 OPTIONS
-        -h, --help      Show this help
-        -u, --user      FTP login name
-        -p, --passwd    FTP password
-        -D, --dry-run   Dry run: Does not upload anything
-        -a, --all       Uploads all files, ignores deployed SHA1 hash
-        -l, --lock      Enable/Disable remote locking
-        -f, --force     Force, does not ask questions
-        -v, --verbose   Verbose
-        --version       Prints version
+	-h, --help		Show this help
+	-u, --user		FTP login name
+	-p, --passwd	FTP password
+	-D, --dry-run   Dry run: Does not upload anything
+	-a, --all		Uploads all files, ignores deployed SHA1 hash
+	-l, --lock		Enable/Disable remote locking
+	-f, --force		Force, does not ask questions
+	-v, --verbose	Verbose
+	--version		Prints version
 
 
 EXAMPLES
-        .   git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
-        .   git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
+	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
+	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
 
 
 VERSION
-        $VERSION
+	$VERSION
 
 
 AUTHORS
-        $AUTHORS
+	$AUTHORS
 
 
 CONTRIBUTORS
-        $CONTRIBUTORS
+	$CONTRIBUTORS
 EOF
 exit 0
 }
 
 usage() {
-    echo "git-ftp <action> [<options>] <url>"
-    exit 1
+	echo "git-ftp <action> [<options>] <url>"
+	exit 1
 }
 
 ask_for_passwd() {
-    echo -n "Password: "
-    stty -echo
-    read REMOTE_PASSWD
-    stty echo
-    echo ""
+	echo -n "Password: "
+	stty -echo
+	read REMOTE_PASSWD
+	stty echo
+	echo ""
 }
 
 # Checks if last comand was successful
 check_exit_status() {
-    if [ $? -ne 0 ]; then
-        write_error "${1}, exiting..."
-        release_lock
-        exit 1
-    fi
+	if [ $? -ne 0 ]; then
+		write_error "${1}, exiting..."
+		release_lock
+		exit 1
+	fi
 }
 
 # Simple log func
 write_log() {
-    [ $VERBOSE -eq 1 ] && echo "`date`: ${1}"
+	[ $VERBOSE -eq 1 ] && echo "`date`: ${1}"
 }
 
 # Simple error writer
 write_error() {
-    if [ $VERBOSE -eq 0 ]; then
-        echo "fatal: ${1}"
-    else
-        write_log "fatal: ${1}"
-    fi
+	if [ $VERBOSE -eq 0 ]; then
+		echo "fatal: ${1}"
+	else
+		write_log "fatal: ${1}"
+	fi
 }
 
 # Simple info writer
 write_info() {
-    if [ $VERBOSE -eq 0 ]; then
-        echo "${1}"
-    else
-        write_log "${1}"
-    fi
+	if [ $VERBOSE -eq 0 ]; then
+		echo "${1}"
+	else
+		write_log "${1}"
+	fi
 }
 
 upload_file() {
-    source_file="${1}"
-    dest_file="${2}"
-    if [ -z ${dest_file} ]; then
-        dest_file=${source_file}
-    fi
-    curl -s -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
+	source_file="${1}"
+	dest_file="${2}"
+	if [ -z ${dest_file} ]; then
+		dest_file=${source_file}
+	fi
+	curl -s -T ${source_file} --user ${REMOTE_USER}:${REMOTE_PASSWD} --ftp-create-dirs -# ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${dest_file}
 }
 
 remove_file() {
-    file=${1}
-    curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ${REMOTE_PROTOCOL}://${REMOTE_HOST} > /dev/null 2>&1
+	file=${1}
+	curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} -Q "-DELE ${REMOTE_PATH}${file}" ${REMOTE_PROTOCOL}://${REMOTE_HOST} > /dev/null 2>&1
 }
 
 get_file_content() {
-    source_file=${1}
-    curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
+	source_file=${1}
+	curl -s --user ${REMOTE_USER}:${REMOTE_PASSWD} ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${source_file}
 }
 
 upload_local_sha1() {
-    DEPLOYED_SHA1=`git log -n 1 --pretty=format:%H`
-    write_log "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
-    if [ ${DRY_RUN} -ne 1 ]; then
-        echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
-        check_exit_status "Could not upload"
-    fi
-    write_info "Last deployment changed to ${DEPLOYED_SHA1}";
+	DEPLOYED_SHA1=`git log -n 1 --pretty=format:%H`
+	write_log "Uploading commit log to ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}${DEPLOYED_SHA1_FILE}"
+	if [ ${DRY_RUN} -ne 1 ]; then
+		echo "${DEPLOYED_SHA1}" | upload_file - ${DEPLOYED_SHA1_FILE}
+		check_exit_status "Could not upload"
+	fi
+	write_info "Last deployment changed to ${DEPLOYED_SHA1}";
 }
 
 check_remote_lock() {
-    write_log "Checking remote lock"
-    lck_content="`get_file_content ${REMOTE_LCK_FILE} 2>/dev/null`"
-    if [ "${lck_content}" != "" ]; then
-        lck_sha1=`echo "${lck_content}" | head -n 1`
-        write_log "Remote lock sha1 ${lck_sha1}"
-        local_sha1="`git log -n 1 --pretty=format:%H`"
-        write_log "Local sha1 ${local_sha1}"
-        if [ "${lck_sha1}" != "${local_sha1}" ]; then
-            lck_user=`echo "${lck_content}" | tail -n 1`
-            write_error "Remote locked by ${lck_user}"
-            release_lock
-            exit 1
-        fi
-    fi
+	write_log "Checking remote lock"
+	lck_content="`get_file_content ${REMOTE_LCK_FILE} 2>/dev/null`"
+	if [ "${lck_content}" != "" ]; then
+		lck_sha1=`echo "${lck_content}" | head -n 1`
+		write_log "Remote lock sha1 ${lck_sha1}"
+		local_sha1="`git log -n 1 --pretty=format:%H`"
+		write_log "Local sha1 ${local_sha1}"
+		if [ "${lck_sha1}" != "${local_sha1}" ]; then
+			lck_user=`echo "${lck_content}" | tail -n 1`
+			write_error "Remote locked by ${lck_user}"
+			release_lock
+			exit 1
+		fi
+	fi
 }
 
 remote_lock() {
-    [ ${ENABLE_REMOTE_LCK} -ne 1 ] && return
-    [ ${FORCE} -ne 1 ] && check_remote_lock
+	[ ${ENABLE_REMOTE_LCK} -ne 1 ] && return
+	[ ${FORCE} -ne 1 ] && check_remote_lock
 
-    local_hostname="`hostname --fqdn`"
-    date_utc="`date --utc --rfc-2822`"
-    lck_message="${USER}@${local_hostname} on ${date_utc}"
+	local_hostname="`hostname --fqdn`"
+	date_utc="`date --utc --rfc-2822`"
+	lck_message="${USER}@${local_hostname} on ${date_utc}"
 
-    local_sha1="`git log -n 1 --pretty=format:%H`"
-    write_log "Remote locking ${lck_message}"
-    if [ ${DRY_RUN} -ne 1 ]; then
-        echo "${local_sha1}\n${lck_message}" | upload_file - ${REMOTE_LCK_FILE}
-        check_exit_status "Could not upload remote lock file"
-    fi
+	local_sha1="`git log -n 1 --pretty=format:%H`"
+	write_log "Remote locking ${lck_message}"
+	if [ ${DRY_RUN} -ne 1 ]; then
+		echo "${local_sha1}\n${lck_message}" | upload_file - ${REMOTE_LCK_FILE}
+		check_exit_status "Could not upload remote lock file"
+	fi
 }
 
 release_remote_lock() {
-    [ ${ENABLE_REMOTE_LCK} != 1 ] && return;
-    write_log "Releasing remote lock"
-    remove_file ${REMOTE_LCK_FILE}
+	[ ${ENABLE_REMOTE_LCK} != 1 ] && return;
+	write_log "Releasing remote lock"
+	remove_file ${REMOTE_LCK_FILE}
 }
 
 # Release lock func
 release_lock() {
-    write_log "Releasing lock"
-    rm -f "${LCK_FILE}"
+	write_log "Releasing lock"
+	rm -f "${LCK_FILE}"
 }
 
 # Handle action
 case "${1}" in
-    push)
-        ACTION="${1}"
-        ;;
-    catchup)
-        ACTION="${1}"
-        ;;
-    show)
-        ACTION="${1}"
-        ;;
-    help)
-        usage_long
-        ;;
-    *)
-        write_error "Action unknown"
-        exit 1;
-        ;;
+	push)
+		ACTION="${1}"
+		;;
+	catchup)
+		ACTION="${1}"
+		;;
+	show)
+		ACTION="${1}"
+		;;
+	help)
+		usage_long
+		;;
+	*)
+		write_error "Action unknown"
+		exit 1;
+		;;
 esac
 
 while test $# != 0
 do
 	case "${1}" in
-	    -h|--h|--he|--hel|--help)
-		    usage_long
-		    ;;
-        -u|--user*)
-            case "$#,${1}" in
-                *,*=*)
-                    REMOTE_USER=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
-                    ;;
-                1,*)
-                    usage
-                    ;;
-                *)
-                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_USER="${2}"
-                        shift
-                    fi
-                    ;;
-            esac
-            ;;
-        -p|--passwd*)
-            case "$#,$1" in
-                *,*=*)
-                    REMOTE_PASSWD=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
-                    ;;
-                1,*)
-                    ask_for_passwd
-                    ;;
-                *)
-                    if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
-                        REMOTE_PASSWD="${2}"
-                        shift
-                    else
-                        ask_for_passwd
-                    fi
-                    ;;
-            esac
-            ;;
-        -a|--all)
-            IGNORE_DEPLOYED=1
-            ;;
-        -l|--lock)
-            if [ ${ENABLE_REMOTE_LCK} -ne 1 ]; then
-                write_log "Enabling remote locking feature"
-                ENABLE_REMOTE_LCK=1
-            else
-                write_log "Disabling remote locking feature"
-                ENABLE_REMOTE_LCK=0
-            fi
-            ;;
-        -D|--dry-run)
-            DRY_RUN=1
-            write_log "Running dry, won't do anything"
-            ;;
-        -v|--verbose)
-            VERBOSE=1
-            ;;
-        -f|--force)
-            FORCE=1
-            write_log "Forced mode enabled"
-            ;;
-        --version)
-            echo "git-ftp version ${VERSION}"
-            exit 0
-            ;;
-        *)
-            # Pass thru anything that may be meant for fetch.
-            URL=${1}
-            ;;
-    esac
-    shift
+		-h|--h|--he|--hel|--help)
+			usage_long
+			;;
+		-u|--user*)
+			case "$#,${1}" in
+				*,*=*)
+					REMOTE_USER=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
+					;;
+				1,*)
+					usage
+					;;
+				*)
+					if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+						REMOTE_USER="${2}"
+						shift
+					fi
+					;;
+			esac
+			;;
+		-p|--passwd*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_PASSWD=`expr "z${1}" : 'z-[^=]*=\(.*\)'`
+					;;
+				1,*)
+					ask_for_passwd
+					;;
+				*)
+					if [ ! `echo "${2}" | egrep '^-' | wc -l` -eq 1 ]; then
+						REMOTE_PASSWD="${2}"
+						shift
+					else
+						ask_for_passwd
+					fi
+					;;
+			esac
+			;;
+		-a|--all)
+			IGNORE_DEPLOYED=1
+			;;
+		-l|--lock)
+			if [ ${ENABLE_REMOTE_LCK} -ne 1 ]; then
+				write_log "Enabling remote locking feature"
+				ENABLE_REMOTE_LCK=1
+			else
+				write_log "Disabling remote locking feature"
+				ENABLE_REMOTE_LCK=0
+			fi
+			;;
+		-D|--dry-run)
+			DRY_RUN=1
+			write_log "Running dry, won't do anything"
+			;;
+		-v|--verbose)
+			VERBOSE=1
+			;;
+		-f|--force)
+			FORCE=1
+			write_log "Forced mode enabled"
+			;;
+		--version)
+			echo "git-ftp version ${VERSION}"
+			exit 0
+			;;
+		*)
+			# Pass thru anything that may be meant for fetch.
+			URL=${1}
+			;;
+	esac
+	shift
 done
 
 # Checks locking, make sure this only run once a time
 if [ -f "${LCK_FILE}" ]; then
 
-    # The file exists so read the PID to see if it is still running
-    MYPID=`head -n 1 "${LCK_FILE}"`
+	# The file exists so read the PID to see if it is still running
+	MYPID=`head -n 1 "${LCK_FILE}"`
 
-    TEST_RUNNING=`ps -p ${MYPID} | grep ${MYPID}`
+	TEST_RUNNING=`ps -p ${MYPID} | grep ${MYPID}`
 
-    if [ -z "${TEST_RUNNING}" ]; then
-        # The process is not running echo current PID into lock file
-        write_log "Not running"
-        echo $$ > "${LCK_FILE}"
-    else
-        write_log "`basename ${0}` is already running [${MYPID}]"
-        exit 0
-    fi
+	if [ -z "${TEST_RUNNING}" ]; then
+		# The process is not running echo current PID into lock file
+		write_log "Not running"
+		echo $$ > "${LCK_FILE}"
+	else
+		write_log "`basename ${0}` is already running [${MYPID}]"
+		exit 0
+	fi
 else
-    write_log "Not running"
-    echo $$ > "${LCK_FILE}"
+	write_log "Not running"
+	echo $$ > "${LCK_FILE}"
 fi
 
 # ------------------------------------------------------------
@@ -347,37 +347,37 @@ fi
 
 # Check if this is a git project here
 if [ ! -d ".git" ]; then
-    write_error "Not a Git project? Exiting..."
-    release_lock
-    exit 1
+	write_error "Not a Git project? Exiting..."
+	release_lock
+	exit 1
 fi
 
 # Check if the git working dir is dirty, except for show action
 if [ "${ACTION}" != "show" ]; then
-    CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
-    if [ ${CLEAN_REPO} -ne 1 ]; then
-        write_error "Dirty repository: Having uncommitted changes. Exiting..."
-        release_lock
-        exit 1
-    fi
+	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
+	if [ ${CLEAN_REPO} -ne 1 ]; then
+		write_error "Dirty repository: Having uncommitted changes. Exiting..."
+		release_lock
+		exit 1
+	fi
 fi
 
 # Split host from url
 REMOTE_HOST=`expr "${URL}" : ".*://\([a-z0-9\.:-]*\).*"`
 if [ -z ${REMOTE_HOST} ]; then
-    REMOTE_HOST=`expr "${URL}" : "^\([a-z0-9\.:-]*\).*"`
+	REMOTE_HOST=`expr "${URL}" : "^\([a-z0-9\.:-]*\).*"`
 fi
 
 if [ -z ${REMOTE_HOST} ]; then
-    write_error "Remote host not set"
-    usage
-    release_lock
+	write_error "Remote host not set"
+	usage
+	release_lock
 fi
 
 if [ -z ${REMOTE_USER} ]; then
-    write_error "Remote user not set"
-    usage
-    release_lock
+	write_error "Remote user not set"
+	usage
+	release_lock
 fi
 
 # Split protocol from url
@@ -385,24 +385,24 @@ REMOTE_PROTOCOL=`expr "${URL}" : "^\(ftp\|sftp\|ftps\)://.*"`
 
 # Handle supported protocols and remote path
 if [ -z ${REMOTE_PROTOCOL} ]; then
-    UNKNOWN_PROTOCOL=`expr "${URL}" : "^\(.*:[/]*\).*"`
-    if [ -z ${UNKNOWN_PROTOCOL} ]; then
-        write_log "Protocol not set, using default protocol ${DEFAULT_PROTOCOL}://"
-        REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
-        REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 2-`
-    else
-        write_error "Protocol unknown '${UNKNOWN_PROTOCOL}'"
-        release_lock
-        exit 1
-    fi
+	UNKNOWN_PROTOCOL=`expr "${URL}" : "^\(.*:[/]*\).*"`
+	if [ -z ${UNKNOWN_PROTOCOL} ]; then
+		write_log "Protocol not set, using default protocol ${DEFAULT_PROTOCOL}://"
+		REMOTE_PROTOCOL=${DEFAULT_PROTOCOL}
+		REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 2-`
+	else
+		write_error "Protocol unknown '${UNKNOWN_PROTOCOL}'"
+		release_lock
+		exit 1
+	fi
 else
-    REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 4-`
+	REMOTE_PATH=`echo "${URL}" | cut -d '/' -f 4-`
 fi
 
 # Add trailing slash if missing
 if [ ! -z ${REMOTE_PATH} ] && [ `echo "${REMOTE_PATH}" | egrep "*/$" | wc -l` -ne 1 ]; then
-    write_log "Added missing trailing / in path"
-    REMOTE_PATH="${REMOTE_PATH}/"
+	write_log "Added missing trailing / in path"
+	REMOTE_PATH="${REMOTE_PATH}/"
 fi
 
 write_log "Host is '${REMOTE_HOST}'"
@@ -411,83 +411,83 @@ write_log "Path is '${REMOTE_PATH}'"
 write_log "Action is '${ACTION}'"
 
 if [ "${ACTION}" = "show" ]; then
-    DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
-    check_exit_status "Could not get uploaded log file"
-    git show "${DEPLOYED_SHA1}"
-    release_lock
-    exit 0
+	DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
+	check_exit_status "Could not get uploaded log file"
+	git show "${DEPLOYED_SHA1}"
+	release_lock
+	exit 0
 fi
 
 if [ ${FORCE} -ne 1 ]; then
-    # Check if are at master branch
-    CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
-    if [ "${CURRENT_BRANCH}" != "master" ]; then
-        write_info "You are not on master branch."
-        echo -n "Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n] "
-        read answer_branch
-        if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
-            write_info "Aborting..."
-            release_lock
-            exit 0
-        fi
-    fi
+	# Check if are at master branch
+	CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
+	if [ "${CURRENT_BRANCH}" != "master" ]; then
+		write_info "You are not on master branch."
+		echo -n "Are you sure deploying branch '${CURRENT_BRANCH}'? [Y/n] "
+		read answer_branch
+		if [ "${answer_branch}" = "n" ] || [ "${answer_branch}" = "N" ]; then
+			write_info "Aborting..."
+			release_lock
+			exit 0
+		fi
+	fi
 fi
 
 if [ "${ACTION}" = "catchup" ]; then
-    upload_local_sha1
-    release_lock
-    exit 0
+	upload_local_sha1
+	release_lock
+	exit 0
 fi
 
 DEPLOYED_SHA1=""
 if [ ${IGNORE_DEPLOYED} -ne 1 ]; then
-    # Get the last commit (SHA) we deployed if not ignored or not found
-    write_log "Retrieving last commit from ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
-    DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
-    if [ $? -ne 0 ]; then
-        if [ ${FORCE} -ne 1 ]; then
-            write_error "Could not get last commit or it does not exist. Network down? Wrong URL?"
-            echo "If this is the first push or you want to force use option -f."
-            release_lock
-            exit 1
-        fi
-        write_info "Could not get last commit or it does not exist"
-        DEPLOYED_SHA1=""
-    fi
+	# Get the last commit (SHA) we deployed if not ignored or not found
+	write_log "Retrieving last commit from ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
+	DEPLOYED_SHA1="`get_file_content ${DEPLOYED_SHA1_FILE}`"
+	if [ $? -ne 0 ]; then
+		if [ ${FORCE} -ne 1 ]; then
+			write_error "Could not get last commit or it does not exist. Network down? Wrong URL?"
+			echo "If this is the first push or you want to force use option -f."
+			release_lock
+			exit 1
+		fi
+		write_info "Could not get last commit or it does not exist"
+		DEPLOYED_SHA1=""
+	fi
 fi
 
 if [ "${DEPLOYED_SHA1}" != "" ]; then
-    write_log "Last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} is ${DEPLOYED_SHA1}"
+	write_log "Last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} is ${DEPLOYED_SHA1}"
 
-    # Get the files changed since then
-    FILES_CHANGED="`git diff --name-status ${DEPLOYED_SHA1} 2>/dev/null`"
-    if [ $? -ne 0 ]; then
-        if [ ${FORCE} -ne 1 ]; then
-        write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-        echo -n "Do you want to ignore and upload all files again? [y/N] "
-        read answer_state
-        if [ "${answer_state}" != "y" ] && [ "${answer_state}" != "Y" ]; then
-            write_info "Aborting..."
-            release_lock
-            exit 0
-        else
-            write_log "Taking all files";
-            FILES_CHANGED="`git ls-files`"
-        fi
-        else
-            write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-            FILES_CHANGED="`git ls-files`"
-        fi
-    elif [ "${FILES_CHANGED}" != "" ]; then
-        write_log "Having changed files";
-    else
-        write_info "No changed files for ${REMOTE_HOST}/${REMOTE_PATH}. Everything up-to-date."
-        release_lock
-        exit 0
-    fi
+	# Get the files changed since then
+	FILES_CHANGED="`git diff --name-status ${DEPLOYED_SHA1} 2>/dev/null`"
+	if [ $? -ne 0 ]; then
+		if [ ${FORCE} -ne 1 ]; then
+		write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+		echo -n "Do you want to ignore and upload all files again? [y/N] "
+		read answer_state
+		if [ "${answer_state}" != "y" ] && [ "${answer_state}" != "Y" ]; then
+			write_info "Aborting..."
+			release_lock
+			exit 0
+		else
+			write_log "Taking all files";
+			FILES_CHANGED="`git ls-files`"
+		fi
+		else
+			write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+			FILES_CHANGED="`git ls-files`"
+		fi
+	elif [ "${FILES_CHANGED}" != "" ]; then
+		write_log "Having changed files";
+	else
+		write_info "No changed files for ${REMOTE_HOST}/${REMOTE_PATH}. Everything up-to-date."
+		release_lock
+		exit 0
+	fi
 else
-    write_log "No last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} found or forced to take all files"
-    FILES_CHANGED="`git ls-files`"
+	write_log "No last deployed SHA1 for ${REMOTE_HOST}/${REMOTE_PATH} found or forced to take all files"
+	FILES_CHANGED="`git ls-files`"
 fi
 
 # Calculate total file count
@@ -506,23 +506,23 @@ IFS="${NIFS}"
 
 # Upload to ftp
 for file in ${FILES_CHANGED}; do
-    done_items=$(($done_items+1))
-    file_mode=`echo "$file" | cut -f 1`
-    file_name=`echo "$file" | cut -f 2`
-    if [ "$file_mode" != "D"  ]; then
-        # Uploading file
-        write_info "[${done_items} of ${total_items}] Uploading '${file_name}'"
-        if [ ${DRY_RUN} -ne 1 ]; then
-            upload_file ${file_name}
-            check_exit_status "Could not upload"
-        fi
-    else
-        # Removing file
-        write_info "[${done_items} of ${total_items}] Removing not existing file '${file_name}'"
-        if [ ${DRY_RUN} -ne 1 ]; then
-            remove_file ${file_name}
-        fi
-    fi
+	done_items=$(($done_items+1))
+	file_mode=`echo "$file" | cut -f 1`
+	file_name=`echo "$file" | cut -f 2`
+	if [ "$file_mode" != "D"  ]; then
+		# Uploading file
+		write_info "[${done_items} of ${total_items}] Uploading '${file_name}'"
+		if [ ${DRY_RUN} -ne 1 ]; then
+			upload_file ${file_name}
+			check_exit_status "Could not upload"
+		fi
+	else
+		# Removing file
+		write_info "[${done_items} of ${total_items}] Removing not existing file '${file_name}'"
+		if [ ${DRY_RUN} -ne 1 ]; then
+			remove_file ${file_name}
+		fi
+	fi
 done
 
 IFS="${OIFS}"
