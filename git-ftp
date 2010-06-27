@@ -198,7 +198,7 @@ check_remote_lock() {
 }
 
 remote_lock() {
-	[ $ENAMBLE_REMOTE_LCK -ne 1 ] && return
+	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
 
 	LOCAL_HOSTNAME="`hostname --fqdn`"
@@ -214,7 +214,7 @@ remote_lock() {
 }
 
 release_remote_lock() {
-	[ $ENAMBLE_REMOTE_LCK != 1 ] && return;
+	[ $ENABLE_REMOTE_LCK != 1 ] && return;
 	write_log "Releasing remote lock"
 	remove_file $REMOTE_LCK_FILE
 }
@@ -289,7 +289,7 @@ do
 			IGNORE_DEPLOYED=1
 			;;
 		-l|--lock)
-			if [ $ENAMBLE_REMOTE_LCK -ne 1 ]; then
+			if [ $ENABLE_REMOTE_LCK -ne 1 ]; then
 				write_log "Enabling remote locking feature"
 				ENABLE_REMOTE_LCK=1
 			else
