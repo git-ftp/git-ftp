@@ -463,17 +463,17 @@ if [ "$DEPLOYED_SHA1" != "" ]; then
 	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
-		write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-		echo -n "Do you want to ignore and upload all files again? [y/N] "
-		read ANWER_STATE
-		if [ "$ANWER_STATE" != "y" ] && [ "$ANWER_STATE" != "Y" ]; then
-			write_info "Aborting..."
-			release_lock
-			exit 0
-		else
-			write_log "Taking all files";
-			FILES_CHANGED="`git ls-files`"
-		fi
+			write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+			echo -n "Do you want to ignore and upload all files again? [y/N] "
+			read ANWER_STATE
+			if [ "$ANWER_STATE" != "y" ] && [ "$ANWER_STATE" != "Y" ]; then
+				write_info "Aborting..."
+				release_lock
+				exit 0
+			else
+				write_log "Taking all files";
+				FILES_CHANGED="`git ls-files`"
+			fi
 		else
 			write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
 			FILES_CHANGED="`git ls-files`"
