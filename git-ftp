@@ -382,16 +382,12 @@ fi
 # ------------------------------------------------------------
 
 # Check if this is a git project here
-if [ ! -d ".git" ]; then
-	write_error_and_die "Not a Git project? Exiting..."
-fi
+[ -d ".git" ] || write_error_and_die "Not a Git project? Exiting..."
 
 # Check if the git working dir is dirty, except for show action
 if [ "$ACTION" != "show" ]; then
 	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
-	if [ $CLEAN_REPO -ne 1 ]; then
-		write_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
-	fi
+	[ $CLEAN_REPO -ne 1 ] && write_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
 fi
 
 set_remotes
@@ -507,9 +503,7 @@ for FILE_ITERATOR in $FILES_CHANGED; do
 	else
 		# Removing file
 		write_info "[$TOTAL_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-		if [ $DRY_RUN -ne 1 ]; then
-			remove_file $FILE_NAME
-		fi
+		[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
 	fi
 done
 
