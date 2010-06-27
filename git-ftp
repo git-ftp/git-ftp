@@ -122,9 +122,7 @@ ask_for_passwd() {
 # Checks if last comand was successful
 check_exit_status() {
 	if [ $? -ne 0 ]; then
-		write_error "$1, exiting..."
-		release_lock
-		exit 1
+		write_error_and_die "$1, exiting..."
 	fi
 }
 
@@ -134,12 +132,14 @@ write_log() {
 }
 
 # Simple error writer
-write_error() {
+write_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
 		echo "fatal: $1"
 	else
 		write_log "fatal: $1"
 	fi
+	release_lock
+	exit 1
 }
 
 # Simple info writer
@@ -190,9 +190,7 @@ check_remote_lock() {
 		write_log "Local sha1 $LOCAL_SHA1"
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
-			write_error "Remote locked by ${lck_user}"
-			release_lock
-			exit 1
+			write_error_and_die "Remote locked by ${lck_user}"
 		fi
 	fi
 }
@@ -233,15 +231,11 @@ set_remotes() {
 	fi
 
 	if [ -z $REMOTE_HOST ]; then
-		write_error "Remote host not set"
-		release_lock
-		exit 1
+		write_error_and_die "Remote host not set"
 	fi
 
 	if [ -z $REMOTE_USER ]; then
-		write_error "Remote user not set"
-		release_lock
-		exit 1
+		write_error_and_die "Remote user not set"
 	fi
 
 	# Split protocol from url
@@ -255,9 +249,7 @@ set_remotes() {
 			REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
 			REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
 		else
-			write_error "Protocol unknown '$UNKNOWN_PROTOCOL'"
-			release_lock
-			exit 1
+			write_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
 		fi
 	else
 		REMOTE_PATH=`echo "$URL" | cut -d '/' -f 4-`
@@ -285,8 +277,7 @@ case "$1" in
 		usage_long
 		;;
 	*)
-		write_error "Action unknown"
-		exit 1;
+		write_error_and_die "Action unknown"
 		;;
 esac
 
@@ -392,18 +383,14 @@ fi
 
 # Check if this is a git project here
 if [ ! -d ".git" ]; then
-	write_error "Not a Git project? Exiting..."
-	release_lock
-	exit 1
+	write_error_and_die "Not a Git project? Exiting..."
 fi
 
 # Check if the git working dir is dirty, except for show action
 if [ "$ACTION" != "show" ]; then
 	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
 	if [ $CLEAN_REPO -ne 1 ]; then
-		write_error "Dirty repository: Having uncommitted changes. Exiting..."
-		release_lock
-		exit 1
+		write_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
 	fi
 fi
 
@@ -449,10 +436,8 @@ if [ $IGNORE_DEPLOYED -ne 1 ]; then
 	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
-			write_error "Could not get last commit or it does not exist. Network down? Wrong URL?"
-			echo "If this is the first push or you want to force use option -f."
-			release_lock
-			exit 1
+			write_info "If this is the first push or you want to force use option -f."
+			write_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
 		fi
 		write_info "Could not get last commit or it does not exist"
 		DEPLOYED_SHA1=""
