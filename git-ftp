@@ -226,17 +226,11 @@ release_lock() {
 set_remotes() {
 	# Split host from url
 	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
-	if [ -z $REMOTE_HOST ]; then
-		REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
-	fi
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
+	[ -z $REMOTE_HOST ] && write_error_and_die "Remote host not set"
 
-	if [ -z $REMOTE_HOST ]; then
-		write_error_and_die "Remote host not set"
-	fi
-
-	if [ -z $REMOTE_USER ]; then
-		write_error_and_die "Remote user not set"
-	fi
+	# Check if user is set
+	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
 
 	# Split protocol from url
 	REMOTE_PROTOCOL=`expr "$URL" : "^\(ftp\|sftp\|ftps\)://.*"`
