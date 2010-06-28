@@ -241,7 +241,7 @@ set_remotes() {
 		if [ -z $UNKNOWN_PROTOCOL ]; then
 			write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
 			REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
-			REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
+			[ `echo "$URL" | egrep "/" | wc -l` -ne 0 ] && REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
 		else
 			write_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
 		fi
@@ -277,6 +277,7 @@ esac
 
 while test $# != 0
 do
+	shift
 	case "$1" in
 		-h|--h|--he|--hel|--help)
 			usage_long
@@ -344,10 +345,9 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			URL=$1
+			[ "$1" != "" ] && URL=$1
 			;;
 	esac
-	shift
 done
 
 # Checks locking, make sure this only run once a time
