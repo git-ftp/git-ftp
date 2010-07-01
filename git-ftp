@@ -469,7 +469,7 @@ else
 fi
 
 # Calculate total file count
-TOTAL_ITEMS=0
+DONE_ITEMS=0
 TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
 TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 write_log "There are $TOTAL_ITEMS changed files"
@@ -484,19 +484,19 @@ IFS="$NIFS"
 
 # Upload to ftp
 for FILE_ITERATOR in $FILES_CHANGED; do
-	TOTAL_ITEMS=$(($TOTAL_ITEMS+1))
+	DONE_ITEMS=$(($DONE_ITEMS+1))
 	FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
 	FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
 	if [ "$FILE_MODE" != "D"  ]; then
 		# Uploading file
-		write_info "[$TOTAL_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+		write_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 		if [ $DRY_RUN -ne 1 ]; then
 			upload_file $FILE_NAME
 			check_exit_status "Could not upload"
 		fi
 	else
 		# Removing file
-		write_info "[$TOTAL_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+		write_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
 		[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
 	fi
 done
