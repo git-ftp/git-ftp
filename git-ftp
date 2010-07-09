@@ -414,7 +414,7 @@ if [ $FORCE -ne 1 ]; then
 fi
 
 if [ "$ACTION" = "catchup" ]; then
-	upload_LOCAL_SHA1
+	upload_local_sha1
 	release_lock
 	exit 0
 fi
