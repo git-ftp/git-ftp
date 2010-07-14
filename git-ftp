@@ -25,6 +25,7 @@ REMOTE_HOST=""
 REMOTE_USER=${USER}
 REMOTE_PASSWD=""
 REMOTE_PATH=""
+REMOTE_DELETE_CMD="-DELE "
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
@@ -161,8 +162,8 @@ upload_file() {
 }
 
 remove_file() {
-	FILENAME=$1
-	curl -s --user $REMOTE_USER:$REMOTE_PASSWD -Q "-DELE ${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
+	FILENAME="$1"
+	curl -s --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
 }
 
 get_file_content() {
@@ -247,6 +248,10 @@ set_remotes() {
 		fi
 	else
 		REMOTE_PATH=`echo "$URL" | cut -d '/' -f 4-`
+	fi
+	# SFTP uses a different remove command and uses absolute paths
+	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
+	    REMOTE_DELETE_CMD="rm /"
 	fi
 
 	# Add trailing slash if missing
