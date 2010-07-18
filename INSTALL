@@ -1,25 +1,33 @@
 INSTALL
 =======
 
+Ubuntu PPA (Personal Package Archive) Repository
+------------------------------------------------
+Adding on Ubuntu 10.04 (Lucid)
+
+	# add-apt-repository ppa:resmo/git-ftp
+	# aptitude update
+	# aptitude install git-ftp
+
 Upstream using git
 -------------------
 Make sure git and curl is installed.
 
-    # aptitude install git-core curl
+	# aptitude install git-core curl
 
 The easiest way is to use git for installing:
 
-    $ mkdir -p ~/dev/git-ftp.git
-    $ cd ~/dev/git-ftp.git
-    $ git clone http://github.com/resmo/git-ftp.git .
-    $ chmod 0755 git-ftp
-    $ mkdir ~/bin
-    $ cd ~/bin/
-    $ ln -s ~/dev/git-ftp.git/git-ftp git-ftp
+	$ mkdir -p ~/dev/git-ftp.git
+	$ cd ~/dev/git-ftp.git
+	$ git clone http://github.com/resmo/git-ftp.git .
+	$ chmod 0755 git-ftp
+	$ mkdir ~/bin
+	$ cd ~/bin/
+	$ ln -s ~/dev/git-ftp.git/git-ftp git-ftp
 
 After this you can use 'git ftp' or 'git-ftp'
 
 Update to the latest version is simple as:
 
-    $ cd ~/dev/git-ftp.git
-    $ git pull
+	$ cd ~/dev/git-ftp.git
+	$ git pull
