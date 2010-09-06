@@ -25,6 +25,11 @@ Even if you are playing with different branches, git-ftp knows which files
 are different. No ordinary FTP client can do that.
 
 
+Known Issues
+------------
+ - Git Submodules are currently not supported. I am working on it.
+ - See http://github.com/resmo/git-ftp/issues for open issues
+
 Installing
 ----------
 See INSTALL file.
