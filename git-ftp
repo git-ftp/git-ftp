@@ -356,7 +356,7 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ "$1" != "" ] && URL=$1
+			[ "$1" != "" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
 			;;
 	esac
 done
