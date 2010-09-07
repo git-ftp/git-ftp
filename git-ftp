@@ -26,6 +26,7 @@ REMOTE_USER="$USER"
 REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_DELETE_CMD="-DELE "
+REMOTE_CMD_OPTIONS="-s"
 VERBOSE=0
 IGNORE_DEPLOYED=0
 DRY_RUN=0
@@ -74,6 +75,7 @@ URL
 	. FTP			ftp://host.example.com[:<port>][/<remote path>]
 	. SFTP			sftp://host.example.com[:<port>][/<remote path>]
 	. FTPS			ftps://host.example.com[:<port>][/<remote path>]
+	. FTPES			ftpes://host.example.com[:<port>][/<remote path>]
 
 
 OPTIONS
@@ -158,17 +160,17 @@ upload_file() {
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
-	curl -s -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
 }
 
 remove_file() {
 	FILENAME="$1"
-	curl -s --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
+	curl $REMOTE_CMD_OPTIONS --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
 }
 
 get_file_content() {
 	SRC_FILE="$1"
-	curl -s --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
+	curl $REMOTE_CMD_OPTIONS --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
 }
 
 upload_local_sha1() {
@@ -234,7 +236,7 @@ set_remotes() {
 	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
 
 	# Split protocol from url
-	REMOTE_PROTOCOL=`expr "$URL" : "^\(ftp\|sftp\|ftps\)://.*"`
+	REMOTE_PROTOCOL=`expr "$URL" : "^\(ftp\|sftp\|ftps\|ftpes\)://.*"`
 
 	# Handle supported protocols and remote path
 	if [ -z $REMOTE_PROTOCOL ]; then
@@ -252,6 +254,10 @@ set_remotes() {
 	# SFTP uses a different remove command and uses absolute paths
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 	    REMOTE_DELETE_CMD="rm /"
+	fi
+	# Options for curl if using FTPES
+	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
+	    REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
 	fi
 
 	# Add trailing slash if missing
