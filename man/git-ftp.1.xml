@@ -228,6 +228,14 @@
           <para>Use FTPS protocol</para>
         </listitem>
       </varlistentry>
+      <varlistentry>
+        <term>
+            <option>ftpes://ftp.example.com<arg choice="opt">:<replaceable>port</replaceable></arg><arg choice="opt">/<replaceable>path</replaceable></arg></option>
+        </term>
+        <listitem>
+          <para>Use FTP over explicit SSL (FTPES) protocol</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
   </refsect1>
   <refsect1 id="diagnostics">
