@@ -236,7 +236,7 @@ set_remotes() {
 	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
 
 	# Split protocol from url
-	REMOTE_PROTOCOL=`expr "$URL" : "^\(ftp\|sftp\|ftps\|ftpes\)://.*"`
+	REMOTE_PROTOCOL=`echo "$URL" | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1`
 
 	# Handle supported protocols and remote path
 	if [ -z $REMOTE_PROTOCOL ]; then
