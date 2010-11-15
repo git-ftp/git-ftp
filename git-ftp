@@ -454,8 +454,8 @@ if [ "$DEPLOYED_SHA1" != "" ]; then
 		if [ $FORCE -ne 1 ]; then
 			write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
 			echo -n "Do you want to ignore and upload all files again? [y/N] "
-			read ANWER_STATE
-			if [ "$ANWER_STATE" != "y" ] && [ "$ANWER_STATE" != "Y" ]; then
+			read ANSWER_STATE
+			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 				write_info "Aborting..."
 				release_lock
 				exit 0
