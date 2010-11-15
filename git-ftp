@@ -103,6 +103,12 @@ EXAMPLES
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
 
 
+SET DEFAULTS
+	. git config git-ftp.user john
+	. git config git-ftp.url ftp.example.com
+	. git config git-ftp.password secr3t
+
+
 VERSION
 	$VERSION
 EOF

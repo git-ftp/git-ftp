@@ -43,10 +43,18 @@ Usage
 For interactive password prompt use:
     $ git ftp push ftp://host.example.com/public_html --user <user> -p
 
+Setting defaults for a git project in .git/config
+	$ git config git-ftp.user john
+	$ git config git-ftp.url ftp.example.com
+	$ git config git-ftp.password secr3t
+
+After setting defaults, push to john@ftp.example.com is as simple as
+	$ git ftp push
+
 For more options see:
     $ git ftp help
 
 
 Contributions
 -------------
-Don't hesitate to use GitHub to improve this tool.
+Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself to the AUTHORS file.
