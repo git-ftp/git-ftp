@@ -32,7 +32,7 @@ REMOTE_LCK_FILE="`basename $0`.lck"
 URL=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
-REMOTE_USER="$USER"
+REMOTE_USER=""
 REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_DELETE_CMD="-DELE "
@@ -226,39 +226,53 @@ release_lock() {
 	rm -f "$LCK_FILE"
 }
 
-set_remotes() {
-	# Split host from url
-	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
+set_remote_host() {
+	REMOTE_HOST=`git config --get git-ftp.url`
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && write_error_and_die "Remote host not set"
+}
 
-	# Check if user is set
-	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
-
+set_remote_protocol() {
 	# Split protocol from url
 	REMOTE_PROTOCOL=`echo "$URL" | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1`
 
-	# Handle supported protocols and remote path
-	if [ -z $REMOTE_PROTOCOL ]; then
-		UNKNOWN_PROTOCOL=`expr "$URL" : "^\(.*:[/]*\).*"`
-		if [ -z $UNKNOWN_PROTOCOL ]; then
-			write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
-			REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
-			[ `echo "$URL" | egrep "/" | wc -l` -ne 0 ] && REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
-		else
-			write_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
-		fi
-	else
+	# Protocol found?
+	if [ ! -z $REMOTE_PROTOCOL ]; then
 		REMOTE_PATH=`echo "$URL" | cut -d '/' -f 4-`
+		handle_remote_protocol_options
+		return 0
 	fi
+
+	# Check if a unknown protocol is set, handle it or use default protocol
+	UNKNOWN_PROTOCOL=`expr "$URL" : "^\(.*:[/]*\).*"`
+	if [ -z $UNKNOWN_PROTOCOL ]; then
+		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
+		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
+		[ `echo "$URL" | egrep "/" | wc -l` -ne 0 ] && REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
+		handle_remote_protocol_options
+		return 0
+	fi
+	write_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
+}
+
+handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
-	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
-	    REMOTE_DELETE_CMD="rm /"
-	fi
+	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
 	# Options for curl if using FTPES
-	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
-	    REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
-	fi
+	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
+}
+
+set_remote_user() {
+	REMOTE_USER="`git config --get git-ftp.user`"
+	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
+	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
+}
+
+set_remotes() {
+	set_remote_host
+	set_remote_protocol
+	set_remote_user
 
 	# Add trailing slash if missing
 	if [ ! -z $REMOTE_PATH ] && [ `echo "$REMOTE_PATH" | egrep "*/$" | wc -l` -ne 1 ]; then
@@ -268,7 +282,7 @@ set_remotes() {
 }
 
 # 2 args are needed: action and url
-if [ $# -lt 2 ]; then
+if [ $# = 0 ]; then
 	usage;
 fi
 
