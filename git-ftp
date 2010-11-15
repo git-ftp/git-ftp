@@ -80,22 +80,22 @@ ACTIONS
 
 URL
 	. FTP (default)	host.example.com[:<port>][/<remote path>]
-	. FTP			ftp://host.example.com[:<port>][/<remote path>]
-	. SFTP			sftp://host.example.com[:<port>][/<remote path>]
-	. FTPS			ftps://host.example.com[:<port>][/<remote path>]
-	. FTPES			ftpes://host.example.com[:<port>][/<remote path>]
+	. FTP		ftp://host.example.com[:<port>][/<remote path>]
+	. SFTP		sftp://host.example.com[:<port>][/<remote path>]
+	. FTPS		ftps://host.example.com[:<port>][/<remote path>]
+	. FTPES		ftpes://host.example.com[:<port>][/<remote path>]
 
 
 OPTIONS
-	-h, --help		Show this help
-	-u, --user		FTP login name
+	-h, --help	Show this help
+	-u, --user	FTP login name
 	-p, --passwd	FTP password
-	-D, --dry-run   Dry run: Does not upload anything
-	-a, --all		Uploads all files, ignores deployed SHA1 hash
-	-l, --lock		Enable/Disable remote locking
-	-f, --force		Force, does not ask questions
+	-D, --dry-run	Dry run: Does not upload anything
+	-a, --all	Uploads all files, ignores deployed SHA1 hash
+	-l, --lock	Enable/Disable remote locking
+	-f, --force	Force, does not ask questions
 	-v, --verbose	Verbose
-	--version		Prints version
+	--version	Prints version
 
 
 EXAMPLES
