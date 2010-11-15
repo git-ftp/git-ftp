@@ -1,10 +1,20 @@
 #!/bin/sh
 #
-# Copyright (c) 2010
-# René Moser <mail@renemoser.net>
-# Eric Greve <ericgreve@gmail.com>
-# Timo Besenreuther <timo@ezdesign.de>
+# Copyright(c) 2010 René Moser
+# http://github.com/resmo/git-ftp
 #
+# Git-ftp is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Git-ftp is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Git-ftp.  If not, see <http://www.gnu.org/licenses/>.
 
 # ------------------------------------------------------------
 # Setup Environment
@@ -35,8 +45,6 @@ ACTION=""
 ENABLE_REMOTE_LCK=0
 
 VERSION='0.1.1'
-AUTHORS='René Moser <mail@renemoser.net>'
-CONTRIBUTORS='Eric Greve <ericgreve@gmail.com>, Timo Besenreuther <timo@ezdesign.de>'
 
 usage_long()
 {
@@ -97,14 +105,6 @@ EXAMPLES
 
 VERSION
 	$VERSION
-
-
-AUTHORS
-	$AUTHORS
-
-
-CONTRIBUTORS
-	$CONTRIBUTORS
 EOF
 exit 0
 }
