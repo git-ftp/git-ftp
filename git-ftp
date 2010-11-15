@@ -29,10 +29,10 @@ REMOTE_LCK_FILE="`basename $0`.lck"
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
-URL=""
+URL="`git config --get git-ftp.url`"
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
-REMOTE_USER=""
+REMOTE_USER="`git config --get git-ftp.user`"
 REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_DELETE_CMD="-DELE "
@@ -227,8 +227,7 @@ release_lock() {
 }
 
 set_remote_host() {
-	REMOTE_HOST=`git config --get git-ftp.url`
-	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
+	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && write_error_and_die "Remote host not set"
 }
@@ -264,7 +263,6 @@ handle_remote_protocol_options() {
 }
 
 set_remote_user() {
-	REMOTE_USER="`git config --get git-ftp.user`"
 	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
 	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
 }
