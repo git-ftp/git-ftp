@@ -267,6 +267,11 @@ set_remotes() {
 	fi
 }
 
+# 2 args are needed: action and url
+if [ $# -lt 2 ]; then
+	usage;
+fi
+
 # Handle action
 case "$1" in
 	push)
