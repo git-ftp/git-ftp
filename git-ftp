@@ -90,6 +90,7 @@ OPTIONS
 	-h, --help	Show this help
 	-u, --user	FTP login name
 	-p, --passwd	FTP password
+	-k, --keychain  FTP password from KeyChain (Mac OS X only)
 	-D, --dry-run	Dry run: Does not upload anything
 	-a, --all	Uploads all files, ignores deployed SHA1 hash
 	-l, --lock	Enable/Disable remote locking
@@ -126,6 +127,16 @@ ask_for_passwd() {
 	read REMOTE_PASSWD
 	stty echo
 	echo ""
+}
+
+get_keychain_password () {
+    if pass=`security find-internet-password -ga "$1" 2>&1 >/dev/null`; then
+        without_prefix="${pass#password: \"}"
+        REMOTE_PASSWD="${without_prefix%\"}"
+    else
+    		write_error_and_die "$1, Password not found in keychain for account '$1'."
+        return -1
+    fi
 }
 
 # Checks if last comand was successful
@@ -350,6 +361,22 @@ do
 					;;
 			esac
 			;;
+		-k|--keychain*)
+		  case "$#,$1" in
+				*,*=*)
+					get_keychain_password `expr "z$1" : 'z-[^=]*=\(.*\)'`
+					;;
+				1,*)
+					usage
+					;;
+				*)
+					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
+						get_keychain_password "$2"
+						shift
+					fi
+					;;
+			esac
+		  ;;
 		-a|--all)
 			IGNORE_DEPLOYED=1
 			;;
