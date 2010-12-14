@@ -393,11 +393,10 @@ fi
 # Main part
 # ------------------------------------------------------------
 
-# Check if this is a git project here
-[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
-
-# Check if the git working dir is dirty, except for show action
-if [ "$ACTION" != "show" ]; then
+if [ "$ACTION" = "push" ] || [ "$ACTION" = "catchup" ]; then
+	#Check if this is a git project here
+	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
+	# Check if the git working dir is dirty
 	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
 fi
