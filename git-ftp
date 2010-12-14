@@ -131,7 +131,7 @@ ask_for_passwd() {
 # Checks if last comand was successful
 check_exit_status() {
 	if [ $? -ne 0 ]; then
-		write_error_and_die "$1, exiting..."
+		print_error_and_die "$1, exiting..."
 	fi
 }
 
@@ -140,8 +140,8 @@ write_log() {
 	[ $VERBOSE -eq 1 ] && echo "`date`: $1"
 }
 
-# Simple error writer
-write_error_and_die() {
+# Simple error printer
+print_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
 		echo "fatal: $1"
 	else
@@ -151,8 +151,8 @@ write_error_and_die() {
 	exit 1
 }
 
-# Simple info writer
-write_info() {
+# Simple info printer
+print_info() {
 	if [ $VERBOSE -eq 0 ]; then
 		echo "$1"
 	else
@@ -186,7 +186,7 @@ upload_local_sha1() {
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
 		check_exit_status "Could not upload"
 	fi
-	write_info "Last deployment changed to $DEPLOYED_SHA1";
+	print_info "Last deployment changed to $DEPLOYED_SHA1";
 }
 
 check_remote_lock() {
@@ -199,7 +199,7 @@ check_remote_lock() {
 		write_log "Local sha1 $LOCAL_SHA1"
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
-			write_error_and_die "Remote locked by ${lck_user}"
+			print_error_and_die "Remote locked by ${lck_user}"
 		fi
 	fi
 }
@@ -235,7 +235,7 @@ release_lock() {
 set_remote_host() {
 	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
-	[ -z $REMOTE_HOST ] && write_error_and_die "Remote host not set"
+	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set"
 }
 
 set_remote_protocol() {
@@ -258,7 +258,7 @@ set_remote_protocol() {
 		handle_remote_protocol_options
 		return 0
 	fi
-	write_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
+	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
 }
 
 handle_remote_protocol_options() {
@@ -270,7 +270,7 @@ handle_remote_protocol_options() {
 
 set_remote_user() {
 	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
-	[ -z $REMOTE_USER ] && write_error_and_die "Remote user not set"
+	[ -z $REMOTE_USER ] && print_error_and_die "Remote user not set"
 }
 
 set_remotes() {
@@ -305,7 +305,7 @@ case "$1" in
 		usage_long
 		;;
 	*)
-		write_error_and_die "Action unknown"
+		print_error_and_die "Action unknown"
 		;;
 esac
 
@@ -410,12 +410,12 @@ fi
 # ------------------------------------------------------------
 
 # Check if this is a git project here
-[ -d ".git" ] || write_error_and_die "Not a Git project? Exiting..."
+[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
 
 # Check if the git working dir is dirty, except for show action
 if [ "$ACTION" != "show" ]; then
 	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
-	[ $CLEAN_REPO -ne 1 ] && write_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
+	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
 fi
 
 set_remotes
@@ -436,11 +436,11 @@ if [ $FORCE -ne 1 ]; then
 	# Check if are at master branch
 	CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
 	if [ "$CURRENT_BRANCH" != "master" ]; then
-		write_info "You are not on master branch."
+		print_info "You are not on master branch."
 		echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
 		read ANSWER_BRANCH
 		if [ "$ANSWER_BRANCH" = "n" ] || [ "$ANSWER_BRANCH" = "N" ]; then
-			write_info "Aborting..."
+			print_info "Aborting..."
 			release_lock
 			exit 0
 		fi
@@ -460,10 +460,10 @@ if [ $IGNORE_DEPLOYED -ne 1 ]; then
 	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
-			write_info "If this is the first push or you want to force use option -f."
-			write_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
+			print_info "If this is the first push or you want to force use option -f."
+			print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
 		fi
-		write_info "Could not get last commit or it does not exist"
+		print_info "Could not get last commit or it does not exist"
 		DEPLOYED_SHA1=""
 	fi
 fi
@@ -475,11 +475,11 @@ if [ "$DEPLOYED_SHA1" != "" ]; then
 	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
-			write_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
 			echo -n "Do you want to ignore and upload all files again? [y/N] "
 			read ANSWER_STATE
 			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-				write_info "Aborting..."
+				print_info "Aborting..."
 				release_lock
 				exit 0
 			else
@@ -487,13 +487,13 @@ if [ "$DEPLOYED_SHA1" != "" ]; then
 				FILES_CHANGED="`git ls-files`"
 			fi
 		else
-			write_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
 			FILES_CHANGED="`git ls-files`"
 		fi
 	elif [ "$FILES_CHANGED" != "" ]; then
 		write_log "Having changed files";
 	else
-		write_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
 		release_lock
 		exit 0
 	fi
@@ -525,14 +525,14 @@ for FILE_ITERATOR in $FILES_CHANGED; do
 	FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
 	if [ "$FILE_MODE" != "D"  ]; then
 		# Uploading file
-		write_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 		if [ $DRY_RUN -ne 1 ]; then
 			upload_file $FILE_NAME
 			check_exit_status "Could not upload"
 		fi
 	else
 		# Removing file
-		write_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
 		[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
 	fi
 done
