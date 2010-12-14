@@ -290,30 +290,13 @@ if [ $# = 0 ]; then
 	usage;
 fi
 
-# Handle action
-case "$1" in
-	push)
-		ACTION="$1"
-		;;
-	catchup)
-		ACTION="$1"
-		;;
-	show)
-		ACTION="$1"
-		;;
-	help)
-		usage_long
-		;;
-	*)
-		print_error_and_die "Action unknown"
-		;;
-esac
-
 while test $# != 0
 do
-	shift
 	case "$1" in
-		-h|--h|--he|--hel|--help)
+		push|catchup|show)
+			ACTION="$1"
+			;;
+		-h|--h|--he|--hel|--help|help)
 			usage_long
 			;;
 		-u|--user*)
@@ -373,7 +356,7 @@ do
 			FORCE=1
 			write_log "Forced mode enabled"
 			;;
-		--version)
+		--version|version)
 			echo "git-ftp version $VERSION"
 			exit 0
 			;;
@@ -382,6 +365,7 @@ do
 			[ "$1" != "" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
 			;;
 	esac
+	shift
 done
 
 # Checks locking, make sure this only run once a time
