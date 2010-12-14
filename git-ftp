@@ -163,10 +163,7 @@ print_info() {
 upload_file() {
 	SRC_FILE="$1"
 	DEST_FILE="$2"
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$SRC_FILE
-	fi
-	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+	curl $REMOTE_CMD_OPTIONS -T "{$SRC_FILE}" --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
 }
 
 remove_file() {
@@ -472,10 +469,12 @@ if [ "$ACTION" = "push" ]; then
 				else
 					write_log "Taking all files";
 					FILES_CHANGED="`git ls-files`"
+					MODE="all-files"
 				fi
 			else
 				print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
 				FILES_CHANGED="`git ls-files`"
+				MODE="all-files"
 			fi
 		elif [ "$FILES_CHANGED" != "" ]; then
 			write_log "Having changed files";
@@ -487,44 +486,49 @@ if [ "$ACTION" = "push" ]; then
 	else
 		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
 		FILES_CHANGED="`git ls-files`"
+		MODE="all-files"
 	fi
-
-	# Calculate total file count
-	DONE_ITEMS=0
-	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
-	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	write_log "There are $TOTAL_ITEMS changed files"
 
 	# Uploack remote lock file if enabled
 	remote_lock
 
-	# Changing internal field separator, file names could have spaces
-	OIFS="$IFS"
-	# dash does not like NIFS=$'\n', using WYSIWYG
-	NIFS=$'
-	'
-	IFS="$NIFS"
-
 	# Upload to ftp
-	for FILE_ITERATOR in $FILES_CHANGED; do
-		DONE_ITEMS=$(($DONE_ITEMS+1))
-		FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
-		FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
-		if [ "$FILE_MODE" != "D"  ]; then
-			# Uploading file
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
-			if [ $DRY_RUN -ne 1 ]; then
-				upload_file $FILE_NAME
-				check_exit_status "Could not upload"
+	if [ "$MODE" = "all-files" ]; then
+		print_info "Batch uploading..."
+		FILES_COMMA_SEPARATED=`echo "$FILES_CHANGED" |  tr '\n' ','`
+		upload_file $FILES_COMMA_SEPARATED
+		check_exit_status "Could not batch upload"
+	else
+		# Calculate total file count
+		DONE_ITEMS=0
+		TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
+		TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
+		write_log "There are $TOTAL_ITEMS changed files"
+		# Changing internal field separator, file names could have spaces
+		OIFS="$IFS"
+		# dash does not like NIFS=$'\n', using WYSIWYG
+		NIFS=$'
+		'
+		IFS="$NIFS"
+		for FILE_ITERATOR in "$FILES_CHANGED"; do
+			DONE_ITEMS=$(($DONE_ITEMS+1))
+			FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
+			FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
+			if [ "$FILE_MODE" != "D"  ]; then
+				# Uploading file
+				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+				if [ $DRY_RUN -ne 1 ]; then
+					upload_file $FILE_NAME
+					check_exit_status "Could not upload"
+				fi
+			else
+				# Removing file
+				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+				[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
 			fi
-		else
-			# Removing file
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
-		fi
-	done
-
-	IFS="$OIFS"
+		done
+		IFS="$OIFS"
+	fi
 fi
 
 # if successful, remember the SHA1 of last commit
