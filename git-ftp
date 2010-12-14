@@ -436,91 +436,93 @@ if [ "$ACTION" = "catchup" ]; then
 	exit 0
 fi
 
-DEPLOYED_SHA1=""
-if [ $IGNORE_DEPLOYED -ne 1 ]; then
-	# Get the last commit (SHA) we deployed if not ignored or not found
-	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
-	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
-	if [ $? -ne 0 ]; then
-		if [ $FORCE -ne 1 ]; then
-			print_info "If this is the first push or you want to force use option -f."
-			print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
+if [ "$ACTION" = "push" ]; then
+	DEPLOYED_SHA1=""
+	if [ $IGNORE_DEPLOYED -ne 1 ]; then
+		# Get the last commit (SHA) we deployed if not ignored or not found
+		write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
+		DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+		if [ $? -ne 0 ]; then
+			if [ $FORCE -ne 1 ]; then
+				print_info "If this is the first push or you want to force use option -f."
+				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
+			fi
+			print_info "Could not get last commit or it does not exist"
+			DEPLOYED_SHA1=""
 		fi
-		print_info "Could not get last commit or it does not exist"
-		DEPLOYED_SHA1=""
 	fi
-fi
 
-if [ "$DEPLOYED_SHA1" != "" ]; then
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
 
-	# Get the files changed since then
-	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
-	if [ $? -ne 0 ]; then
-		if [ $FORCE -ne 1 ]; then
-			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-			echo -n "Do you want to ignore and upload all files again? [y/N] "
-			read ANSWER_STATE
-			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-				print_info "Aborting..."
-				release_lock
-				exit 0
+		# Get the files changed since then
+		FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
+		if [ $? -ne 0 ]; then
+			if [ $FORCE -ne 1 ]; then
+				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+				echo -n "Do you want to ignore and upload all files again? [y/N] "
+				read ANSWER_STATE
+				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
+					print_info "Aborting..."
+					release_lock
+					exit 0
+				else
+					write_log "Taking all files";
+					FILES_CHANGED="`git ls-files`"
+				fi
 			else
-				write_log "Taking all files";
+				print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
 				FILES_CHANGED="`git ls-files`"
 			fi
+		elif [ "$FILES_CHANGED" != "" ]; then
+			write_log "Having changed files";
 		else
-			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-			FILES_CHANGED="`git ls-files`"
+			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+			release_lock
+			exit 0
 		fi
-	elif [ "$FILES_CHANGED" != "" ]; then
-		write_log "Having changed files";
 	else
-		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-		release_lock
-		exit 0
+		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
+		FILES_CHANGED="`git ls-files`"
 	fi
-else
-	write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
-	FILES_CHANGED="`git ls-files`"
+
+	# Calculate total file count
+	DONE_ITEMS=0
+	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
+	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
+	write_log "There are $TOTAL_ITEMS changed files"
+
+	# Uploack remote lock file if enabled
+	remote_lock
+
+	# Changing internal field separator, file names could have spaces
+	OIFS="$IFS"
+	# dash does not like NIFS=$'\n', using WYSIWYG
+	NIFS=$'
+	'
+	IFS="$NIFS"
+
+	# Upload to ftp
+	for FILE_ITERATOR in $FILES_CHANGED; do
+		DONE_ITEMS=$(($DONE_ITEMS+1))
+		FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
+		FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
+		if [ "$FILE_MODE" != "D"  ]; then
+			# Uploading file
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+			if [ $DRY_RUN -ne 1 ]; then
+				upload_file $FILE_NAME
+				check_exit_status "Could not upload"
+			fi
+		else
+			# Removing file
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
+		fi
+	done
+
+	IFS="$OIFS"
 fi
-
-# Calculate total file count
-DONE_ITEMS=0
-TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
-TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-write_log "There are $TOTAL_ITEMS changed files"
-
-# Uploack remote lock file if enabled
-remote_lock
-
-# Changing internal field separator, file names could have spaces
-OIFS="$IFS"
-# dash does not like NIFS=$'\n', using WYSIWYG
-NIFS=$'
-'
-IFS="$NIFS"
-
-# Upload to ftp
-for FILE_ITERATOR in $FILES_CHANGED; do
-	DONE_ITEMS=$(($DONE_ITEMS+1))
-	FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
-	FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
-	if [ "$FILE_MODE" != "D"  ]; then
-		# Uploading file
-		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
-		if [ $DRY_RUN -ne 1 ]; then
-			upload_file $FILE_NAME
-			check_exit_status "Could not upload"
-		fi
-	else
-		# Removing file
-		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-		[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
-	fi
-done
-
-IFS="$OIFS"
 
 # if successful, remember the SHA1 of last commit
 upload_local_sha1
