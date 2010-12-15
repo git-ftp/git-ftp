@@ -345,6 +345,8 @@ do
 					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
 						REMOTE_USER="$2"
 						shift
+					else
+						print_error_and_die "Too few arguments for option -u"
 					fi
 					;;
 			esac
