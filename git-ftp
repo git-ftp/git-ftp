@@ -163,7 +163,16 @@ print_info() {
 upload_file() {
 	SRC_FILE="$1"
 	DEST_FILE="$2"
-	curl $REMOTE_CMD_OPTIONS -T "{$SRC_FILE}" --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$SRC_FILE
+	fi
+	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+}
+
+batch_upload_files() {
+	FILES_COMMA_SEPARATED=`expr "$1" : "^\(.*\),$"`
+	print_info "Batch uploading..."
+	curl $REMOTE_CMD_OPTIONS -T "{$FILES_COMMA_SEPARATED}" --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}
 }
 
 remove_file() {
@@ -493,17 +502,18 @@ if [ "$ACTION" = "push" ]; then
 	remote_lock
 
 	# Upload to ftp
+
+	# Calculate total file count
+	DONE_ITEMS=0
+	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
+	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
+	write_log "There are $TOTAL_ITEMS files to upload"
+
 	if [ "$MODE" = "all-files" ]; then
-		print_info "Batch uploading..."
 		FILES_COMMA_SEPARATED=`echo "$FILES_CHANGED" |  tr '\n' ','`
-		upload_file $FILES_COMMA_SEPARATED
+		batch_upload_files $FILES_COMMA_SEPARATED
 		check_exit_status "Could not batch upload"
 	else
-		# Calculate total file count
-		DONE_ITEMS=0
-		TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
-		TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-		write_log "There are $TOTAL_ITEMS changed files"
 		# Changing internal field separator, file names could have spaces
 		OIFS="$IFS"
 		# dash does not like NIFS=$'\n', using WYSIWYG
