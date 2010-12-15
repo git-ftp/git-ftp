@@ -182,12 +182,12 @@ batch_upload_files() {
 
 remove_file() {
 	FILENAME="$1"
-	curl $REMOTE_CMD_OPTIONS --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
+	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
 }
 
 get_file_content() {
 	SRC_FILE="$1"
-	curl $REMOTE_CMD_OPTIONS --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
+	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
 }
 
 upload_local_sha1() {
@@ -385,6 +385,7 @@ do
 			;;
 		-v|--verbose)
 			VERBOSE=1
+			REMOTE_CMD_OPTIONS=""
 			;;
 		-f|--force)
 			FORCE=1
@@ -503,7 +504,6 @@ if [ "$ACTION" = "push" ]; then
 		FILES_CHANGED="`git ls-files`"
 		MODE="all-files"
 	fi
-
 	# Uploack remote lock file if enabled
 	remote_lock
 
