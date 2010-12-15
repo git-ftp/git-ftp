@@ -511,8 +511,10 @@ if [ "$ACTION" = "push" ]; then
 
 	if [ "$MODE" = "all-files" ]; then
 		FILES_COMMA_SEPARATED=`echo "$FILES_CHANGED" |  tr '\n' ','`
-		batch_upload_files $FILES_COMMA_SEPARATED
-		check_exit_status "Could not batch upload"
+		if [ $DRY_RUN -ne 1 ]; then
+			batch_upload_files $FILES_COMMA_SEPARATED
+			check_exit_status "Could not batch upload"
+		fi
 	else
 		# Changing internal field separator, file names could have spaces
 		OIFS="$IFS"
