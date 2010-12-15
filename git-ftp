@@ -25,6 +25,7 @@ DEFAULT_PROTOCOL="ftp"
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 LCK_FILE="`basename $0`.lck"
 REMOTE_LCK_FILE="`basename $0`.lck"
+SYSTEM=`uname`
 
 # ------------------------------------------------------------
 # Defaults
@@ -130,13 +131,16 @@ ask_for_passwd() {
 }
 
 get_keychain_password () {
-    if pass=`security find-internet-password -ga "$1" 2>&1 >/dev/null`; then
-        without_prefix="${pass#password: \"}"
-        REMOTE_PASSWD="${without_prefix%\"}"
-    else
-    		write_error_and_die "$1, Password not found in keychain for account '$1'."
-        return -1
-    fi
+	if [ "$SYSTEM" = "Darwin" ]; then
+		if pass=`security find-internet-password -ga "$1" > /dev/null 2>&1`; then
+			without_prefix="${pass#password: \"}"
+			REMOTE_PASSWD="${without_prefix%\"}"
+		else
+			write_error_and_die "Password not found in keychain for account '$1'."
+		fi
+	else
+		write_log "Ingoring -k on non-Darwin systems"
+	fi
 }
 
 # Checks if last comand was successful
@@ -367,12 +371,14 @@ do
 					get_keychain_password `expr "z$1" : 'z-[^=]*=\(.*\)'`
 					;;
 				1,*)
-					usage
+					write_error_and_die "Too few arguments for option -k"
 					;;
 				*)
 					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
 						get_keychain_password "$2"
 						shift
+					else
+						write_error_and_die "Too few arguments for option -k"
 					fi
 					;;
 			esac
