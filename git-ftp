@@ -150,7 +150,7 @@ get_keychain_password () {
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
-			write_error_and_die "Password not found in keychain for account '$1'."
+			print_error_and_die "Password not found in keychain for account '$1'." $ERROR_MISSING_ARGUMENTS
 		fi
 	else
 		write_log "Ingoring -k on non-Darwin systems"
