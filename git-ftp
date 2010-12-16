@@ -43,8 +43,22 @@ DRY_RUN=0
 FORCE=0
 ACTION=""
 ENABLE_REMOTE_LCK=0
-
 VERSION='0.1.2'
+
+# ------------------------------------------------------------
+# Exit Error Codes
+# ------------------------------------------------------------
+ERROR_USAGE=2
+ERROR_MISSING_ARGUMENTS=3
+ERROR_UPLOAD=4
+ERROR_DOWNLOAD=5
+ERROR_UNKNOWN_PROTOCOL=6
+ERROR_REMOTE_LOCKED=7
+ERROR_GIT=8
+
+# ------------------------------------------------------------
+# Functions
+# ------------------------------------------------------------
 
 usage_long()
 {
@@ -117,7 +131,7 @@ exit 0
 
 usage() {
 	echo "git-ftp <action> [<options>] <url>"
-	exit 1
+	exit $ERROR_USAGE
 }
 
 ask_for_passwd() {
@@ -131,7 +145,7 @@ ask_for_passwd() {
 # Checks if last comand was successful
 check_exit_status() {
 	if [ $? -ne 0 ]; then
-		print_error_and_die "$1, exiting..."
+		print_error_and_die "$1, exiting..." $2
 	fi
 }
 
@@ -148,7 +162,7 @@ print_error_and_die() {
 		write_log "fatal: $1"
 	fi
 	release_lock
-	exit 1
+	exit $2
 }
 
 # Simple info printer
@@ -176,7 +190,7 @@ batch_upload_files() {
 	fi
 	print_info "Batch uploading..."
 	curl $REMOTE_CMD_OPTIONS -T "{$FILES_COMMA_SEPARATED}" --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}
-	check_exit_status "Could not batch upload"
+	check_exit_status "Could not batch upload" $ERROR_UPLOAD
 	print_info "Done."
 }
 
@@ -195,7 +209,7 @@ upload_local_sha1() {
 	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE"
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
-		check_exit_status "Could not upload"
+		check_exit_status "Could not upload" $ERROR_UPLOAD
 	fi
 	print_info "Last deployment changed to $DEPLOYED_SHA1";
 }
@@ -212,7 +226,7 @@ remote_lock() {
 	write_log "Remote locking $lLCK_MESSAGE"
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "${LOCAL_SHA1}\n${lLCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
-		check_exit_status "Could not upload remote lock file"
+		check_exit_status "Could not upload remote lock file" $ERROR_UPLOAD
 	fi
 }
 
@@ -254,7 +268,7 @@ release_lock() {
 set_remote_host() {
 	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
-	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set"
+	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
 }
 
 set_remote_protocol() {
@@ -277,7 +291,7 @@ set_remote_protocol() {
 		handle_remote_protocol_options
 		return 0
 	fi
-	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
+	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'" $ERROR_UNKNOWN_PROTOCOL
 }
 
 
@@ -290,7 +304,7 @@ load_deployed_sha1() {
 		if [ $? -ne 0 ]; then
 			if [ $FORCE -ne 1 ]; then
 				print_info "If this is the first push or you want to force use option -f."
-				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
+				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?" $ERROR_DOWNLOAD
 			fi
 			print_info "Could not get last commit or it does not exist"
 			DEPLOYED_SHA1=""
@@ -395,14 +409,14 @@ handle_action() {
 			action_show
 			;;
 		*)
-			print_error_and_die "Action unknown"
+			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
 	esac
 }
 
 set_remote_user() {
 	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
-	[ -z $REMOTE_USER ] && print_error_and_die "Remote user not set"
+	[ -z $REMOTE_USER ] && print_error_and_die "Remote user not set" $ERROR_MISSING_ARGUMENTS
 }
 
 set_remotes() {
@@ -453,7 +467,7 @@ action_catchup() {
 action_show() {
 	set_remotes
 	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
-	check_exit_status "Could not get uploaded log file"
+	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
 	git show "$DEPLOYED_SHA1"
 }
 
@@ -470,18 +484,18 @@ check_remote_lock() {
 		write_log "Local sha1 $LOCAL_SHA1"
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
-			print_error_and_die "Remote locked by ${lck_user}"
+			print_error_and_die "Remote locked by ${lck_user}" $ERROR_REMOTE_LOCKED
 		fi
 	fi
 }
 
 check_is_git_project() {
-	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
+	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
 }
 
 check_is_dirty_repository() {
 	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
-	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
+	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
 check_branch() {
@@ -502,7 +516,7 @@ check_branch() {
 }
 
 # ------------------------------------------------------------
-# Main part
+# Main
 # ------------------------------------------------------------
 main() {
 	handle_action
@@ -536,7 +550,7 @@ do
 						REMOTE_USER="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -u"
+						print_error_and_die "Too few arguments for option -u" $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
