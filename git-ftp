@@ -200,21 +200,6 @@ upload_local_sha1() {
 	print_info "Last deployment changed to $DEPLOYED_SHA1";
 }
 
-check_remote_lock() {
-	write_log "Checking remote lock"
-	LCK_CONTENT="`get_file_content $REMOTE_LCK_FILE 2>/dev/null`"
-	if [ "$LCK_CONTENT" != "" ]; then
-		LCK_SHA1=`echo "$LCK_CONTENT" | head -n 1`
-		write_log "Remote lock sha1 $LCK_SHA1"
-		LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
-		write_log "Local sha1 $LOCAL_SHA1"
-		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
-			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
-			print_error_and_die "Remote locked by ${lck_user}"
-		fi
-	fi
-}
-
 remote_lock() {
 	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
@@ -295,11 +280,124 @@ set_remote_protocol() {
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'"
 }
 
+
+load_deployed_sha1() {
+	DEPLOYED_SHA1=""
+	if [ $IGNORE_DEPLOYED -ne 1 ]; then
+		# Get the last commit (SHA) we deployed if not ignored or not found
+		write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
+		DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+		if [ $? -ne 0 ]; then
+			if [ $FORCE -ne 1 ]; then
+				print_info "If this is the first push or you want to force use option -f."
+				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
+			fi
+			print_info "Could not get last commit or it does not exist"
+			DEPLOYED_SHA1=""
+		fi
+	fi
+}
+
+set_changed_files() {
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
+
+		# Get the files changed since then
+		FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
+		if [ $? -ne 0 ]; then
+			if [ $FORCE -ne 1 ]; then
+				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+				echo -n "Do you want to ignore and upload all files again? [y/N] "
+				read ANSWER_STATE
+				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
+					print_info "Aborting..."
+					release_lock
+					exit 0
+				else
+					write_log "Taking all files";
+					FILES_CHANGED="`git ls-files`"
+					MODE="all-files"
+				fi
+			else
+				print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+				FILES_CHANGED="`git ls-files`"
+				MODE="all-files"
+			fi
+		elif [ "$FILES_CHANGED" != "" ]; then
+			write_log "Having changed files";
+		else
+			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+			release_lock
+			exit 0
+		fi
+	else
+		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
+		FILES_CHANGED="`git ls-files`"
+		MODE="all-files"
+	fi
+}
+
+handle_file_sync() {
+	# Calculate total file count
+	DONE_ITEMS=0
+	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
+	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
+	write_log "There are $TOTAL_ITEMS files to upload"
+
+	UPLOAD_FILES=""
+	if [ "$MODE" = "all-files" ]; then
+		UPLOAD_FILES=`echo "$FILES_CHANGED" |  tr '\n' ','`
+	else
+		# Changing internal field separator, file names could have spaces
+		OIFS="$IFS"
+		# dash does not like NIFS=$'\n', using WYSIWYG
+		NIFS=$'
+'
+		IFS="$NIFS"
+		for FILE_ITERATOR in $FILES_CHANGED; do
+			DONE_ITEMS=$(($DONE_ITEMS+1))
+			FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
+			FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
+			if [ "$FILE_MODE" != "D"  ]; then
+				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Keep '$FILE_NAME' for batch upload"
+				UPLOAD_FILES="$FILE_NAME,$UPLOAD_FILES"
+			else
+				# Removing file
+				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+				[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
+			fi
+		done
+		IFS="$OIFS"
+	fi
+
+	# Batch upload to ftp
+	if [ $DRY_RUN -ne 1 ] && [ "$UPLOAD_FILES" != "" ]; then
+		batch_upload_files "$UPLOAD_FILES"
+	fi
+}
+
 handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
 	# Options for curl if using FTPES
 	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
+}
+
+handle_action() {
+	case "$ACTION" in
+		push)
+			action_push
+			;;
+		catchup)
+			action_catchup	
+			;;
+		show)
+			action_show
+			;;
+		*)
+			print_error_and_die "Action unknown"
+			;;
+	esac
 }
 
 set_remote_user() {
@@ -309,14 +407,106 @@ set_remote_user() {
 
 set_remotes() {
 	set_remote_host
-	set_remote_protocol
-	set_remote_user
+	write_log "Host is '$REMOTE_HOST'"
 
+	set_remote_user
+	write_log "User is '$REMOTE_USER'"
+
+	set_remote_protocol
 	# Add trailing slash if missing
 	if [ ! -z $REMOTE_PATH ] && [ `echo "$REMOTE_PATH" | egrep "*/$" | wc -l` -ne 1 ]; then
 		write_log "Added missing trailing / in path"
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
+	write_log "Path is '$REMOTE_PATH'"
+
+}
+
+# ------------------------------------------------------------
+# Actions
+# ------------------------------------------------------------
+action_push() {
+	lock
+	check_is_git_project
+	check_is_dirty_repository
+	check_branch
+	set_remotes
+	load_deployed_sha1
+	set_changed_files
+	remote_lock
+	handle_file_sync
+	upload_local_sha1
+	release_remote_lock
+	release_lock
+}
+
+action_catchup() {
+	lock
+	check_is_git_project
+	check_is_dirty_repository
+	check_branch
+	set_remotes
+	upload_local_sha1
+	release_lock
+}
+
+action_show() {
+	set_remotes
+	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	check_exit_status "Could not get uploaded log file"
+	git show "$DEPLOYED_SHA1"
+}
+
+# ------------------------------------------------------------
+# Checks
+# ------------------------------------------------------------
+check_remote_lock() {
+	write_log "Checking remote lock"
+	LCK_CONTENT="`get_file_content $REMOTE_LCK_FILE 2>/dev/null`"
+	if [ "$LCK_CONTENT" != "" ]; then
+		LCK_SHA1=`echo "$LCK_CONTENT" | head -n 1`
+		write_log "Remote lock sha1 $LCK_SHA1"
+		LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
+		write_log "Local sha1 $LOCAL_SHA1"
+		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
+			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
+			print_error_and_die "Remote locked by ${lck_user}"
+		fi
+	fi
+}
+
+check_is_git_project() {
+	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
+}
+
+check_is_dirty_repository() {
+	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
+	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
+}
+
+check_branch() {
+	if [ $FORCE -ne 1 ]; then
+		# Check if are at master branch
+		CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
+		if [ "$CURRENT_BRANCH" != "master" ]; then
+			print_info "You are not on master branch."
+			echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
+			read ANSWER_BRANCH
+			if [ "$ANSWER_BRANCH" = "n" ] || [ "$ANSWER_BRANCH" = "N" ]; then
+				print_info "Aborting..."
+				release_lock
+				exit 0
+			fi
+		fi
+	fi
+}
+
+# ------------------------------------------------------------
+# Main part
+# ------------------------------------------------------------
+main() {
+	handle_action
+	exit 0
 }
 
 # 2 args are needed: action and url
@@ -404,159 +594,4 @@ do
 	esac
 	shift
 done
-
-# ------------------------------------------------------------
-# Main part
-# ------------------------------------------------------------
-
-if [ "$ACTION" = "push" ] || [ "$ACTION" = "catchup" ]; then
-	lock
-	#Check if this is a git project here
-	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..."
-	# Check if the git working dir is dirty
-	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
-	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..."
-fi
-
-set_remotes
-write_log "Host is '$REMOTE_HOST'"
-write_log "User is '$REMOTE_USER'"
-write_log "Path is '$REMOTE_PATH'"
-write_log "Action is '$ACTION'"
-
-if [ "$ACTION" = "show" ]; then
-	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
-	check_exit_status "Could not get uploaded log file"
-	git show "$DEPLOYED_SHA1"
-	release_lock
-	exit 0
-fi
-
-if [ $FORCE -ne 1 ]; then
-
-	# Check if are at master branch
-	CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
-	if [ "$CURRENT_BRANCH" != "master" ]; then
-		print_info "You are not on master branch."
-		echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
-		read ANSWER_BRANCH
-		if [ "$ANSWER_BRANCH" = "n" ] || [ "$ANSWER_BRANCH" = "N" ]; then
-			print_info "Aborting..."
-			release_lock
-			exit 0
-		fi
-	fi
-fi
-
-if [ "$ACTION" = "catchup" ]; then
-	upload_local_sha1
-	release_lock
-	exit 0
-fi
-
-if [ "$ACTION" = "push" ]; then
-	DEPLOYED_SHA1=""
-	if [ $IGNORE_DEPLOYED -ne 1 ]; then
-		# Get the last commit (SHA) we deployed if not ignored or not found
-		write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
-		DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
-		if [ $? -ne 0 ]; then
-			if [ $FORCE -ne 1 ]; then
-				print_info "If this is the first push or you want to force use option -f."
-				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?"
-			fi
-			print_info "Could not get last commit or it does not exist"
-			DEPLOYED_SHA1=""
-		fi
-	fi
-
-	if [ "$DEPLOYED_SHA1" != "" ]; then
-		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
-
-		# Get the files changed since then
-		FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
-		if [ $? -ne 0 ]; then
-			if [ $FORCE -ne 1 ]; then
-				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-				echo -n "Do you want to ignore and upload all files again? [y/N] "
-				read ANSWER_STATE
-				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-					print_info "Aborting..."
-					release_lock
-					exit 0
-				else
-					write_log "Taking all files";
-					FILES_CHANGED="`git ls-files`"
-					MODE="all-files"
-				fi
-			else
-				print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-				FILES_CHANGED="`git ls-files`"
-				MODE="all-files"
-			fi
-		elif [ "$FILES_CHANGED" != "" ]; then
-			write_log "Having changed files";
-		else
-			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-			release_lock
-			exit 0
-		fi
-	else
-		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
-		FILES_CHANGED="`git ls-files`"
-		MODE="all-files"
-	fi
-	# Uploack remote lock file if enabled
-	remote_lock
-
-	# Calculate total file count
-	DONE_ITEMS=0
-	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
-	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	write_log "There are $TOTAL_ITEMS files to upload"
-
-	UPLOAD_FILES=""
-	if [ "$MODE" = "all-files" ]; then
-		UPLOAD_FILES=`echo "$FILES_CHANGED" |  tr '\n' ','`
-	else
-		# Changing internal field separator, file names could have spaces
-		OIFS="$IFS"
-		# dash does not like NIFS=$'\n', using WYSIWYG
-		NIFS=$'
-'
-		IFS="$NIFS"
-		for FILE_ITERATOR in $FILES_CHANGED; do
-			DONE_ITEMS=$(($DONE_ITEMS+1))
-			FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
-			FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
-			if [ "$FILE_MODE" != "D"  ]; then
-				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Keep '$FILE_NAME' for batch upload"
-				UPLOAD_FILES="$FILE_NAME,$UPLOAD_FILES"
-			else
-				# Removing file
-				print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-				[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
-			fi
-		done
-		IFS="$OIFS"
-	fi
-
-	# Batch upload to ftp
-	if [ $DRY_RUN -ne 1 ] && [ "$UPLOAD_FILES" != "" ]; then
-		batch_upload_files "$UPLOAD_FILES"
-	fi
-fi
-
-# if successful, remember the SHA1 of last commit
-upload_local_sha1
-
-# ------------------------------------------------------------
-# Cleanup
-# ------------------------------------------------------------
-release_remote_lock
-release_lock
-
-# ------------------------------------------------------------
-# Done
-# ------------------------------------------------------------
-exit 0
+main
