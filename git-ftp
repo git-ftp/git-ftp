@@ -594,14 +594,14 @@ do
 					get_keychain_password `expr "z$1" : 'z-[^=]*=\(.*\)'`
 					;;
 				1,*)
-					write_error_and_die "Too few arguments for option -k"
+					print_error_and_die "Too few arguments for option -k" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
 						get_keychain_password "$2"
 						shift
 					else
-						write_error_and_die "Too few arguments for option -k"
+						print_error_and_die "Too few arguments for option -k" $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
