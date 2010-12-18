@@ -294,7 +294,7 @@ release_lock() {
 }
 
 set_remote_host() {
-	[ -z $URL ] && [ "$SCOPE" != "" ] && URL="`git config --get git-ftp.$SCOPE.url`"
+	[ -z $URL ] && [ -n "$SCOPE" ] && URL="`git config --get git-ftp.$SCOPE.url`"
 	[ -z $URL ] && URL="`git config --get git-ftp.url`"
 	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
@@ -343,7 +343,7 @@ load_deployed_sha1() {
 }
 
 set_changed_files() {
-	if [ "$DEPLOYED_SHA1" != "" ]; then
+	if [ -n "$DEPLOYED_SHA1" ]; then
 		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
 
 		# Get the files changed since then
@@ -367,7 +367,7 @@ set_changed_files() {
 				FILES_CHANGED="`git ls-files`"
 				MODE="all-files"
 			fi
-		elif [ "$FILES_CHANGED" != "" ]; then
+		elif [ -n "$FILES_CHANGED" ]; then
 			write_log "Having changed files";
 		else
 			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
@@ -415,7 +415,7 @@ handle_file_sync() {
 	fi
 
 	# Batch upload to ftp
-	if [ $DRY_RUN -ne 1 ] && [ "$UPLOAD_FILES" != "" ]; then
+	if [ $DRY_RUN -ne 1 ] && [ -n "$UPLOAD_FILES" ]; then
 		batch_upload_files "$UPLOAD_FILES"
 	fi
 }
@@ -445,14 +445,14 @@ handle_action() {
 }
 
 set_remote_user() {
-	[ -z $REMOTE_USER ] && [ "$SCOPE" != "" ] && REMOTE_USER="`git config --get git-ftp.$SCOPE.user`"
+	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && REMOTE_USER="`git config --get git-ftp.$SCOPE.user`"
 	[ -z $REMOTE_USER ] && REMOTE_USER="`git config --get git-ftp.user`"
 	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
 	[ -z $REMOTE_USER ] && print_error_and_die "Remote user not set" $ERROR_MISSING_ARGUMENTS
 }
 
 set_remote_password() {
-	[ -z $REMOTE_PASSWD ] && [ -z $SCOPE ] && REMOTE_PASSWD="`git config --get git-ftp.$SCOPE.password`"
+	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="`git config --get git-ftp.$SCOPE.password`"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="`git config --get git-ftp.password`"
 }
 
@@ -520,7 +520,7 @@ action_show() {
 check_remote_lock() {
 	write_log "Checking remote lock"
 	LCK_CONTENT="`get_file_content $REMOTE_LCK_FILE 2>/dev/null`"
-	if [ "$LCK_CONTENT" != "" ]; then
+	if [ -n "$LCK_CONTENT" ]; then
 		LCK_SHA1=`echo "$LCK_CONTENT" | head -n 1`
 		write_log "Remote lock sha1 $LCK_SHA1"
 		LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
@@ -684,7 +684,7 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ "$1" != "" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
+			[ -n "$1" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
 			;;
 	esac
 	shift
