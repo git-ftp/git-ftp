@@ -44,6 +44,7 @@ DRY_RUN=0
 FORCE=0
 ACTION=""
 ENABLE_REMOTE_LCK=0
+LOG_CACHE=""
 VERSION='0.1.2'
 
 # ------------------------------------------------------------
@@ -166,7 +167,11 @@ check_exit_status() {
 
 # Simple log func
 write_log() {
-	[ $VERBOSE -eq 1 ] && echo "`date`: $1"
+	if [ $VERBOSE -eq 1 ]; then
+		echo "`date`: $1"
+	else
+		LOG_CACHE="$LOG_CACHE\n`date`: $1"
+	fi
 }
 
 # Simple error printer
@@ -589,7 +594,7 @@ do
 			esac
 			;;
 		-k|--keychain*)
-		  case "$#,$1" in
+			case "$#,$1" in
 				*,*=*)
 					get_keychain_password `expr "z$1" : 'z-[^=]*=\(.*\)'`
 					;;
@@ -624,6 +629,7 @@ do
 			;;
 		-v|--verbose)
 			VERBOSE=1
+			echo $LOG_CACHE
 			REMOTE_CMD_OPTIONS=""
 			;;
 		-f|--force)
