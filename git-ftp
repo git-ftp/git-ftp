@@ -113,6 +113,7 @@ OPTIONS
 	-a, --all	Uploads all files, ignores deployed SHA1 hash
 	-l, --lock	Enable/Disable remote locking
 	-f, --force	Force, does not ask questions
+	-n, --silent	Silent
 	-v, --verbose	Verbose
 	--version	Prints version
 
@@ -668,6 +669,10 @@ do
 		-D|--dry-run)
 			DRY_RUN=1
 			write_log "Running dry, won't do anything"
+			;;
+		-n|--silent)
+			VERBOSE=-1
+			REMOTE_CMD_OPTIONS="-s"
 			;;
 		-v|--verbose)
 			VERBOSE=1
