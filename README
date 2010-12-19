@@ -30,6 +30,7 @@ Known Issues
  - Git Submodules are currently not supported. I am working on it.
  - See http://github.com/resmo/git-ftp/issues for open issues
 
+
 Installing
 ----------
 See INSTALL file.
@@ -38,11 +39,25 @@ See INSTALL file.
 Usage
 -----
     $ cd my_git_tracked_project
-    $ git ftp push ftp://host.example.com/public_html --user <user> -p <password>
+    $ git ftp push ftp://host.example.com/public_html --user <user> --password <password>
 
 For interactive password prompt use:
-    $ git ftp push ftp://host.example.com/public_html --user <user> -p
+    $ git ftp push ftp://host.example.com/public_html -u <user> -p
 
+Pushing the first time needs option --force or -f because it will not find any deployed sha1 hash
+
+
+Testing and Help
+----------------
+For testing mode use --dry-run alias -D
+	$ git ftp push ftp://host.example.com/public_html --dry-run -u <user> -p
+
+For more options see:
+    $ git ftp help
+
+
+Using Defaults
+--------------
 Setting defaults for a git project in .git/config
 	$ git config git-ftp.user john
 	$ git config git-ftp.url ftp.example.com
@@ -51,8 +66,20 @@ Setting defaults for a git project in .git/config
 After setting defaults, push to john@ftp.example.com is as simple as
 	$ git ftp push
 
-For more options see:
-    $ git ftp help
+
+Using Scopes
+------------
+For using defaults for different systems, use the so called scope feature.
+	$ git config git-ftp.<scope>.<(url|user|password)> <value>
+
+Here I set the params for the scope "foobar"
+	$ git config git-ftp.foobar.url ftp.testing.com:8080/foobar-path
+	$ git config git-ftp.foobar.password simp3l
+
+Push to scope foobar alias john@ftp.testing.com:8080/foobar-path using password simp3l
+	$ git push -s foobar
+
+Because I didn't set the user for this scope, it takes the user "john" as set before in defaults.
 
 
 Contributions
