@@ -677,6 +677,10 @@ do
 		-v|--verbose)
 			VERBOSE=1
 			echo $LOG_CACHE
+			;;
+		-vv)
+			VERBOSE=1
+			echo $LOG_CACHE
 			REMOTE_CMD_OPTIONS=""
 			;;
 		-f|--force)
