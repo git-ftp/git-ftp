@@ -39,7 +39,7 @@ See INSTALL file.
 Usage
 -----
     $ cd my_git_tracked_project
-    $ git ftp push ftp://host.example.com/public_html --user <user> --password <password>
+    $ git ftp push ftp://host.example.com/public_html --user <user> --passwd <password>
 
 For interactive password prompt use:
     $ git ftp push ftp://host.example.com/public_html -u <user> -p
@@ -77,7 +77,7 @@ Here I set the params for the scope "foobar"
 	$ git config git-ftp.foobar.password simp3l
 
 Push to scope foobar alias john@ftp.testing.com:8080/foobar-path using password simp3l
-	$ git push -s foobar
+	$ git ftp push -s foobar
 
 Because I didn't set the user for this scope, it takes the user "john" as set before in defaults.
 
