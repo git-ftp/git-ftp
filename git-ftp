@@ -156,7 +156,7 @@ ask_for_passwd() {
 
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
-		if pass=`security find-internet-password -ga "$1" > /dev/null 2>&1`; then
+		if pass=`security find-internet-password -ga "$1" 2>&1 > /dev/null`; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
