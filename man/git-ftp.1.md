@@ -28,9 +28,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Syncs your current Git checked out branch with a remote host. 
 
 `catchup` 
-:	Uploads the .git-ftp.log file only. 
-
-	You have already uploaded the files to FTP with a different programm and you only want to remember its state by uploading the .git-ftp.log file.
+:	Uploads the .git-ftp.log file only. You have already uploaded the files to FTP with a different programm and you only want to remember its state by uploading the .git-ftp.log file.
 
 `show`
 :	Prints the last uploaded commit log.
