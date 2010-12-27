@@ -470,11 +470,11 @@ set_remotes() {
 # Actions
 # ------------------------------------------------------------
 action_push() {
-	lock
 	check_is_git_project
 	check_is_dirty_repository
 	check_branch
 	set_remotes
+	lock
 	load_deployed_sha1
 	set_changed_files
 	remote_lock
@@ -485,11 +485,11 @@ action_push() {
 }
 
 action_catchup() {
-	lock
 	check_is_git_project
 	check_is_dirty_repository
 	check_branch
 	set_remotes
+	lock
 	upload_local_sha1
 	release_lock
 }
