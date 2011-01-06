@@ -250,12 +250,12 @@ remote_lock() {
 
 	LOCAL_HOSTNAME="`hostname --fqdn`"
 	DATE_UTC="`date --utc --rfc-2822`"
-	lLCK_MESSAGE="${USER}@${LOCAL_HOSTNAME} on $DATE_UTC"
+	LCK_MESSAGE="${USER}@${LOCAL_HOSTNAME} on $DATE_UTC"
 
 	LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
-	write_log "Remote locking $lLCK_MESSAGE"
+	write_log "Remote locking $LCK_MESSAGE"
 	if [ $DRY_RUN -ne 1 ]; then
-		echo "${LOCAL_SHA1}\n${lLCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
+		echo "${LOCAL_SHA1}\n${LCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
 		check_exit_status "Could not upload remote lock file" $ERROR_UPLOAD
 	fi
 }
