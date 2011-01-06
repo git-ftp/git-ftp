@@ -1,5 +1,5 @@
 % GIT-FTP(1) git-ftp User Manual
-% René Moser <mail@renemoser.net>
+% Rene Moser <mail@renemoser.net>
 % December 23, 2010
 
 # NAME
