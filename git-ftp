@@ -345,38 +345,39 @@ load_deployed_sha1() {
 }
 
 set_changed_files() {
-	if [ -n "$DEPLOYED_SHA1" ]; then
-		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
-
-		# Get the files changed since then
-		FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
-		if [ $? -ne 0 ]; then
-			if [ $FORCE -ne 1 ]; then
-				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-				echo -n "Do you want to ignore and upload all files again? [y/N] "
-				read ANSWER_STATE
-				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-					print_info "Aborting..."
-					release_lock
-					exit 0
-				else
-					write_log "Taking all files";
-					FILES_CHANGED="`git ls-files -t`"
-				fi
-			else
-				print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-				FILES_CHANGED="`git ls-files -t`"
-			fi
-		elif [ -n "$FILES_CHANGED" ]; then
-			write_log "Having changed files";
-		else
-			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-			release_lock
-			exit 0
-		fi
-	else
+	# Make sure, we have a deployed sha1
+	if [ ! -n "$DEPLOYED_SHA1" ]; then
 		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
 		FILES_CHANGED="`git ls-files -t`"
+		return
+	fi
+	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
+	
+	# Get the files changed since then
+	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
+	if [ $? -ne 0 ]; then
+		if [ $FORCE -ne 1 ]; then
+			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+			echo -n "Do you want to ignore and upload all files again? [y/N] "
+			read ANSWER_STATE
+			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
+				print_info "Aborting..."
+				release_lock
+				exit 0
+			else
+				write_log "Taking all files";
+				FILES_CHANGED="`git ls-files -t`"
+			fi
+		else
+			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+			FILES_CHANGED="`git ls-files -t`"
+		fi
+	elif [ -n "$FILES_CHANGED" ]; then
+		write_log "Having changed files";
+	else
+		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+		release_lock
+		exit 0
 	fi
 }
 
