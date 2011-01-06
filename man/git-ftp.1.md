@@ -38,8 +38,8 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 
 # OPTIONS
 
-`-u <username>`, `--user <username>`
-:	FTP login name.
+`-u [username]`, `--user [username]`
+:	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
 :	FTP password. If no argument is given, a password prompt will be shown.

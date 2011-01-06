@@ -434,8 +434,6 @@ handle_action() {
 set_remote_user() {
 	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && REMOTE_USER="`git config --get git-ftp.$SCOPE.user`"
 	[ -z $REMOTE_USER ] && REMOTE_USER="`git config --get git-ftp.user`"
-	[ -z $REMOTE_USER ] && REMOTE_USER="$USER"
-	[ -z $REMOTE_USER ] && print_error_and_die "Remote user not set" $ERROR_MISSING_ARGUMENTS
 }
 
 set_remote_password() {
@@ -573,14 +571,14 @@ do
 					REMOTE_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
 					;;
 				1,*)
-					usage
+					REMOTE_USER="$USER"
 					;;
 				*)
 					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
 						REMOTE_USER="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -u" $ERROR_MISSING_ARGUMENTS
+						REMOTE_USER="$USER"
 					fi
 					;;
 			esac
