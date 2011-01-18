@@ -203,35 +203,24 @@ print_info() {
 	fi
 }
 
-get_login_options() {
-	if [ ! -z $REMOTE_USER ]; then
-		echo "--user $REMOTE_USER:$REMOTE_PASSWD"
-	else
-		echo "--netrc"
-	fi
-}
-
 upload_file() {
 	SRC_FILE="$1"
 	DEST_FILE="$2"
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
-	LOGIN_OPTIONS="`get_login_options`"
-	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE $LOGIN_OPTIONS --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
 	check_exit_status "Could not upload" $ERROR_UPLOAD
 }
 
 remove_file() {
 	FILENAME="$1"
-	LOGIN_OPTIONS="`get_login_options`"
-	curl $REMOTE_CMD_OPTIONS -# -Q $LOGIN_OPTIONS "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
+	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
 }
 
 get_file_content() {
 	SRC_FILE="$1"
-	LOGIN_OPTIONS="`get_login_options`"
-	curl $REMOTE_CMD_OPTIONS -# $LOGIN_OPTIONS $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
+	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
 }
 
 upload_local_sha1() {
