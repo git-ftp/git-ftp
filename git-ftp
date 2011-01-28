@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Copyright(c) 2010 René Moser
 # http://github.com/resmo/git-ftp
@@ -203,24 +203,50 @@ print_info() {
 	fi
 }
 
+set_default_curl_options() {
+	args=($REMOTE_CMD_OPTIONS)
+	if [ ! -z $REMOTE_USER ]; then
+		args+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
+	else
+		args+=(--netrc)
+	fi
+	args+=(-#)
+}
+
 upload_file() {
 	SRC_FILE="$1"
 	DEST_FILE="$2"
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
-	curl $REMOTE_CMD_OPTIONS -T $SRC_FILE --user $REMOTE_USER:$REMOTE_PASSWD --ftp-create-dirs -# $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}
+	set_default_curl_options
+	args+=(-T "$SRC_FILE")
+	args+=(--ftp-create-dirs)
+	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+	curl "${args[@]}"
 	check_exit_status "Could not upload" $ERROR_UPLOAD
 }
 
 remove_file() {
 	FILENAME="$1"
-	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD -Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}" $REMOTE_PROTOCOL://$REMOTE_HOST > /dev/null 2>&1
+	set_default_curl_options
+	args+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
+	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	if [ "$REMOTE_CMD_OPTIONS" = "-v" ]; then
+		curl "${args[@]}"
+	else
+		curl "${args[@]}" > /dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			write_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
+		fi
+	fi
 }
 
 get_file_content() {
 	SRC_FILE="$1"
-	curl $REMOTE_CMD_OPTIONS -# --user $REMOTE_USER:$REMOTE_PASSWD $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}
+	set_default_curl_options
+	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+	curl "${args[@]}"
 }
 
 upload_local_sha1() {
@@ -384,7 +410,7 @@ handle_file_sync() {
 '
 	IFS="$NIFS"
 	for FILE_ITERATOR in $FILES_CHANGED; do
-		DONE_ITEMS=$(($DONE_ITEMS+1))
+		(( DONE_ITEMS += 1 ))
 		FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
 		FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
 		if [ "$FILE_MODE" != "D"  ]; then
@@ -665,11 +691,12 @@ do
 		-v|--verbose)
 			VERBOSE=1
 			echo $LOG_CACHE
+			REMOTE_CMD_OPTIONS=""
 			;;
 		-vv)
 			VERBOSE=1
 			echo $LOG_CACHE
-			REMOTE_CMD_OPTIONS=""
+			REMOTE_CMD_OPTIONS="-v"
 			;;
 		-f|--force)
 			FORCE=1
