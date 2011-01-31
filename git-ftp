@@ -23,9 +23,9 @@
 # General config
 DEFAULT_PROTOCOL="ftp"
 DEPLOYED_SHA1_FILE=".git-ftp.log"
-LCK_FILE=".git/`basename $0`.lck"
-REMOTE_LCK_FILE="`basename $0`.lck"
-SYSTEM=`uname`
+LCK_FILE=".git/$(basename $0).lck"
+REMOTE_LCK_FILE="$(basename $0).lck"
+SYSTEM=$(uname)
 
 # ------------------------------------------------------------
 # Defaults
@@ -159,7 +159,7 @@ ask_for_passwd() {
 
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
-		if pass=`security find-internet-password -ga "$1" 2>&1 > /dev/null`; then
+		if pass=$(security find-internet-password -ga "$1" 2>&1 > /dev/null); then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
@@ -180,9 +180,9 @@ check_exit_status() {
 # Simple log func
 write_log() {
 	if [ $VERBOSE -eq 1 ]; then
-		echo "`date`: $1"
+		echo "$(date): $1"
 	else
-		LOG_CACHE="$LOG_CACHE\n`date`: $1"
+		LOG_CACHE="$LOG_CACHE\n$(date): $1"
 	fi
 }
 
@@ -253,7 +253,7 @@ get_file_content() {
 }
 
 upload_local_sha1() {
-	DEPLOYED_SHA1=`git log -n 1 --pretty=format:%H`
+	DEPLOYED_SHA1=$(git log -n 1 --pretty=format:%H)
 	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE"
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
@@ -266,11 +266,11 @@ remote_lock() {
 	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
 
-	LOCAL_HOSTNAME="`hostname --fqdn`"
-	DATE_UTC="`date --utc --rfc-2822`"
+	LOCAL_HOSTNAME="$(hostname --fqdn)"
+	DATE_UTC="$(date --utc --rfc-2822)"
 	LCK_MESSAGE="${USER}@${LOCAL_HOSTNAME} on $DATE_UTC"
 
-	LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
+	LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 	write_log "Remote locking $LCK_MESSAGE"
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "${LOCAL_SHA1}\n${LCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
@@ -289,16 +289,16 @@ lock() {
 	if [ -f "$LCK_FILE" ]; then
 
 		# The file exists so read the PID to see if it is still running
-		MYPID=`head -n 1 "$LCK_FILE"`
+		MYPID=$(head -n 1 "$LCK_FILE")
 
-		TEST_RUNNING=`ps -p $MYPID | grep $MYPID`
+		TEST_RUNNING=$(ps -p $MYPID | grep $MYPID)
 
 		if [ -z "$TEST_RUNNING" ]; then
 			# The process is not running echo current PID into lock file
 			write_log "Not running yet, locking"
 			echo $$ > "$LCK_FILE"
 		else
-			write_log "`basename $0` is already running [$MYPID]"
+			write_log "$(basename $0) is already running [$MYPID]"
 			exit 0
 		fi
 	else
@@ -314,30 +314,30 @@ release_lock() {
 }
 
 set_remote_host() {
-	[ -z $URL ] && [ -n "$SCOPE" ] && URL="`git config --get git-ftp.$SCOPE.url`"
-	[ -z $URL ] && URL="`git config --get git-ftp.url`"
-	REMOTE_HOST=`expr "$URL" : ".*://\([a-z0-9\.:-]*\).*"`
-	[ -z $REMOTE_HOST ] && REMOTE_HOST=`expr "$URL" : "^\([a-z0-9\.:-]*\).*"`
+	[ -z $URL ] && [ -n "$SCOPE" ] && URL="$(git config --get git-ftp.$SCOPE.url)"
+	[ -z $URL ] && URL="$(git config --get git-ftp.url)"
+	REMOTE_HOST=$(expr "$URL" : ".*://\([a-z0-9\.:-]*\).*")
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "^\([a-z0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
 }
 
 set_remote_protocol() {
 	# Split protocol from url
-	REMOTE_PROTOCOL=`echo "$URL" | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1`
+	REMOTE_PROTOCOL=$(echo "$URL" | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1)
 
 	# Protocol found?
 	if [ ! -z $REMOTE_PROTOCOL ]; then
-		REMOTE_PATH=`echo "$URL" | cut -d '/' -f 4-`
+		REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 4-)
 		handle_remote_protocol_options
 		return 0
 	fi
 
 	# Check if a unknown protocol is set, handle it or use default protocol
-	UNKNOWN_PROTOCOL=`expr "$URL" : "^\(.*:[/]*\).*"`
+	UNKNOWN_PROTOCOL=$(expr "$URL" : "^\(.*:[/]*\).*")
 	if [ -z $UNKNOWN_PROTOCOL ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
-		[ `echo "$URL" | egrep "/" | wc -l` -ne 0 ] && REMOTE_PATH=`echo "$URL" | cut -d '/' -f 2-`
+		[ $(echo "$URL" | egrep "/" | wc -l) -ne 0 ] && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
 		return 0
 	fi
@@ -347,7 +347,7 @@ set_remote_protocol() {
 load_deployed_sha1() {
 	# Get the last commit (SHA) we deployed if not ignored or not found
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
-	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	if [ $? -ne 0 ]; then
 		print_error_and_die "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
 	fi
@@ -356,7 +356,7 @@ load_deployed_sha1() {
 
 check_deployed_sha1() {
 	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean"
-	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	if [ "$DEPLOYED_SHA1" != "" ]; then
 		print_error_and_die "Commit found, use 'git push' to sync. Exiting..." $ERROR_USAGE
 	fi
@@ -371,7 +371,7 @@ set_changed_files() {
 	fi
 	
 	# Get the files changed since then
-	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
+	FILES_CHANGED="$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null)"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -401,7 +401,7 @@ set_changed_files() {
 handle_file_sync() {
 	# Calculate total file count
 	DONE_ITEMS=0
-	TOTAL_ITEMS=`echo "$FILES_CHANGED" | wc -l`
+	TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	write_log "There are $TOTAL_ITEMS files to upload"
 
@@ -413,8 +413,8 @@ handle_file_sync() {
 	IFS="$NIFS"
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS += 1 ))
-		FILE_MODE=`echo "$FILE_ITERATOR" | cut -f 1`
-		FILE_NAME=`echo "$FILE_ITERATOR" | cut -f 2`
+		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f 1)
+		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f 2)
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
@@ -455,13 +455,13 @@ handle_action() {
 }
 
 set_remote_user() {
-	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && REMOTE_USER="`git config --get git-ftp.$SCOPE.user`"
-	[ -z $REMOTE_USER ] && REMOTE_USER="`git config --get git-ftp.user`"
+	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && REMOTE_USER="$(git config --get git-ftp.$SCOPE.user)"
+	[ -z $REMOTE_USER ] && REMOTE_USER="$(git config --get git-ftp.user)"
 }
 
 set_remote_password() {
-	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="`git config --get git-ftp.$SCOPE.password`"
-	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="`git config --get git-ftp.password`"
+	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="$(git config --get git-ftp.$SCOPE.password)"
+	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(git config --get git-ftp.password)"
 }
 
 set_remotes() {
@@ -480,7 +480,7 @@ set_remotes() {
 
 	set_remote_protocol
 	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && [ `echo "$REMOTE_PATH" | egrep "*/$" | wc -l` -ne 1 ]; then
+	if [ ! -z $REMOTE_PATH ] && [ $(echo "$REMOTE_PATH" | egrep "*/$" | wc -l) -ne 1 ]; then
 		write_log "Added missing trailing / in path"
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
@@ -534,7 +534,7 @@ action_catchup() {
 
 action_show() {
 	set_remotes
-	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
 	git show "$DEPLOYED_SHA1"
 }
@@ -543,9 +543,9 @@ action_show() {
 # Checks
 # ------------------------------------------------------------
 check_git_version() {
-	GIT_VERSION=`git --version | cut -d ' ' -f 3`
-	MAJOR=`echo $GIT_VERSION | cut -d '.' -f 1`
-	MINOR=`echo $GIT_VERSION | cut -d '.' -f 2`
+	GIT_VERSION=$(git --version | cut -d ' ' -f 3)
+	MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
+	MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
 	if [ $MAJOR -lt 2 ] && [ $MINOR -lt 7 ]; then
 		print_error_and_die "Git is too old, 1.7.0 or higher suported only" $ERROR_GIT
 	fi
@@ -553,14 +553,14 @@ check_git_version() {
 
 check_remote_lock() {
 	write_log "Checking remote lock"
-	LCK_CONTENT="`get_file_content $REMOTE_LCK_FILE 2>/dev/null`"
+	LCK_CONTENT="$(get_file_content $REMOTE_LCK_FILE 2>/dev/null)"
 	if [ -n "$LCK_CONTENT" ]; then
-		LCK_SHA1=`echo "$LCK_CONTENT" | head -n 1`
+		LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
 		write_log "Remote lock sha1 $LCK_SHA1"
-		LOCAL_SHA1="`git log -n 1 --pretty=format:%H`"
+		LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 		write_log "Local sha1 $LOCAL_SHA1"
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
-			lck_user=`echo "$LCK_CONTENT" | tail -n 1`
+			lck_user=$(echo "$LCK_CONTENT" | tail -n 1)
 			print_error_and_die "Remote locked by ${lck_user}" $ERROR_REMOTE_LOCKED
 		fi
 	fi
@@ -571,7 +571,7 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-	CLEAN_REPO=`git status -uno | egrep "nothing to commit*" | wc -l`
+	CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
@@ -581,7 +581,7 @@ check_branch() {
 	fi
 
 	# Check if are at master branch
-	CURRENT_BRANCH="`git branch | grep '*' | cut -d ' ' -f 2`"
+	CURRENT_BRANCH="$(git branch | grep '*' | cut -d ' ' -f 2)"
 	if [ "$CURRENT_BRANCH" != "master" ]; then
 		print_info "You are not on master branch."
 		echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
@@ -619,13 +619,13 @@ do
 		-u|--user*)
 			case "$#,$1" in
 				*,*=*)
-					REMOTE_USER=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+					REMOTE_USER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
 					REMOTE_USER="$USER"
 					;;
 				*)
-					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
 						REMOTE_USER="$2"
 						shift
 					else
@@ -637,13 +637,13 @@ do
 		-s|--scope*)
 			case "$#,$1" in
 				*,*=*)
-					SCOPE=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+					SCOPE=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
 					print_error_and_die "Too few arguments for option -s" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
 						SCOPE="$2"
 						shift
 					else
@@ -656,13 +656,13 @@ do
 		-p|--passwd*)
 			case "$#,$1" in
 				*,*=*)
-					REMOTE_PASSWD=`expr "z$1" : 'z-[^=]*=\(.*\)'`
+					REMOTE_PASSWD=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
 					ask_for_passwd
 					;;
 				*)
-					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
 						REMOTE_PASSWD="$2"
 						shift
 					else
@@ -674,13 +674,13 @@ do
 		-k|--keychain*)
 			case "$#,$1" in
 				*,*=*)
-					get_keychain_password `expr "z$1" : 'z-[^=]*=\(.*\)'`
+					get_keychain_password $(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
 					print_error_and_die "Too few arguments for option -k" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if [ ! `echo "$2" | egrep '^-' | wc -l` -eq 1 ]; then
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
 						get_keychain_password "$2"
 						shift
 					else
