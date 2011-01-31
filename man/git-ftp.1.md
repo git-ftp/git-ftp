@@ -24,6 +24,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 
 # ACTIONS
 
+`init`
+:	Initialize the first upload to remote host.
+
 `push`
 :	Syncs your current Git checked out branch with a remote host. 
 

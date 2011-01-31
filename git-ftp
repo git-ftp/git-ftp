@@ -76,10 +76,13 @@ DESCRIPTION
 	It uses GIT to find out which files are different of the uploaded files
 	and let you save time and bandwith by uploading only those files.
 
-	It remembers the deployed state by uploading the SHA1 in a log file.
+	It remembers the deployed state by uploading the Use 'git ftp init' for the inital push.SHA1 in a log file.
 
 
 ACTIONS
+	. init
+		Initialize the first upload to remote host.
+
 	. push
 		Uploads git tracked files which have changed since last upload.
 
@@ -115,7 +118,7 @@ OPTIONS
 	-f, --force	Force, does not ask questions
 	-n, --silent	Silent
 	-v, --verbose	Verbose
-	--version	Prints version
+	--version	Prints version$ERROR_DOWNLOAD
 
 
 EXAMPLES
@@ -341,32 +344,31 @@ set_remote_protocol() {
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'" $ERROR_UNKNOWN_PROTOCOL
 }
 
-
 load_deployed_sha1() {
-	DEPLOYED_SHA1=""
-	if [ $IGNORE_DEPLOYED -ne 1 ]; then
-		# Get the last commit (SHA) we deployed if not ignored or not found
-		write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
-		DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
-		if [ $? -ne 0 ]; then
-			if [ $FORCE -ne 1 ]; then
-				print_info "If this is the first push or you want to force use option -f."
-				print_error_and_die "Could not get last commit or it does not exist. Network down? Wrong URL?" $ERROR_DOWNLOAD
-			fi
-			print_info "Could not get last commit or it does not exist"
-			DEPLOYED_SHA1=""
-		fi
+	# Get the last commit (SHA) we deployed if not ignored or not found
+	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
+	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	if [ $? -ne 0 ]; then
+		print_error_and_die "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
 	fi
+	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
+}
+
+check_deployed_sha1() {
+	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean"
+	DEPLOYED_SHA1="`get_file_content $DEPLOYED_SHA1_FILE`"
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		print_error_and_die "Commit found, use 'git push' to sync. Exiting..." $ERROR_USAGE
+	fi
+	IGNORE_DEPLOYED=1
 }
 
 set_changed_files() {
-	# Make sure, we have a deployed sha1
-	if [ ! -n "$DEPLOYED_SHA1" ]; then
-		write_log "No last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH found or forced to take all files"
+	if [ $IGNORE_DEPLOYED -ne 0 ]; then
+		write_log "Sync all files."
 		FILES_CHANGED="$(git ls-files -t | tr ' ' '\t')"
 		return
 	fi
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
 	
 	# Get the files changed since then
 	FILES_CHANGED="`git diff --name-status $DEPLOYED_SHA1 2>/dev/null`"
@@ -434,6 +436,9 @@ handle_remote_protocol_options() {
 
 handle_action() {
 	case "$ACTION" in
+		init)
+			action_init
+			;;
 		push)
 			action_push
 			;;
@@ -485,6 +490,22 @@ set_remotes() {
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
+action_init() {
+	check_git_version
+	check_is_git_project
+	check_is_dirty_repository
+	check_deployed_sha1
+	check_branch
+	set_remotes
+	lock
+	set_changed_files
+	remote_lock
+	handle_file_sync
+	upload_local_sha1
+	release_remote_lock
+	release_lock
+}
+
 action_push() {
 	check_git_version
 	check_is_git_project
@@ -589,7 +610,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		push|catchup|show)
+		init|push|catchup|show)
 			ACTION="$1"
 			;;
 		-h|--h|--he|--hel|--help|help)
