@@ -51,7 +51,9 @@ For interactive password prompt use:
 
     $ git ftp push ftp://host.example.com/public_html -u <user> -p
 
-Pushing the first time needs option --force or -f because it will not find any deployed sha1 hash
+Pushing for the first time:
+
+    $ git ftp init ftp://host.example.com/public_html -u <user> -p
 
 
 Testing and Help
