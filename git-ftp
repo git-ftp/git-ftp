@@ -76,7 +76,7 @@ DESCRIPTION
 	It uses GIT to find out which files are different of the uploaded files
 	and let you save time and bandwith by uploading only those files.
 
-	It remembers the deployed state by uploading the Use 'git ftp init' for the inital push.SHA1 in a log file.
+	It remembers the deployed state by uploading the SHA1 in a log file.
 
 
 ACTIONS
@@ -118,7 +118,7 @@ OPTIONS
 	-f, --force	Force, does not ask questions
 	-n, --silent	Silent
 	-v, --verbose	Verbose
-	--version	Prints version$ERROR_DOWNLOAD
+	--version	Prints version
 
 
 EXAMPLES
