@@ -25,13 +25,13 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 # ACTIONS
 
 `init`
-:	Initialize the first upload to remote host.
+:	Initializes the first upload to remote host.
 
 `push`
 :	Syncs your current Git checked out branch with a remote host. 
 
 `catchup` 
-:	Uploads the .git-ftp.log file only. You have already uploaded the files to FTP with a different programm and you only want to remember its state by uploading the .git-ftp.log file.
+:	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different programm and want to remember its state by uploading the .git-ftp.log file.
 
 `show`
 :	Prints the last uploaded commit log.
@@ -74,6 +74,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-v`, `--verbose`
 :	Be verbosy.
 
+`-vv`
+:	Be verbosy as much as possible.
+
 `--version`
 :	Prints version.
 
@@ -83,7 +86,7 @@ The scheme of an URL is what you would expect
 
 	protocol://host.domain.tld:port/path
 	
-Below a full feature URL to *host.exmaple.com* on port *2121* to path *mypath* using protocol *ftp*:
+Below a full featured URL to *host.exmaple.com* on port *2121* to path *mypath* using protocol *ftp*:
 
 	ftp://host.example.com:2121/mypath
 
@@ -103,7 +106,7 @@ But, there is not just FTP. Supported protocols are:
 
 # DEFAULTS
 
-Setting defaults for git-ftp in .git/config
+Don't repeat yourself. Setting defaults for git-ftp in .git/config
 	
 	$ git config git-ftp.<(url|user|password)> <value>
 
@@ -119,24 +122,37 @@ After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 # SCOPES
 
-For different defaults per system, use the so called scope feature. 
+Need different defaults per each system or environment? Use the so called scope feature.
 
-Useful if you have different systems you want to FTP to, like a testing system and a production system. So in this case you would set a testing scope and a production scope.
+Useful if you use multi environment development. Like a development, testing and a production environment. 
 
 	$ git config git-ftp.<scope>.<(url|user|password)> <value>
 
-Here I set the params for the scope "foobar"
+So in the case below you would set a testing scope and a production scope.
 
-	$ git config git-ftp.foobar.url ftp.testing.com:8080/foobar-path
-	$ git config git-ftp.foobar.password simp3l
+Here we set the params for the scope "testing"
 
-Push to scope *foobar* alias *john@ftp.testing.com:8080/foobar-path* using 
+	$ git config git-ftp.testing.url ftp.testing.com:8080/foobar-path
+	$ git config git-ftp.testing.password simp3l
+
+Here we set the params for the scope "production"
+
+	$ git config git-ftp.production.user manager
+	$ git config git-ftp.production.url live.example.com
+	$ git config git-ftp.production.password n0tThatSimp3l
+
+
+Pushing to scope *testing* alias *john@ftp.testing.com:8080/foobar-path* using 
 password *simp3l*
 
-	$ git ftp push -s foobar
+	$ git ftp push -s testing
 
-Because we didn't set the user for this scope, git-ftp uses *john* as user as set before in **DEFAULTS**.
+*Note:* The **SCOPE** feature can be mixed with the **DEFAULTS** feature. Because we didn't set the user for this scope, git-ftp uses *john* as user as set before in **DEFAULTS**.
 
+Pushing to scope *production* alias *manager@live.example.com* using 
+password *n0tThatSimp3l*
+
+	$ git ftp push -s production
 
 # EXIT CODES
 There are a bunch of different error codes and their corresponding error messages that may appear during bad conditions. At the time of this writing, the exit codes are:
