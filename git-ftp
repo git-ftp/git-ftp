@@ -494,10 +494,10 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	check_deployed_sha1
 	check_branch
 	set_remotes
 	lock
+	check_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
