@@ -46,7 +46,7 @@ ACTION=""
 ENABLE_REMOTE_LCK=0
 LOG_CACHE=""
 SCOPE=""
-VERSION='0.2.2'
+VERSION='0.3.0'
 
 # ------------------------------------------------------------
 # Exit Error Codes
