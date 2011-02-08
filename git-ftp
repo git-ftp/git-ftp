@@ -151,9 +151,9 @@ usage() {
 
 ask_for_passwd() {
 	echo -n "Password: "
-	stty -echo
+	stty -echo > /dev/null 2>&1
 	read REMOTE_PASSWD
-	stty echo
+	stty echo > /dev/null 2>&1
 	echo ""
 }
 
