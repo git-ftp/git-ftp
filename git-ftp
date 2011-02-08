@@ -285,6 +285,10 @@ release_remote_lock() {
 }
 
 lock() {
+	if [ $(uname | grep 'MINGW') ]; then
+		write_log "Ingnoring lock on MinGW"
+		return
+	fi
 	# Checks locking, make sure this only run once a time
 	if [ -f "$LCK_FILE" ]; then
 
@@ -309,6 +313,10 @@ lock() {
 
 # Release lock func
 release_lock() {
+	if [ $(uname | grep 'MINGW') ]; then
+		write_log "Ingnoring lock on MinGW"
+		return
+	fi
 	write_log "Releasing lock"
 	rm -f "$LCK_FILE"
 }
@@ -317,7 +325,7 @@ set_remote_host() {
 	[ -z $URL ] && [ -n "$SCOPE" ] && URL="$(git config --get git-ftp.$SCOPE.url)"
 	[ -z $URL ] && URL="$(git config --get git-ftp.url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([a-z0-9\.:-]*\).*")
-	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "^\([a-z0-9\.:-]*\).*")
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([a-z0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
 }
 
@@ -333,7 +341,7 @@ set_remote_protocol() {
 	fi
 
 	# Check if a unknown protocol is set, handle it or use default protocol
-	UNKNOWN_PROTOCOL=$(expr "$URL" : "^\(.*:[/]*\).*")
+	UNKNOWN_PROTOCOL=$(expr "$URL" : "\(.*:[/]*\).*")
 	if [ -z $UNKNOWN_PROTOCOL ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
