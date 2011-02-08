@@ -10,6 +10,7 @@ Adding on Ubuntu 10.04 (Lucid)
 	# aptitude update
 	# aptitude install git-ftp
 
+Note: Usually updated after every release (tag).
 
 Windows
 -------
@@ -24,12 +25,12 @@ otherwise install msysgit.
 
 After this, open git bash (or cygwin bash for cygwin only):
 
-        $ git clone http://github.com/resmo/git-ftp git-ftp.git
-        $ cd git-ftp.git && chmod +x git-ftp
-        $ cd /bin/
-        $ ln -s ~/git-ftp.git/git-ftp git-ftp
+	$ git clone http://github.com/resmo/git-ftp git-ftp.git
+	$ cd git-ftp.git && chmod +x git-ftp
+	$ cd /bin/
+	$ ln -s ~/git-ftp.git/git-ftp git-ftp
 
-Note: Option -p whithout argument is showing password while entering.
+Note: Option -p without argument is showing password while entering.
 
 
 Upstream using git
@@ -43,9 +44,8 @@ The easiest way is to use git for installing:
 	$ mkdir -p ~/dev/git-ftp.git
 	$ cd ~/dev/git-ftp.git
 	$ git clone http://github.com/resmo/git-ftp.git .
-	$ chmod 0755 git-ftp
-	$ mkdir ~/bin
-	$ cd ~/bin/
+	$ chmod +x git-ftp
+	$ mkdir ~/bin && cd ~/bin/
 	$ ln -s ~/dev/git-ftp.git/git-ftp git-ftp
 
 After this you can use 'git ftp' or 'git-ftp'
