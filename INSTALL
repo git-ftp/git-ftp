@@ -10,6 +10,28 @@ Adding on Ubuntu 10.04 (Lucid)
 	# aptitude update
 	# aptitude install git-ftp
 
+
+Windows
+-------
+There are at least two ways to install git-ftp on Windows.
+
+ * Using cygwin only
+ * Using cygwin and msysgit (recommended)
+
+First install cygwin and install the package 'curl'.
+If you like to use cygwin only, install package 'git',
+otherwise install msysgit.
+
+After this, open git bash (or cygwin bash for cygwin only):
+
+        $ git clone http://github.com/resmo/git-ftp git-ftp.git
+        $ cd git-ftp.git && chmod +x git-ftp
+        $ cd /bin/
+        $ ln -s ~/git-ftp.git/git-ftp git-ftp
+
+Note: Option -p whithout argument is showing password while entering.
+
+
 Upstream using git
 -------------------
 Make sure git and curl is installed.
