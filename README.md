@@ -11,8 +11,7 @@ This is free and open source software. If you like and use it, flattr it ([flatt
 Summary
 -------
 
-Use git-ftp to upload only the files to a FTP server, which have changed
-since the last upload. This saves time and bandwith.
+Git powered FTP client written as shell script.
 
 
 About
