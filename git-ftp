@@ -184,7 +184,8 @@ write_log() {
 	if [ $VERBOSE -eq 1 ]; then
 		echo "$(date): $1"
 	else
-		LOG_CACHE="$LOG_CACHE\n$(date): $1"
+		LOG_CACHE="$LOG_CACHE
+$(date): $1"
 	fi
 }
 
