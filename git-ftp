@@ -46,6 +46,7 @@ ACTION=""
 ENABLE_REMOTE_LCK=0
 LOG_CACHE=""
 SCOPE=""
+ACTIVE_MODE=0
 VERSION='0.3.0'
 
 # ------------------------------------------------------------
@@ -114,7 +115,7 @@ OPTIONS
 	-s, --scope	Using a scope (e.g. dev, production, testing, foobar) 
 	-D, --dry-run	Dry run: Does not upload anything
 	-a, --all	Uploads all files, ignores deployed SHA1 hash
-	-A, --active    Use Active mode
+	-A, --active    Use FTP active mode
 	-l, --lock	Enable/Disable remote locking
 	-f, --force	Force, does not ask questions
 	-n, --silent	Silent
@@ -740,9 +741,9 @@ do
 			exit 0
 			;;
 		-A|--active)
-		    ACTIVE_MODE=1
-		    write_log "Using active mode"
-		    ;;
+			ACTIVE_MODE=1
+			write_log "Using active mode"
+			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
 			[ -n "$1" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
