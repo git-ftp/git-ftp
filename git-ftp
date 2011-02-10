@@ -114,6 +114,7 @@ OPTIONS
 	-s, --scope	Using a scope (e.g. dev, production, testing, foobar) 
 	-D, --dry-run	Dry run: Does not upload anything
 	-a, --all	Uploads all files, ignores deployed SHA1 hash
+	-A, --active    Use Active mode
 	-l, --lock	Enable/Disable remote locking
 	-f, --force	Force, does not ask questions
 	-n, --silent	Silent
@@ -214,6 +215,9 @@ set_default_curl_options() {
 		args+=(--netrc)
 	fi
 	args+=(-#)
+	if [ $ACTIVE_MODE -eq 1 ]; then
+		args+=(-P "-")
+	fi
 }
 
 upload_file() {
@@ -735,6 +739,10 @@ do
 			echo "git-ftp version $VERSION"
 			exit 0
 			;;
+		-A|--active)
+		    ACTIVE_MODE=1
+		    write_log "Using active mode"
+		    ;;
 		*)
 			# Pass thru anything that may be meant for fetch.
 			[ -n "$1" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
