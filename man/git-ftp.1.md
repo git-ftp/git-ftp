@@ -53,6 +53,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
 
+`-A`, `--active`
+:	Uses FTP active mode.
+
 `-s <scope>`, `--scope <scope>`
 :	Using a scope (e.g. dev, production, testing, foobar). See **SCOPE** and **DEFAULTS** section for more information.
 
