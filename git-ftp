@@ -450,7 +450,11 @@ handle_file_sync() {
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
+			if [ -d $FILE_NAME ]; then
+				write_log "Ignored $FILE_NAME, it is a submodule"
+			else
+				[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
+			fi
 		else
 			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
