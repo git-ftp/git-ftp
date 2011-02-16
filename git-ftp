@@ -47,6 +47,7 @@ ENABLE_REMOTE_LCK=0
 LOG_CACHE=""
 SCOPE=""
 ACTIVE_MODE=0
+USE_KEYCHAIN=0
 VERSION='0.3.0'
 
 # ------------------------------------------------------------
@@ -161,7 +162,7 @@ ask_for_passwd() {
 
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
-		if pass=$(security find-internet-password -ga "$1" 2>&1 > /dev/null); then
+		if pass=$(security find-internet-password -a "$1" -s "$2" -g 2>&1 > /dev/null); then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
@@ -474,6 +475,7 @@ set_remote_user() {
 }
 
 set_remote_password() {
+	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password $REMOTE_USER $REMOTE_HOST
 	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="$(git config --get git-ftp.$SCOPE.password)"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(git config --get git-ftp.password)"
 }
@@ -685,24 +687,9 @@ do
 					;;
 			esac
 			;;
-		-k|--keychain*)
-			case "$#,$1" in
-				*,*=*)
-					get_keychain_password $(expr "z$1" : 'z-[^=]*=\(.*\)')
-					;;
-				1,*)
-					print_error_and_die "Too few arguments for option -k" $ERROR_MISSING_ARGUMENTS
-					;;
-				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
-						get_keychain_password "$2"
-						shift
-					else
-						print_error_and_die "Too few arguments for option -k" $ERROR_MISSING_ARGUMENTS
-					fi
-					;;
-			esac
-		  ;;
+		-k|--keychain)
+			USE_KEYCHAIN=1
+			;;
 		-a|--all)
 			IGNORE_DEPLOYED=1
 			;;
