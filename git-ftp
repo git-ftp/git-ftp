@@ -380,12 +380,12 @@ check_deployed_sha1() {
 set_changed_files() {
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
-		FILES_CHANGED="$(git ls-files -t | tr ' ' '\t')"
+		FILES_CHANGED="$(git ls-files -t)"
 		return
 	fi
 	
 	# Get the files changed since then
-	FILES_CHANGED="$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null)"
+	FILES_CHANGED="$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')"
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -397,11 +397,11 @@ set_changed_files() {
 				exit 0
 			else
 				write_log "Taking all files";
-				FILES_CHANGED="$(git ls-files -t | tr ' ' '\t')"
+				FILES_CHANGED="$(git ls-files -t)"
 			fi
 		else
 			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-			FILES_CHANGED="$(git ls-files -t | tr ' ' '\t')"
+			FILES_CHANGED="$(git ls-files -t)"
 		fi
 	elif [ -n "$FILES_CHANGED" ]; then
 		write_log "Having changed files";
@@ -427,8 +427,8 @@ handle_file_sync() {
 	IFS="$NIFS"
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS += 1 ))
-		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f 1)
-		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f 2)
+		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
+		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
