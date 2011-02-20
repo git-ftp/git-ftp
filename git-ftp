@@ -162,11 +162,13 @@ ask_for_passwd() {
 
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
-		if pass=$(security find-internet-password -a "$1" -s "$2" -g 2>&1 > /dev/null); then
+		args=(-a "$1")
+		[ -n "$2" ] && args+=(-s "$2") # host specified
+		if pass="$(security find-internet-password ${args[@]} -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
-			print_error_and_die "Password not found in keychain for account '$1'." $ERROR_MISSING_ARGUMENTS
+			print_error_and_die "Password not found in keychain for account '$1 @ $2'." $ERROR_MISSING_ARGUMENTS
 		fi
 	else
 		write_log "Ingoring -k on non-Darwin systems"
@@ -475,7 +477,13 @@ set_remote_user() {
 }
 
 set_remote_password() {
-	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password $REMOTE_USER $REMOTE_HOST
+	if [ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -ge 1 ]; then
+		if [ $USE_KEYCHAIN -eq 1 ]; then
+			[ -z $KEYCHAIN_USER ] && KEYCHAIN_USER=$REMOTE_USER
+			[ -z $KEYCHAIN_HOST ] && KEYCHAIN_HOST=$REMOTE_HOST
+		fi
+		get_keychain_password "$KEYCHAIN_USER" "$KEYCHAIN_HOST"
+	fi
 	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="$(git config --get git-ftp.$SCOPE.password)"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(git config --get git-ftp.password)"
 }
@@ -687,8 +695,31 @@ do
 					;;
 			esac
 			;;
-		-k|--keychain)
+		-k|--keychain*)
 			USE_KEYCHAIN=1
+			case "$#,$1" in
+				*,*=*)
+					KEYCHAIN_USER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					# Keychain user and host will be captured
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						KEYCHAIN_USER="$2"
+						shift
+					fi
+					;;
+			esac
+			case "$KEYCHAIN_USER" in
+				*@*)
+					# Separate host and user
+					KEYCHAIN_HOST=$(echo "$KEYCHAIN_USER" | cut -d '@' -f2)
+					KEYCHAIN_USER=$(echo "$KEYCHAIN_USER" | cut -d '@' -f1)
+					# Do not attempt to use REMOTE_USER and REMOTE_HOST
+					USE_KEYCHAIN=2
+				;;
+			esac
 			;;
 		-a|--all)
 			IGNORE_DEPLOYED=1
