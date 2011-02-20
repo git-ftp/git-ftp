@@ -200,8 +200,11 @@ write_log() {
 	if [ $VERBOSE -eq 1 ]; then
 		echo "$(date): $1"
 	else
-		LOG_CACHE="$LOG_CACHE
-$(date): $1"
+		if [ -n "$LOG_CACHE" ]; then
+			LOG_CACHE="$LOG_CACHE\n$(date): $1"
+		else
+			LOG_CACHE="$(date): $1"
+		fi
 	fi
 }
 
@@ -742,12 +745,12 @@ do
 			;;
 		-v|--verbose)
 			VERBOSE=1
-			echo $LOG_CACHE
+			[ -n "$LOG_CACHE" ] && echo -e $LOG_CACHE
 			REMOTE_CMD_OPTIONS=""
 			;;
 		-vv)
 			VERBOSE=1
-			echo $LOG_CACHE
+			[ -n "$LOG_CACHE" ] && echo -e $LOG_CACHE
 			REMOTE_CMD_OPTIONS="-v"
 			;;
 		-f|--force)
