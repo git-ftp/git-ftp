@@ -47,7 +47,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-p [password]`, `--passwd [password]`
 :	FTP password. If no argument is given, a password prompt will be shown.
 
-`-k <account>`, `--keychain <account>`
+`-k [[user]@[account]]`, `--keychain [[user]@[account]]`
 :	FTP password from KeyChain (Mac OS X only).
 
 `-a`, `--all`
