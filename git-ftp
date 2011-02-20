@@ -48,6 +48,8 @@ LOG_CACHE=""
 SCOPE=""
 ACTIVE_MODE=0
 USE_KEYCHAIN=0
+KEYCHAIN_USER=""
+KEYCHAIN_HOST=""
 VERSION='0.3.0'
 
 # ------------------------------------------------------------
@@ -162,13 +164,24 @@ ask_for_passwd() {
 
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
-		args=(-a "$1")
-		[ -n "$2" ] && args+=(-s "$2") # host specified
+		# Split user and host if necessary
+		if [ $(echo "$KEYCHAIN_USER" | grep '@') ]; then
+			KEYCHAIN_HOST=$(echo "$KEYCHAIN_USER" | cut -d '@' -f2)
+			KEYCHAIN_USER=$(echo "$KEYCHAIN_USER" | cut -d '@' -f1)
+		else
+			[ -z $KEYCHAIN_USER ] && KEYCHAIN_USER=$REMOTE_USER
+			[ -z $KEYCHAIN_HOST ] && KEYCHAIN_HOST=$REMOTE_HOST
+		fi
+
+		[ -n "$KEYCHAIN_USER" ] && print_error_and_die "Missing keychain account" $ERROR_MISSING_ARGUMENTS
+		args=(-a "$KEYCHAIN_USER")
+		[ -n "$KEYCHAIN_HOST" ] && args+=(-s "$KEYCHAIN_HOST")
+
 		if pass="$(security find-internet-password ${args[@]} -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
-			print_error_and_die "Password not found in keychain for account '$1 @ $2'." $ERROR_MISSING_ARGUMENTS
+			print_error_and_die "Password not found in keychain for account '$KEYCHAIN_USER @ $KEYCHAIN_HOST'." $ERROR_MISSING_ARGUMENTS
 		fi
 	else
 		write_log "Ingoring -k on non-Darwin systems"
@@ -477,13 +490,7 @@ set_remote_user() {
 }
 
 set_remote_password() {
-	if [ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -ge 1 ]; then
-		if [ $USE_KEYCHAIN -eq 1 ]; then
-			[ -z $KEYCHAIN_USER ] && KEYCHAIN_USER=$REMOTE_USER
-			[ -z $KEYCHAIN_HOST ] && KEYCHAIN_HOST=$REMOTE_HOST
-		fi
-		get_keychain_password "$KEYCHAIN_USER" "$KEYCHAIN_HOST"
-	fi
+	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
 	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="$(git config --get git-ftp.$SCOPE.password)"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(git config --get git-ftp.password)"
 }
@@ -697,12 +704,13 @@ do
 			;;
 		-k|--keychain*)
 			USE_KEYCHAIN=1
+			write_log "Enabled keychain"
 			case "$#,$1" in
 				*,*=*)
 					KEYCHAIN_USER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					# Keychain user and host will be captured
+					# Nothing is handed over, this is okay
 					;;
 				*)
 					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
@@ -710,15 +718,6 @@ do
 						shift
 					fi
 					;;
-			esac
-			case "$KEYCHAIN_USER" in
-				*@*)
-					# Separate host and user
-					KEYCHAIN_HOST=$(echo "$KEYCHAIN_USER" | cut -d '@' -f2)
-					KEYCHAIN_USER=$(echo "$KEYCHAIN_USER" | cut -d '@' -f1)
-					# Do not attempt to use REMOTE_USER and REMOTE_HOST
-					USE_KEYCHAIN=2
-				;;
 			esac
 			;;
 		-a|--all)
