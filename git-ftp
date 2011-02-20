@@ -173,7 +173,7 @@ get_keychain_password () {
 			[ -z $KEYCHAIN_HOST ] && KEYCHAIN_HOST=$REMOTE_HOST
 		fi
 
-		[ -n "$KEYCHAIN_USER" ] && print_error_and_die "Missing keychain account" $ERROR_MISSING_ARGUMENTS
+		[ -z $KEYCHAIN_USER ] && print_error_and_die "Missing keychain account" $ERROR_MISSING_ARGUMENTS
 		args=(-a "$KEYCHAIN_USER")
 		[ -n "$KEYCHAIN_HOST" ] && args+=(-s "$KEYCHAIN_HOST")
 
