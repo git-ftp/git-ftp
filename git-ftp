@@ -50,7 +50,7 @@ ACTIVE_MODE=0
 USE_KEYCHAIN=0
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
-VERSION='0.3.0'
+VERSION='0.3.1'
 
 # ------------------------------------------------------------
 # Exit Error Codes

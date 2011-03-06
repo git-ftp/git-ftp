@@ -1,3 +1,9 @@
+git-ftp (0.3.1-1) stable; urgency=low
+
+  * New upstream version
+
+ -- René Moser <mail@renemoser.net>  Sun, 06 Mar 2011 16:41:33 +0100 
+
 git-ftp (0.3.0-1) stable; urgency=low
 
   * New upstream version
