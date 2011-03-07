@@ -771,7 +771,7 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$(echo $1 | tr '[:upper:]' '[:lower:]')
+			[ -n "$1" ] && URL=$(echo $1)
 			;;
 	esac
 	shift
