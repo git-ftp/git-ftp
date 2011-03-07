@@ -21,11 +21,12 @@
 # ------------------------------------------------------------
 
 # General config
-DEFAULT_PROTOCOL="ftp"
-DEPLOYED_SHA1_FILE=".git-ftp.log"
-LCK_FILE=".git/$(basename $0).lck"
-REMOTE_LCK_FILE="$(basename $0).lck"
-SYSTEM=$(uname)
+readonly DEFAULT_PROTOCOL="ftp"
+readonly DEPLOYED_SHA1_FILE=".git-ftp.log"
+readonly LCK_FILE=".git/$(basename $0).lck"
+readonly REMOTE_LCK_FILE="$(basename $0).lck"
+readonly SYSTEM=$(uname)
+readonly VERSION='0.3.1'
 
 # ------------------------------------------------------------
 # Defaults
@@ -38,30 +39,30 @@ REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_DELETE_CMD="-DELE "
 REMOTE_CMD_OPTIONS="-s"
-VERBOSE=0
-IGNORE_DEPLOYED=0
-DRY_RUN=0
-FORCE=0
 ACTION=""
-ENABLE_REMOTE_LCK=0
 LOG_CACHE=""
 SCOPE=""
-ACTIVE_MODE=0
-USE_KEYCHAIN=0
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
-VERSION='0.3.1'
+declare -a CURL_ARGS
+declare -i VERBOSE=0
+declare -i IGNORE_DEPLOYED=0
+declare -i DRY_RUN=0
+declare -i FORCE=0
+declare -i ENABLE_REMOTE_LCK=0
+declare -i ACTIVE_MODE=0
+declare -i USE_KEYCHAIN=0
 
 # ------------------------------------------------------------
-# Exit Error Codes
+# Constant Exit Error Codes
 # ------------------------------------------------------------
-ERROR_USAGE=2
-ERROR_MISSING_ARGUMENTS=3
-ERROR_UPLOAD=4
-ERROR_DOWNLOAD=5
-ERROR_UNKNOWN_PROTOCOL=6
-ERROR_REMOTE_LOCKED=7
-ERROR_GIT=8
+readonly ERROR_USAGE=2
+readonly ERROR_MISSING_ARGUMENTS=3
+readonly ERROR_UPLOAD=4
+readonly ERROR_DOWNLOAD=5
+readonly ERROR_UNKNOWN_PROTOCOL=6
+readonly ERROR_REMOTE_LOCKED=7
+readonly ERROR_GIT=8
 
 # ------------------------------------------------------------
 # Functions
@@ -174,10 +175,11 @@ get_keychain_password () {
 		fi
 
 		[ -z $KEYCHAIN_USER ] && print_error_and_die "Missing keychain account" $ERROR_MISSING_ARGUMENTS
-		args=(-a "$KEYCHAIN_USER")
-		[ -n "$KEYCHAIN_HOST" ] && args+=(-s "$KEYCHAIN_HOST")
+		CURL_ARGS=(-a "$KEYCHAIN_USER")
+		[ -n "$KEYCHAIN_HOST" ] && CURL_ARGS+=(-s "$KEYCHAIN_HOST")
 
-		if pass="$(security find-internet-password ${args[@]} -g 2>&1 > /dev/null)"; then
+		local pass
+		if pass="$(security find-internet-password ${CURL_ARGS[@]} -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
@@ -229,41 +231,41 @@ print_info() {
 }
 
 set_default_curl_options() {
-	args=($REMOTE_CMD_OPTIONS)
+	CURL_ARGS=($REMOTE_CMD_OPTIONS)
 	if [ ! -z $REMOTE_USER ]; then
-		args+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
+		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
 	else
-		args+=(--netrc)
+		CURL_ARGS+=(--netrc)
 	fi
-	args+=(-#)
+	CURL_ARGS+=(-#)
 	if [ $ACTIVE_MODE -eq 1 ]; then
-		args+=(-P "-")
+		CURL_ARGS+=(-P "-")
 	fi
 }
 
 upload_file() {
-	SRC_FILE="$1"
-	DEST_FILE="$2"
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
 	set_default_curl_options
-	args+=(-T "$SRC_FILE")
-	args+=(--ftp-create-dirs)
-	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	curl "${args[@]}"
+	CURL_ARGS+=(-T "$SRC_FILE")
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload" $ERROR_UPLOAD
 }
 
 remove_file() {
-	FILENAME="$1"
+	local FILENAME="$1"
 	set_default_curl_options
-	args+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
 	if [ "$REMOTE_CMD_OPTIONS" = "-v" ]; then
-		curl "${args[@]}"
+		curl "${CURL_ARGS[@]}"
 	else
-		curl "${args[@]}" > /dev/null 2>&1
+		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
 			write_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 		fi
@@ -271,10 +273,10 @@ remove_file() {
 }
 
 get_file_content() {
-	SRC_FILE="$1"
+	local SRC_FILE="$1"
 	set_default_curl_options
-	args+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
-	curl "${args[@]}"
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+	curl "${CURL_ARGS[@]}"
 }
 
 upload_local_sha1() {
@@ -291,11 +293,9 @@ remote_lock() {
 	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
 
-	LOCAL_HOSTNAME="$(hostname --fqdn)"
-	DATE_UTC="$(date --utc --rfc-2822)"
-	LCK_MESSAGE="${USER}@${LOCAL_HOSTNAME} on $DATE_UTC"
+	local LCK_MESSAGE="${USER}@$(hostname --fqdn) on $(date --utc --rfc-2822)"
+	local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 
-	LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 	write_log "Remote locking $LCK_MESSAGE"
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "${LOCAL_SHA1}\n${LCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
@@ -318,9 +318,9 @@ lock() {
 	if [ -f "$LCK_FILE" ]; then
 
 		# The file exists so read the PID to see if it is still running
-		MYPID=$(head -n 1 "$LCK_FILE")
+		local MYPID=$(head -n 1 "$LCK_FILE")
 
-		TEST_RUNNING=$(ps -p $MYPID | grep $MYPID)
+		local TEST_RUNNING=$(ps -p $MYPID | grep $MYPID)
 
 		if [ -z "$TEST_RUNNING" ]; then
 			# The process is not running echo current PID into lock file
@@ -366,7 +366,7 @@ set_remote_protocol() {
 	fi
 
 	# Check if a unknown protocol is set, handle it or use default protocol
-	UNKNOWN_PROTOCOL=$(expr "$URL" : "\(.*:[/]*\).*")
+	local UNKNOWN_PROTOCOL=$(expr "$URL" : "\(.*:[/]*\).*")
 	if [ -z $UNKNOWN_PROTOCOL ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
@@ -433,8 +433,8 @@ set_changed_files() {
 
 handle_file_sync() {
 	# Calculate total file count
-	DONE_ITEMS=0
-	TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
+	local DONE_ITEMS=0
+	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	write_log "There are $TOTAL_ITEMS files to upload"
 
@@ -445,7 +445,7 @@ handle_file_sync() {
 '
 	IFS="$NIFS"
 	for FILE_ITERATOR in $FILES_CHANGED; do
-		(( DONE_ITEMS += 1 ))
+		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
 		if [ "$FILE_MODE" != "D"  ]; then
@@ -581,9 +581,9 @@ action_show() {
 # Checks
 # ------------------------------------------------------------
 check_git_version() {
-	GIT_VERSION=$(git --version | cut -d ' ' -f 3)
-	MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
-	MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
+	local GIT_VERSION=$(git --version | cut -d ' ' -f 3)
+	local MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
+	local MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
 	if [ $MAJOR -lt 2 ] && [ $MINOR -lt 7 ]; then
 		print_error_and_die "Git is too old, 1.7.0 or higher suported only" $ERROR_GIT
 	fi
@@ -591,15 +591,15 @@ check_git_version() {
 
 check_remote_lock() {
 	write_log "Checking remote lock"
-	LCK_CONTENT="$(get_file_content $REMOTE_LCK_FILE 2>/dev/null)"
+	local LCK_CONTENT="$(get_file_content $REMOTE_LCK_FILE 2>/dev/null)"
 	if [ -n "$LCK_CONTENT" ]; then
-		LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
+		local LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
 		write_log "Remote lock sha1 $LCK_SHA1"
-		LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
+		local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 		write_log "Local sha1 $LOCAL_SHA1"
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
-			lck_user=$(echo "$LCK_CONTENT" | tail -n 1)
-			print_error_and_die "Remote locked by ${lck_user}" $ERROR_REMOTE_LOCKED
+			local LCK_USER=$(echo "$LCK_CONTENT" | tail -n 1)
+			print_error_and_die "Remote locked by $LCK_USER" $ERROR_REMOTE_LOCKED
 		fi
 	fi
 }
@@ -609,7 +609,7 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-	CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
+	local CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
@@ -619,10 +619,11 @@ check_branch() {
 	fi
 
 	# Check if are at master branch
-	CURRENT_BRANCH="$(git branch | grep '*' | cut -d ' ' -f 2)"
+	local CURRENT_BRANCH="$(git branch | grep '*' | cut -d ' ' -f 2)"
 	if [ "$CURRENT_BRANCH" != "master" ]; then
 		print_info "You are not on master branch."
 		echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
+		local ANSWER_BRANCH
 		read ANSWER_BRANCH
 		if [ "$ANSWER_BRANCH" = "n" ] || [ "$ANSWER_BRANCH" = "N" ]; then
 			print_info "Aborting..."
