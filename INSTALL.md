@@ -1,6 +1,25 @@
 INSTALL
 =======
 
+Upstream on Linux/Unix based systems using make (recommended)
+-------------------------------------------------------------
+
+Note: Make sure Git and cURL is installed.
+
+This should work on Mac OS X, Debian, Ubuntu, Fedora, RedHat, etc.
+
+The easiest way is to use Git for installing:
+
+	$ git clone http://github.com/resmo/git-ftp.git
+	$ cd git-ftp
+	$ sudo make install
+
+Updating using git
+
+	$ git pull
+	$ sudo make install
+
+
 Ubuntu PPA (Personal Package Archive) Repository
 ------------------------------------------------
 Adding on Ubuntu 10.04 (Lucid)
@@ -11,6 +30,7 @@ Adding on Ubuntu 10.04 (Lucid)
 	# aptitude install git-ftp
 
 Note: Usually updated after every release (tag).
+
 
 Windows
 -------
@@ -33,24 +53,25 @@ After this, open git bash (or cygwin bash for cygwin only):
 Note: Option -p without argument is showing password while entering.
 
 
-Upstream using git
--------------------
-Make sure git and curl is installed.
+Upstream using Symlinking
+-------------------------
 
-	# aptitude install git-core curl
+This usually works on Linux based systems, but not on Mac OS X without extending $PATH.
 
-The easiest way is to use git for installing:
+Note: Make sure Git and cURL is installed.
 
-	$ mkdir -p ~/dev/git-ftp.git
-	$ cd ~/dev/git-ftp.git
+This is a easy way to have more then one git-ftp installed
+
+	$ mkdir -p ~/develop/git-ftp.git
+	$ cd ~/develop/git-ftp.git
 	$ git clone http://github.com/resmo/git-ftp.git .
 	$ chmod +x git-ftp
 	$ mkdir ~/bin && cd ~/bin/
-	$ ln -s ~/dev/git-ftp.git/git-ftp git-ftp
+	$ ln -s ~/develop/git-ftp.git/git-ftp git-ftp.dev
 
-After this you can use 'git ftp' or 'git-ftp'
+After this you can use 'git ftp.dev' or 'git-ftp.dev'
 
 Update to the latest version is simple as:
 
-	$ cd ~/dev/git-ftp.git
+	$ cd ~/develop/git-ftp.git
 	$ git pull

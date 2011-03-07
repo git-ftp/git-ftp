@@ -11,8 +11,8 @@ Homepage: http://github.com/resmo/git-ftp
 Package: git-ftp
 Architecture: all
 Depends: ${misc:Depends}, curl (>= 7.15.5), git-core (>= 1.7), grep (>= 2.5.1)
-Description: Uploads the git tracked files to a FTP server
- git-ftp is a shell script for uploading git tracked files to a FTP server. By
+Description: Git powered FTP client written as shell script.
+ git-ftp is a shell script for uploading Git tracked files to a FTP server. By
  default, it uploads only those files which have changed since the last upload.
  .
  This saves time and bandwith. You can even play with different branches. See
