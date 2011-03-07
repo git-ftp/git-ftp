@@ -356,7 +356,7 @@ set_remote_host() {
 
 set_remote_protocol() {
 	# Split protocol from url
-	REMOTE_PROTOCOL=$(echo "$URL" | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1)
+	REMOTE_PROTOCOL=$(echo "$URL" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1)
 
 	# Protocol found?
 	if [ ! -z $REMOTE_PROTOCOL ]; then
