@@ -49,6 +49,7 @@ declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
+declare -i SUBMODULES=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
@@ -104,33 +105,35 @@ ACTIONS
 
 
 URL
-	. FTP (default)	host.example.com[:<port>][/<remote path>]
-	. FTP		ftp://host.example.com[:<port>][/<remote path>]
-	. SFTP		sftp://host.example.com[:<port>][/<remote path>]
-	. FTPS		ftps://host.example.com[:<port>][/<remote path>]
-	. FTPES		ftpes://host.example.com[:<port>][/<remote path>]
+	. FTP (default)		host.example.com[:<port>][/<remote path>]
+	. FTP			ftp://host.example.com[:<port>][/<remote path>]
+	. SFTP			sftp://host.example.com[:<port>][/<remote path>]
+	. FTPS			ftps://host.example.com[:<port>][/<remote path>]
+	. FTPES			ftpes://host.example.com[:<port>][/<remote path>]
 
 
 OPTIONS
-	-h, --help	Show this help
-	-u, --user	FTP login name
-	-p, --passwd	FTP password
-	-k, --keychain  FTP password from KeyChain (Mac OS X only)
-	-s, --scope	Using a scope (e.g. dev, production, testing, foobar) 
-	-D, --dry-run	Dry run: Does not upload anything
-	-a, --all	Uploads all files, ignores deployed SHA1 hash
-	-A, --active    Use FTP active mode
-	-l, --lock	Enable/Disable remote locking
-	-f, --force	Force, does not ask questions
-	-n, --silent	Silent
-	-v, --verbose	Verbose
-	--version	Prints version
+	-h, --help		Show this help
+	-u, --user		FTP login name
+	-p, --passwd		FTP password
+	-k, --keychain		FTP password from KeyChain (Mac OS X only)
+	-s, --scope		Using a scope (e.g. dev, production, testing, foobar) 
+	-D, --dry-run		Dry run: Does not upload anything
+	-a, --all		Uploads all files, ignores deployed SHA1 hash
+	-A, --active		Use FTP active mode
+	-l, --lock		Enable/Disable remote locking
+	-f, --force		Force, does not ask questions
+	-m, --submodules	Sync submodules
+	-n, --silent      	Silent
+	-v, --verbose		Verbose
+	--version		Prints version
 
 
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
 	. git-ftp push --scope production
+	. git-ftp push -d -v -m -s testing
 
 
 SET DEFAULTS
@@ -464,6 +467,27 @@ handle_file_sync() {
 	IFS="$OIFS"
 }
 
+handle_submodule_sync() {
+	if [ $SUBMODULES -eq 0 ]; then
+		return
+	fi
+
+	# Duplicate the current required parameters
+	args=("$ACTION" --user "$REMOTE_USER" --passwd "$REMOTE_PASSWD" --submodules)
+
+	# Do not ask any questions in this loop
+	args+=(--force)
+
+	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
+	[ $VERBOSE -eq 1 ] && args+=(--verbose)
+	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
+
+	write_log "Starting submodule sync"
+
+	git submodule foreach --quiet "git ftp ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}\$path"
+	check_exit_status "Failed to sync submodules" $ERROR_UPLOAD
+}
+
 handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
@@ -540,6 +564,7 @@ action_init() {
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
+	handle_submodule_sync
 	release_remote_lock
 	release_lock
 }
@@ -556,6 +581,7 @@ action_push() {
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
+	handle_submodule_sync
 	release_remote_lock
 	release_lock
 }
@@ -567,6 +593,7 @@ action_catchup() {
 	set_remotes
 	lock
 	upload_local_sha1
+	handle_submodule_sync
 	release_lock
 }
 
@@ -730,6 +757,9 @@ do
 			;;
 		-a|--all)
 			IGNORE_DEPLOYED=1
+			;;
+		-m|--submodules)
+			SUBMODULES=1
 			;;
 		-l|--lock)
 			if [ $ENABLE_REMOTE_LCK -ne 1 ]; then
