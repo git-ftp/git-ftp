@@ -49,7 +49,6 @@ declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
-declare -i SUBMODULES=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
@@ -123,7 +122,6 @@ OPTIONS
 	-A, --active		Use FTP active mode
 	-l, --lock		Enable/Disable remote locking
 	-f, --force		Force, does not ask questions
-	-m, --submodules	Sync submodules
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
 	--version		Prints version
@@ -156,6 +154,23 @@ exit 0
 usage() {
 	echo "git-ftp <action> [<options>] <url>"
 	exit $ERROR_USAGE
+}
+
+escape() {
+	echo "$1" | sed 's/\([\.\+\$\*]\)/\\\1/g'
+}
+
+has() {
+	local item=$1; shift
+	echo " $@ " | grep -q " $(escape $item) "
+}
+
+git_submodules() {
+	git submodule | cut -d ' ' -f 2
+}
+
+is_submodule() {
+	has $1 $(git_submodules)
 }
 
 ask_for_passwd() {
@@ -453,8 +468,8 @@ handle_file_sync() {
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
-			if [ -d $FILE_NAME ]; then
-				write_log "Ignored $FILE_NAME, it is a submodule"
+			if is_submodule $FILE_NAME; then
+				handle_submodule_sync $FILE_NAME
 			else
 				[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
 			fi
@@ -468,24 +483,40 @@ handle_file_sync() {
 }
 
 handle_submodule_sync() {
-	if [ $SUBMODULES -eq 0 ]; then
-		return
-	fi
+	print_info "Handling submodule sync for $1"
 
 	# Duplicate the current required parameters
-	args=("$ACTION" --user "$REMOTE_USER" --passwd "$REMOTE_PASSWD" --submodules)
+	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
 
-	# Do not ask any questions in this loop
+	# Do not ask any questions for submodules
 	args+=(--force)
 
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
-	[ $VERBOSE -eq 1 ] && args+=(--verbose)
+
+	if [ $VERBOSE -eq 1 ]; then
+		args+=(--verbose)
+	else
+		args+=(--silent)
+	fi
+
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
 
-	write_log "Starting submodule sync"
+	(
+		cd $1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+	)
 
-	git submodule foreach --quiet "git ftp ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}\$path"
-	check_exit_status "Failed to sync submodules" $ERROR_UPLOAD
+	local EXIT_CODE=$?
+
+	# Pushing failed. Submodule may not be initialized
+	if [ $EXIT_CODE -eq $ERROR_DOWNLOAD ] && [ "$ACTION" == "push" ]; then
+		print_info "Could not push $1, trying to init..."
+		(
+			cd $1 && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+		)
+		check_exit_status "Failed to sync submodules" $ERROR_UPLOAD
+	elif [ $EXIT_CODE -ne 0 ]; then
+		print_error_and_die "Failed to sync submodules" $ERROR_UPLOAD
+	fi
 }
 
 handle_remote_protocol_options() {
@@ -564,7 +595,6 @@ action_init() {
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
-	handle_submodule_sync
 	release_remote_lock
 	release_lock
 }
@@ -581,7 +611,6 @@ action_push() {
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
-	handle_submodule_sync
 	release_remote_lock
 	release_lock
 }
@@ -593,7 +622,6 @@ action_catchup() {
 	set_remotes
 	lock
 	upload_local_sha1
-	handle_submodule_sync
 	release_lock
 }
 
@@ -757,9 +785,6 @@ do
 			;;
 		-a|--all)
 			IGNORE_DEPLOYED=1
-			;;
-		-m|--submodules)
-			SUBMODULES=1
 			;;
 		-l|--lock)
 			if [ $ENABLE_REMOTE_LCK -ne 1 ]; then
