@@ -4,8 +4,7 @@
 	dh  $@
 
 override_dh_auto_clean:
-	dh_auto_clean
-
+#	dh_auto_clean
 	rm -f debian/git-ftp.1
 
 override_dh_auto_build:
