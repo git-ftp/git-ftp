@@ -30,7 +30,6 @@ are different. No ordinary FTP client can do that.
 
 Known Issues
 ------------
- * Git Submodules are currently not supported. I am working on it.
  * See [git-ftp issues on GitHub] for open issues
 
 
