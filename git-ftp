@@ -131,7 +131,6 @@ EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
 	. git-ftp push --scope production
-	. git-ftp push -d -v -m -s testing
 
 
 SET DEFAULTS
