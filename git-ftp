@@ -379,7 +379,7 @@ set_remote_protocol() {
 	if [ ! -z $REMOTE_PROTOCOL ]; then
 		REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 4-)
 		handle_remote_protocol_options
-		return 0
+		return
 	fi
 
 	# Check if a unknown protocol is set, handle it or use default protocol
@@ -389,7 +389,7 @@ set_remote_protocol() {
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
 		[ $(echo "$URL" | egrep "/" | wc -l) -ne 0 ] && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
-		return 0
+		return
 	fi
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'" $ERROR_UNKNOWN_PROTOCOL
 }
