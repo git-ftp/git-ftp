@@ -398,9 +398,7 @@ load_deployed_sha1() {
 	# Get the last commit (SHA) we deployed if not ignored or not found
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
-	if [ $? -ne 0 ]; then
-		print_error_and_die "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
-	fi
+	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
 }
 
