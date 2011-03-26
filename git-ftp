@@ -402,15 +402,6 @@ load_deployed_sha1() {
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
 }
 
-check_deployed_sha1() {
-	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean"
-	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
-	if [ "$DEPLOYED_SHA1" != "" ]; then
-		print_error_and_die "Commit found, use 'git ftp push' to sync. Exiting..." $ERROR_USAGE
-	fi
-	IGNORE_DEPLOYED=1
-}
-
 set_changed_files() {
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
@@ -632,6 +623,16 @@ action_show() {
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
+check_deployed_sha1() {
+	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean"
+	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		print_error_and_die "Commit found, use 'git ftp push' to sync. Exiting..." $ERROR_USAGE
+	fi
+	# Make sure if sync all files if no sha1 was found
+	IGNORE_DEPLOYED=1
+}
+
 check_git_version() {
 	local GIT_VERSION=$(git --version | cut -d ' ' -f 3)
 	local MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
