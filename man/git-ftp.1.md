@@ -186,6 +186,6 @@ There are a bunch of different error codes and their corresponding error message
 
 # KNOWN ISSUES & BUGS
 
-Git submodules are currently not supported. The upstream BTS can be found at <http://github.com/resmo/git-ftp/issues>.
+The upstream BTS can be found at <http://github.com/resmo/git-ftp/issues>.
 
 [Git]: http://git-scm.org
