@@ -575,7 +575,6 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	check_branch
 	set_remotes
 	lock
 	check_deployed_sha1
@@ -591,7 +590,6 @@ action_push() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	check_branch
 	set_remotes
 	lock
 	load_deployed_sha1
@@ -606,7 +604,6 @@ action_push() {
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
-	check_branch
 	set_remotes
 	lock
 	upload_local_sha1
@@ -664,26 +661,6 @@ check_is_git_project() {
 check_is_dirty_repository() {
 	local CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
-}
-
-check_branch() {
-	if [ $FORCE -eq 1 ]; then
-		return
-	fi
-
-	# Check if are at master branch
-	local CURRENT_BRANCH="$(git branch | grep '*' | cut -d ' ' -f 2)"
-	if [ "$CURRENT_BRANCH" != "master" ]; then
-		print_info "You are not on master branch."
-		echo -n "Are you sure deploying branch '$CURRENT_BRANCH'? [Y/n] "
-		local ANSWER_BRANCH
-		read ANSWER_BRANCH
-		if [ "$ANSWER_BRANCH" = "n" ] || [ "$ANSWER_BRANCH" = "N" ]; then
-			print_info "Aborting..."
-			release_lock
-			exit 0
-		fi
-	fi
 }
 
 # ------------------------------------------------------------
