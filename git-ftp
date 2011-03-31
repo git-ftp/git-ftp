@@ -26,7 +26,7 @@ readonly DEPLOYED_SHA1_FILE=".git-ftp.log"
 readonly LCK_FILE=".git/$(basename $0).lck"
 readonly REMOTE_LCK_FILE="$(basename $0).lck"
 readonly SYSTEM=$(uname)
-readonly VERSION='0.5.0'
+readonly VERSION='0.5.1'
 
 # ------------------------------------------------------------
 # Defaults
@@ -249,6 +249,7 @@ print_info() {
 
 set_default_curl_options() {
 	CURL_ARGS=($REMOTE_CMD_OPTIONS)
+	CURL_ARGS+=(--retry 5)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
 	else
