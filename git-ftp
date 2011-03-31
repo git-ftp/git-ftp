@@ -26,7 +26,7 @@ readonly DEPLOYED_SHA1_FILE=".git-ftp.log"
 readonly LCK_FILE=".git/$(basename $0).lck"
 readonly REMOTE_LCK_FILE="$(basename $0).lck"
 readonly SYSTEM=$(uname)
-readonly VERSION='0.5.0'
+readonly VERSION='0.5.1'
 
 # ------------------------------------------------------------
 # Defaults
