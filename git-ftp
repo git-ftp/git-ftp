@@ -44,6 +44,7 @@ LOG_CACHE=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
+DEPLOYED_SHA1=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -395,7 +396,11 @@ set_remote_protocol() {
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'" $ERROR_UNKNOWN_PROTOCOL
 }
 
-load_deployed_sha1() {
+set_deployed_sha1() {
+	# Return if commit is set by user interaction using --commit
+	if [ -n "$DEPLOYED_SHA1" ]; then
+		return
+	fi
 	# Get the last commit (SHA) we deployed if not ignored or not found
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
@@ -593,7 +598,7 @@ action_push() {
 	check_is_dirty_repository
 	set_remotes
 	lock
-	load_deployed_sha1
+	set_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
@@ -722,6 +727,25 @@ do
 					;;
 			esac
 			write_log "Using scope $SCOPE if available"
+			;;
+		-c|--commit*)
+			case "$#,$1" in
+				*,*=*)
+					DEPLOYED_SHA1=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						DEPLOYED_SHA1="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			write_log "Using commit $DEPLOYED_SHA1 as deployed"
 			;;
 		-p|--passwd*)
 			case "$#,$1" in
