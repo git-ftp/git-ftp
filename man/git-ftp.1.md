@@ -53,6 +53,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
 
+`-c`, `--commit`
+:	Sets the SHA1 hash of last deployed commit by option.
+
 `-A`, `--active`
 :	Uses FTP active mode.
 
