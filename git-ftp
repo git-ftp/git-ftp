@@ -120,6 +120,7 @@ OPTIONS
 	-s, --scope		Using a scope (e.g. dev, production, testing, foobar) 
 	-D, --dry-run		Dry run: Does not upload anything
 	-a, --all		Uploads all files, ignores deployed SHA1 hash
+	-c, --commit		Sets SHA1 hash of last deployed commit by option
 	-A, --active		Use FTP active mode
 	-l, --lock		Enable/Disable remote locking
 	-f, --force		Force, does not ask questions
