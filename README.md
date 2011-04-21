@@ -43,15 +43,15 @@ Usage
 -----
 
     $ cd my_git_tracked_project
-    $ git ftp push ftp://host.example.com/public_html --user <user> --passwd <password>
+    $ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
 
 For interactive password prompt use:
 
-    $ git ftp push ftp://host.example.com/public_html -u <user> -p
+    $ git ftp push  -u <user> -p - ftp://host.example.com/public_html
 
 Pushing for the first time:
 
-    $ git ftp init ftp://host.example.com/public_html -u <user> -p
+    $ git ftp init -u <user> -p - ftp://host.example.com/public_html
 
 
 Testing and Help
@@ -59,7 +59,7 @@ Testing and Help
 
 For testing mode use --dry-run alias -D
 
-    $ git ftp push ftp://host.example.com/public_html --dry-run -u <user> -p
+    $ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
 
 For more options see man page or help:
 
