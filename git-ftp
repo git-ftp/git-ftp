@@ -158,7 +158,7 @@ usage() {
 }
 
 escape() {
-	echo "$1" | sed 's/\([\.\+\$\*]\)/\\\1/g'
+	echo "$1" | sed 's/\([\.\+\$]\)/\\\1/g'
 }
 
 has() {
@@ -172,6 +172,11 @@ git_submodules() {
 
 is_submodule() {
 	has $1 $(git_submodules)
+}
+
+is_ignorable() {
+	[ ! -f ".git-ftp-ignore" ] && return 1
+	has $1 $(cat ".git-ftp-ignore")
 }
 
 ask_for_passwd() {
@@ -461,6 +466,10 @@ handle_file_sync() {
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
+
+		# Ignore files in .git-ftp-ignore
+		is_ignorable $FILE_NAME && print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Ignoring '$FILE_NAME'" && continue
+
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
