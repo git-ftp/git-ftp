@@ -99,6 +99,23 @@ Push to scope foobar alias john@ftp.testing.com:8080/foobar-path using password 
 Because I didn't set the user for this scope, it takes the user "john" as set before in defaults.
 
 
+Ignoring Files to be synced
+---------------------------
+
+Add file names to `.git-ftp-ignore` to be ignored.
+
+Ignoring all in Directory `config`:
+	config/*
+
+Ignoring all files having extension `.txt` in `./` :
+	*.txt
+
+This ignores `a.txt` and `b.txt` but not `dir/c.txt`
+
+Ingnoring a single file called `gargantubrain.txt`:
+	gargantubrain.txt
+
+
 Contributions
 -------------
 
