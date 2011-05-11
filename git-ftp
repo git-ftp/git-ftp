@@ -560,6 +560,12 @@ handle_action() {
 		show)
 			action_show
 			;;
+		pull)
+			action_pull
+			;;
+		fetch)
+			action_fetch
+			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
@@ -649,6 +655,20 @@ action_show() {
 	git show "$DEPLOYED_SHA1"
 }
 
+action_fetch() {
+	check_is_git_project
+	check_is_dirty_repository
+	set_remotes
+	lock
+	if [ "$DRY_RUN" = 1 ]; then
+		dr=" --dry-run"
+	else
+		dr=""
+	fi
+	lftp -c "open ${REMOTE_PROTOCOL}://${REMOTE_USER}:${REMOTE_PASSWD}@${REMOTE_HOST}/${REMOTE_PATH} && mirror$dr --exclude=.git/ --exclude=.git-ftp.log ."
+	release_lock
+}
+
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
@@ -711,7 +731,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show)
+		init|push|catchup|show|fetch)
 			ACTION="$1"
 			;;
 		-h|--h|--he|--hel|--help|help)
