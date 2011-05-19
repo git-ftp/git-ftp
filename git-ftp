@@ -174,11 +174,6 @@ is_submodule() {
 	has $1 $(git_submodules)
 }
 
-is_ignorable() {
-	[ ! -f ".git-ftp-ignore" ] && return 1
-	has $1 $(cat ".git-ftp-ignore")
-}
-
 ask_for_passwd() {
 	echo -n "Password: "
 	stty -echo > /dev/null 2>&1
@@ -420,9 +415,15 @@ set_changed_files() {
 		FILES_CHANGED="$(git ls-files -t)"
 		return
 	fi
-	
+
 	# Get the files changed since then
-	FILES_CHANGED="$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')"
+	if [ -f '.git-ftp-ignore' ]; then
+		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
+		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore' '.git-ftp-tmp2' | tr '\t' ' ')
+	else
+		FILES_CHANGED=$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')
+	fi
+
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -466,9 +467,6 @@ handle_file_sync() {
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
-
-		# Ignore files in .git-ftp-ignore
-		is_ignorable $FILE_NAME && print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Ignoring '$FILE_NAME'" && continue
 
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
