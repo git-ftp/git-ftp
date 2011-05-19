@@ -420,6 +420,7 @@ set_changed_files() {
 	if [ -f '.git-ftp-ignore' ]; then
 		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
 		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore' '.git-ftp-tmp2' | tr '\t' ' ')
+		rm '.git-ftp-tmp'
 	else
 		FILES_CHANGED=$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')
 	fi
