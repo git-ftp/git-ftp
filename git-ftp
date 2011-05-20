@@ -167,7 +167,7 @@ has() {
 }
 
 git_submodules() {
-	git submodule | cut -d ' ' -f 2
+	git submodule | awk '{print $2}'
 }
 
 is_submodule() {
