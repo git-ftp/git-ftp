@@ -410,19 +410,25 @@ set_deployed_sha1() {
 }
 
 set_changed_files() {
+	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
-		write_log "Sync all files."
-		FILES_CHANGED="$(git ls-files -t)"
-		return
+		git ls-files -t > '.git-ftp-tmp'
+	else
+		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
 	fi
 
-	# Get the files changed since then
+	# Filter against ignore file
 	if [ -f '.git-ftp-ignore' ]; then
-		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
 		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore' '.git-ftp-tmp' | tr '\t' ' ')
-		rm '.git-ftp-tmp'
 	else
-		FILES_CHANGED=$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')
+		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
+	fi
+
+	rm '.git-ftp-tmp'
+
+	if [ $IGNORE_DEPLOYED -ne 0 ]; then
+		write_log "Sync all files."
+		return
 	fi
 
 	if [ $? -ne 0 ]; then
