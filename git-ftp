@@ -560,9 +560,6 @@ handle_action() {
 		show)
 			action_show
 			;;
-		pull)
-			action_pull
-			;;
 		fetch)
 			action_fetch
 			;;
