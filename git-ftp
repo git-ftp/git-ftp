@@ -32,6 +32,7 @@ readonly VERSION='0.5.2'
 # Defaults
 # ------------------------------------------------------------
 URL=""
+NEW_REPO=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
@@ -552,6 +553,9 @@ handle_action() {
 		init)
 			action_init
 			;;
+		bootstrap)
+			action_bootstrap
+			;;
 		push)
 			action_push
 			;;
@@ -620,6 +624,32 @@ action_init() {
 	upload_local_sha1
 	release_remote_lock
 	release_lock
+}
+
+action_bootstrap() {
+	check_git_version
+	set_remotes
+	if [ -z "$NEW_REPO" ]; then
+		if [ -n "$REMOTE_PATH" ]; then
+			NEW_REPO=`basename ${REMOTE_PATH}`
+		elif [ -n "$REMOTE_HOST" ]; then
+			NEW_REPO=$REMOTE_HOST
+		else
+			print_error_and_die "Cannot bootstrap without a host, path, or directory to use. Exiting..." $ERROR_USAGE
+		fi
+	fi
+	git init $NEW_REPO || print_error_and_die "git init $NEW_REPO failed. Exiting..."
+	write_log "cd $NEW_REPO"
+	cd $NEW_REPO || print_error_and_die "cd '$NEW_REPO' failed. Exiting..."
+	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} into $NEW_REPO"
+	lftp $LFTP_OPTIONS -e "mirror --exclude=.git/ --exclude=.git-ftp.log . && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+
+	git config git-ftp.$SCOPE.user "$REMOTE_USER"
+	git config git-ftp.$SCOPE.password "$REMOTE_PASSWD"
+	git config git-ftp.$SCOPE.url "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
+
+	git add -A || print_error_and_die "git add -A failed. Exiting..."
+	git commit -m 'initial version'
 }
 
 action_push() {
@@ -729,7 +759,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|fetch)
+		init|bootstrap|push|catchup|show|fetch)
 			ACTION="$1"
 			;;
 		-h|--h|--he|--hel|--help|help)
@@ -872,7 +902,11 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
+			if [ "$ACTION" = "bootstrap" ] && [ -n "$URL" ]; then
+				[ -n "$1" ] && NEW_REPO=$1
+			else
+				[ -n "$1" ] && URL=$1
+			fi
 			;;
 	esac
 	shift
