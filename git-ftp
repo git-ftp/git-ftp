@@ -33,6 +33,7 @@ readonly VERSION='0.5.2'
 # ------------------------------------------------------------
 URL=""
 NEW_REPO=""
+COMMIT_MESSAGE=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
@@ -656,7 +657,13 @@ action_bootstrap() {
 	fi
 
 	git add -A || print_error_and_die "git add -A failed. Exiting..."
-	git commit -m 'initial version'
+	check_exit_status "'git add -A' failed" $ERROR_GIT
+	if [ -n "$COMMIT_MESSAGE" ]; then
+		git commit -m "$COMMIT_MESSAGE"
+	else
+		git commit
+	fi
+	check_exit_status "Skipping commit" $ERROR_GIT
 	lock
 	upload_local_sha1
 	release_lock
@@ -909,6 +916,19 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode"
+			;;
+		-m|--message)
+			case "$#,$1" in
+				*,*=*)
+					COMMIT_MESSAGE=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						COMMIT_MESSAGE="$2"
+						shift
+					fi
+					;;
+			esac
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
