@@ -80,6 +80,43 @@ After setting defaults, push to john@ftp.example.com is as simple as
 	$ git ftp push
 
 
+Bootstrapping
+-------------
+
+If you have an existing project on an FTP server that you would like
+to use with git-ftp, and you have lftp (<http://lftp.yar.ru/>) installed:
+
+	$ git ftp bootstrap -u <user> -p <password> -m 'initial version' ftp://host.example.com/public_html myprojectname
+	$ cd myprojectname
+
+"git ftp bootstrap" does the following:
+
+* Creates a new git repository using either the name you specified on the command line, or the last path component of the URL (similar to "git clone")
+* Pulls down the entire file tree (using lftp's "mirror" command)
+* Commits all files using the message you specify (through "-m" or by calling your $EDITOR, as in "git commit")
+* Sets git-ftp defaults for user, password, and url
+* Sets this initial commit as the "deployed" version
+
+
+Fetching Direct Updates
+-----------------------
+
+If others are making changes directly through FTP instead of through
+git-ftp, and you have lftp installed, you can fetch updates:
+
+	$ git ftp fetch -u <user> -p <password> ftp://host.example.com/public_html
+
+Much like "git ftp push" you may specify "--dry-run", and may omit
+the user, password, and URL parameters if you have defaults set.
+
+After it completes, you can commit theses changes with something like:
+
+	$ git add -A
+	$ git commit -m "client's updates"
+
+"git ftp fetch" will refuse to run if your working tree is dirty.
+
+
 Using Scopes
 ------------
 
