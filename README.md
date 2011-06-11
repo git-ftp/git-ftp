@@ -113,6 +113,7 @@ After it completes, you can commit theses changes with something like:
 
 	$ git add -A
 	$ git commit -m "client's updates"
+	$ git ftp catchup
 
 "git ftp fetch" will refuse to run if your working tree is dirty.
 
