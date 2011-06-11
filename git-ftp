@@ -103,6 +103,17 @@ ACTIONS
 
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
+
+	. bootstrap
+		Creates a new git repository populated with the contents of
+		a remote tree.
+
+	. fetch
+		Downloads changes from the remote host into your working tree.
+
+		This is useful in situations where others make updates directly
+		through FTP.
+
 	. help
 		Shows this help
 
