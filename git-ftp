@@ -638,6 +638,7 @@ action_bootstrap() {
 			print_error_and_die "Cannot bootstrap without a host, path, or directory to use. Exiting..." $ERROR_USAGE
 		fi
 	fi
+	[ -e $NEW_REPO ] && print_error_and_die "$NEW_REPO already exists. Exiting..." $ERROR_USAGE
 	git init $NEW_REPO || print_error_and_die "git init $NEW_REPO failed. Exiting..."
 	write_log "cd $NEW_REPO"
 	cd $NEW_REPO || print_error_and_die "cd '$NEW_REPO' failed. Exiting..."
