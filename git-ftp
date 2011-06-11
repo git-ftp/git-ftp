@@ -656,6 +656,9 @@ action_bootstrap() {
 
 	git add -A || print_error_and_die "git add -A failed. Exiting..."
 	git commit -m 'initial version'
+	lock
+	upload_local_sha1
+	release_lock
 }
 
 action_push() {
