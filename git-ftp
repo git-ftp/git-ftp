@@ -624,8 +624,13 @@ create_new_repo() {
 }
 
 pull_remote_updates () {
-	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} into $NEW_REPO"
-	lftp $LFTP_OPTIONS -e 'mirror --exclude=.git/ --exclude=.git-ftp.log . && wait all && exit' -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} $1"
+	if [ "$DRY_RUN" = 1 ]; then
+		dr=" --dry-run"
+	else
+		dr=""
+	fi
+	lftp $LFTP_OPTIONS -e "mirror$dr --exclude=.git/ --exclude=.git-ftp.log . && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 write_configs () {
@@ -680,7 +685,7 @@ action_bootstrap() {
 	create_new_repo
 	cd_to_new_repo
 	lock
-	pull_remote_updates
+	pull_remote_updates "into $NEW_REPO"
 	write_configs
 	add_all_files_and_commit
 	upload_local_sha1
@@ -723,12 +728,7 @@ action_fetch() {
 	check_is_dirty_repository
 	set_remotes
 	lock
-	if [ "$DRY_RUN" = 1 ]; then
-		dr=" --dry-run"
-	else
-		dr=""
-	fi
-	lftp $LFTP_OPTIONS -e "mirror$dr --exclude=.git/ --exclude=.git-ftp.log . && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	pull_remote_updates
 	release_lock
 }
 
