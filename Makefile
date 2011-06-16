@@ -1,6 +1,8 @@
+#! /usr/bin/make -f
 SHELL=/bin/sh
 
-prefix=/usr/local
+DESTDIR?=/usr/local
+prefix?=${DESTDIR}
 
 # files that need mode 755
 EXEC_FILES=git-ftp
