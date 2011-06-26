@@ -250,10 +250,10 @@ print_info() {
 }
 
 set_default_curl_options() {
-	OIFS=$IFS
+	OIFS="$IFS"
 	IFS=" "
 	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
-	IFS=$OIFS;
+	IFS="$OIFS"
 	CURL_ARGS+=(--retry 5)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
