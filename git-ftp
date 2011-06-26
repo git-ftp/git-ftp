@@ -250,7 +250,8 @@ print_info() {
 }
 
 set_default_curl_options() {
-	CURL_ARGS=($REMOTE_CMD_OPTIONS)
+	IFS=" "
+	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
 	CURL_ARGS+=(--retry 5)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
@@ -532,7 +533,7 @@ handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
 	# Options for curl if using FTPES
-	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
+	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_PROTOCOL="ftp" && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl -k"
 }
 
 handle_action() {
