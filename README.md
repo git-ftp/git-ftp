@@ -30,6 +30,7 @@ are different. No ordinary FTP client can do that.
 
 Known Issues
 ------------
+ * Emtpy directories won't be deleted.
  * See [git-ftp issues on GitHub] for open issues
 
 
