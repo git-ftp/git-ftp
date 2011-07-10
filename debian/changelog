@@ -1,3 +1,9 @@
+git-ftp (0.0.0-0) UNRELEASED; urgency=low
+
+  * todo: remove on release
+
+ -- Philippe Coval <rzr@gna.org>  Thu, 16 Jun 2011 02:37:24 +0200
+
 git-ftp (0.5.1) stable; urgency=low
 
   * New upstream version
@@ -45,7 +51,7 @@ git-ftp (0.2.0-1) stable; urgency=low
   * New upstream version
 
  -- René Moser <mail@renemoser.net>  Sun, 19 Dec 2010 15:14:15 +0100
- 
+
 git-ftp (0.1.2-1) stable; urgency=low
 
   * New upstream version
