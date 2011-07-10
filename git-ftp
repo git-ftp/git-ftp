@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright(c) 2010 René Moser
 # http://github.com/resmo/git-ftp
@@ -26,7 +26,7 @@ readonly DEPLOYED_SHA1_FILE=".git-ftp.log"
 readonly LCK_FILE=".git/$(basename $0).lck"
 readonly REMOTE_LCK_FILE="$(basename $0).lck"
 readonly SYSTEM=$(uname)
-readonly VERSION='0.5.1'
+readonly VERSION='0.5.2'
 
 # ------------------------------------------------------------
 # Defaults
@@ -158,7 +158,7 @@ usage() {
 }
 
 escape() {
-	echo "$1" | sed 's/\([\.\+\$\*]\)/\\\1/g'
+	echo "$1" | sed 's/\([\.\+\$]\)/\\\1/g'
 }
 
 has() {
@@ -167,7 +167,7 @@ has() {
 }
 
 git_submodules() {
-	git submodule | cut -d ' ' -f 2
+	git submodule | awk '{print $2}'
 }
 
 is_submodule() {
@@ -250,8 +250,12 @@ print_info() {
 }
 
 set_default_curl_options() {
-	CURL_ARGS=($REMOTE_CMD_OPTIONS)
+	OIFS="$IFS"
+	IFS=" "
+	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
+	IFS="$OIFS"
 	CURL_ARGS+=(--retry 5)
+	CURL_ARGS+=(--globoff)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
 	else
@@ -290,6 +294,13 @@ remove_file() {
 			write_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 		fi
 	fi
+}
+
+remove_dir() {
+	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
+	REMOTE_DELETE_CMD="RMD "
+	remove_file $1
+	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
 }
 
 get_file_content() {
@@ -410,14 +421,27 @@ set_deployed_sha1() {
 }
 
 set_changed_files() {
+	# Get raw list of files
+	if [ $IGNORE_DEPLOYED -ne 0 ]; then
+		git ls-files -t > '.git-ftp-tmp'
+	else
+		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
+	fi
+
+	# Filter against ignore file
+	if [ -f '.git-ftp-ignore' ]; then
+		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore' '.git-ftp-tmp' | tr '\t' ' ')
+	else
+		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
+	fi
+
+	rm '.git-ftp-tmp'
+
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
-		FILES_CHANGED="$(git ls-files -t)"
 		return
 	fi
-	
-	# Get the files changed since then
-	FILES_CHANGED="$(git diff --name-status $DEPLOYED_SHA1 2>/dev/null | tr '\t' ' ')"
+
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
@@ -461,6 +485,7 @@ handle_file_sync() {
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
 		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
+
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
@@ -471,7 +496,7 @@ handle_file_sync() {
 		else
 			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
+			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname $FILE_NAME)
 		fi
 	done
 	IFS="$OIFS"
@@ -518,7 +543,7 @@ handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
 	# Options for curl if using FTPES
-	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ftp-ssl -k"
+	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_PROTOCOL="ftp" && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl -k"
 }
 
 handle_action() {

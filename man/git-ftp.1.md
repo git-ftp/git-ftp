@@ -160,6 +160,26 @@ password *n0tThatSimp3l*
 
 	$ git ftp push -s production
 
+
+# IGNORING FILES
+
+Add file names to `.git-ftp-ignore` to be ignored.
+
+Ignoring all in Directory `config`:
+
+	config/*
+
+Ignoring all files having extension `.txt` in `./` :
+
+	*.txt
+
+This ignores `a.txt` and `b.txt` but not `dir/c.txt`
+
+Ingnoring a single file called `gargantubrain.txt`:
+
+	gargantubrain.txt
+
+
 # EXIT CODES
 There are a bunch of different error codes and their corresponding error messages that may appear during bad conditions. At the time of this writing, the exit codes are:
 

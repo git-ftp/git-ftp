@@ -1,7 +1,7 @@
 README of git-ftp
 =================
 
-* &copy; René Moser, mail@renemoser.net, 2010
+* &copy; René Moser, mail@renemoser.net, 2010-2011
 * This application is licenced under [GNU General Public License, Version 3.0]
 
 This is free and open source software. If you like and use it, flattr it ([flattr?][WhatisFlattr]). Thx.
@@ -43,15 +43,15 @@ Usage
 -----
 
     $ cd my_git_tracked_project
-    $ git ftp push ftp://host.example.com/public_html --user <user> --passwd <password>
+    $ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
 
 For interactive password prompt use:
 
-    $ git ftp push ftp://host.example.com/public_html -u <user> -p
+    $ git ftp push -u <user> -p - ftp://host.example.com/public_html
 
 Pushing for the first time:
 
-    $ git ftp init ftp://host.example.com/public_html -u <user> -p
+    $ git ftp init -u <user> -p - ftp://host.example.com/public_html
 
 
 Testing and Help
@@ -59,7 +59,7 @@ Testing and Help
 
 For testing mode use --dry-run alias -D
 
-    $ git ftp push ftp://host.example.com/public_html --dry-run -u <user> -p
+    $ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
 
 For more options see man page or help:
 
@@ -97,6 +97,26 @@ Push to scope foobar alias john@ftp.testing.com:8080/foobar-path using password 
 	$ git ftp push -s foobar
 
 Because I didn't set the user for this scope, it takes the user "john" as set before in defaults.
+
+
+Ignoring Files to be synced
+---------------------------
+
+Add file names to `.git-ftp-ignore` to be ignored.
+
+Ignoring all in Directory `config`:
+
+	config/*
+
+Ignoring all files having extension `.txt` in `./` :
+
+	*.txt
+
+This ignores `a.txt` and `b.txt` but not `dir/c.txt`
+
+Ingnoring a single file called `gargantubrain.txt`:
+
+	gargantubrain.txt
 
 
 Contributions

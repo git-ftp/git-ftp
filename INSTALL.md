@@ -1,7 +1,7 @@
 INSTALL
 =======
 
-Upstream on Linux/Unix based systems using make (recommended)
+Stable on Linux/Unix based systems using make (recommended)
 -------------------------------------------------------------
 
 Note: Make sure Git and cURL is installed.
@@ -12,6 +12,7 @@ The easiest way is to use Git for installing:
 
 	$ git clone http://github.com/resmo/git-ftp.git
 	$ cd git-ftp
+	$ git checkout master
 	$ sudo make install
 
 Updating using git
