@@ -296,6 +296,13 @@ remove_file() {
 	fi
 }
 
+remove_dir() {
+	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
+	REMOTE_DELETE_CMD="RMD "
+	remove_file $1
+	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
+}
+
 get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
@@ -489,7 +496,7 @@ handle_file_sync() {
 		else
 			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME
+			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname $FILE_NAME)
 		fi
 	done
 	IFS="$OIFS"
