@@ -32,6 +32,8 @@ readonly VERSION='0.5.2'
 # Defaults
 # ------------------------------------------------------------
 URL=""
+NEW_REPO=""
+COMMIT_MESSAGE=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
@@ -39,6 +41,7 @@ REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_DELETE_CMD="-DELE "
 REMOTE_CMD_OPTIONS="-s"
+LFTP_OPTIONS=""
 ACTION=""
 LOG_CACHE=""
 SCOPE=""
@@ -100,6 +103,17 @@ ACTIONS
 
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
+
+	. bootstrap
+		Creates a new git repository populated with the contents of
+		a remote tree.
+
+	. fetch
+		Downloads changes from the remote host into your working tree.
+
+		This is useful in situations where others make updates directly
+		through FTP.
+
 	. help
 		Shows this help
 
@@ -551,6 +565,9 @@ handle_action() {
 		init)
 			action_init
 			;;
+		bootstrap)
+			action_bootstrap
+			;;
 		push)
 			action_push
 			;;
@@ -559,6 +576,9 @@ handle_action() {
 			;;
 		show)
 			action_show
+			;;
+		fetch)
+			action_fetch
 			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
@@ -600,6 +620,58 @@ set_remotes() {
 	write_log "Path is '$REMOTE_PATH'"
 }
 
+create_new_repo() {
+	if [ -z "$NEW_REPO" ]; then
+		if [ -n "$REMOTE_PATH" ]; then
+			NEW_REPO=`basename ${REMOTE_PATH}`
+		elif [ -n "$REMOTE_HOST" ]; then
+			NEW_REPO=$REMOTE_HOST
+		else
+			print_error_and_die "Cannot bootstrap without a host, path, or directory to use. Exiting..." $ERROR_MISSING_ARGUMENTS
+		fi
+	fi
+	[ -e $NEW_REPO ] && print_error_and_die "$NEW_REPO already exists. Exiting..." $ERROR_USAGE
+	git init $NEW_REPO || print_error_and_die "git init $NEW_REPO failed. Exiting..."
+}
+
+pull_remote_updates () {
+	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} $1"
+	if [ "$DRY_RUN" = 1 ]; then
+		dr=" --dry-run"
+	else
+		dr=""
+	fi
+	lftp $LFTP_OPTIONS -e "mirror$dr --exclude=.git/ --exclude=.git-ftp.log . && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+}
+
+write_configs () {
+	if [ -z "$SCOPE" ]; then
+		git config git-ftp.user "$REMOTE_USER"
+		git config git-ftp.password "$REMOTE_PASSWD"
+		git config git-ftp.url "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
+	else
+		git config git-ftp.$SCOPE.user "$REMOTE_USER"
+		git config git-ftp.$SCOPE.password "$REMOTE_PASSWD"
+		git config git-ftp.$SCOPE.url "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}"
+	fi
+}
+
+add_all_files_and_commit () {
+	git add -A || print_error_and_die "git add -A failed. Exiting..."
+	check_exit_status "'git add -A' failed" $ERROR_GIT
+	if [ -n "$COMMIT_MESSAGE" ]; then
+		git commit -m "$COMMIT_MESSAGE"
+	else
+		git commit
+	fi
+	check_exit_status "Skipping commit" $ERROR_GIT
+}
+
+cd_to_new_repo () {
+	write_log "cd $NEW_REPO"
+	cd $NEW_REPO || print_error_and_die "cd '$NEW_REPO' failed. Exiting..."
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -615,6 +687,19 @@ action_init() {
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
+	release_lock
+}
+
+action_bootstrap() {
+	check_git_version
+	set_remotes
+	create_new_repo
+	cd_to_new_repo
+	lock
+	pull_remote_updates "into $NEW_REPO"
+	write_configs
+	add_all_files_and_commit
+	upload_local_sha1
 	release_lock
 }
 
@@ -647,6 +732,15 @@ action_show() {
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
 	git show "$DEPLOYED_SHA1"
+}
+
+action_fetch() {
+	check_is_git_project
+	check_is_dirty_repository
+	set_remotes
+	lock
+	pull_remote_updates
+	release_lock
 }
 
 # ------------------------------------------------------------
@@ -711,7 +805,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show)
+		init|bootstrap|push|catchup|show|fetch)
 			ACTION="$1"
 			;;
 		-h|--h|--he|--hel|--help|help)
@@ -838,6 +932,7 @@ do
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e $LOG_CACHE
 			REMOTE_CMD_OPTIONS="-v"
+			LFTP_OPTIONS="-dv"
 			;;
 		-f|--force)
 			FORCE=1
@@ -851,9 +946,26 @@ do
 			ACTIVE_MODE=1
 			write_log "Using active mode"
 			;;
+		-m|--message)
+			case "$#,$1" in
+				*,*=*)
+					COMMIT_MESSAGE=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						COMMIT_MESSAGE="$2"
+						shift
+					fi
+					;;
+			esac
+			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
+			if [ "$ACTION" = "bootstrap" ] && [ -n "$URL" ]; then
+				[ -n "$1" ] && NEW_REPO=$1
+			else
+				[ -n "$1" ] && URL=$1
+			fi
 			;;
 	esac
 	shift
