@@ -380,8 +380,8 @@ release_lock() {
 set_remote_host() {
 	[ -z $URL ] && [ -n "$SCOPE" ] && URL="$(git config --get git-ftp.$SCOPE.url)"
 	[ -z $URL ] && URL="$(git config --get git-ftp.url)"
-	REMOTE_HOST=$(expr "$URL" : ".*://\([a-z0-9\.:-]*\).*")
-	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([a-z0-9\.:-]*\).*")
+	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
 }
 
