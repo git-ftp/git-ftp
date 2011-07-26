@@ -71,7 +71,8 @@ readonly ERROR_GIT=8
 
 usage_long()
 {
-less << EOF
+local pager=$(git config --get core.pager)
+${GIT_PAGER:-${pager:-${PAGER:-less}}} << EOF
 USAGE
 	git-ftp <action> [<options>] <url>
 
