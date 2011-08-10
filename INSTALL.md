@@ -46,6 +46,7 @@ otherwise install msysgit.
 
 After this, open git bash (or cygwin bash for cygwin only):
 
+	$ cd ~
 	$ git clone http://github.com/resmo/git-ftp git-ftp.git
 	$ cd git-ftp.git && chmod +x git-ftp
 	$ cd /bin/
