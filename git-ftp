@@ -378,6 +378,10 @@ release_lock() {
 }
 
 set_remote_host() {
+	# try .git-ftp-config
+	[ -z $URL ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && URL="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.url)"
+	[ -z $URL ] && [ -f '.git-ftp-config' ] && URL="$(git config -f '.git-ftp-config' --get git-ftp.url)"
+	#
 	[ -z $URL ] && [ -n "$SCOPE" ] && URL="$(git config --get git-ftp.$SCOPE.url)"
 	[ -z $URL ] && URL="$(git config --get git-ftp.url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
@@ -567,12 +571,20 @@ handle_action() {
 }
 
 set_remote_user() {
+	# try .git-ftp-config
+	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && REMOTE_USER="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.user)"
+	[ -z $REMOTE_USER ] && [ -f '.git-ftp-config' ] && REMOTE_USER="$(git config -f '.git-ftp-config' --get git-ftp.user)"
+	#
 	[ -z $REMOTE_USER ] && [ -n "$SCOPE" ] && REMOTE_USER="$(git config --get git-ftp.$SCOPE.user)"
 	[ -z $REMOTE_USER ] && REMOTE_USER="$(git config --get git-ftp.user)"
 }
 
 set_remote_password() {
 	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
+	# try .git-ftp-config
+	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && REMOTE_PASSWD="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.password)"
+	[ -z $REMOTE_PASSWD ] && [ -f '.git-ftp-config' ] && REMOTE_PASSWD="$(git config -f '.git-ftp-config' --get git-ftp.password)"
+	#
 	[ -z $REMOTE_PASSWD ] && [ -n "$SCOPE" ] && REMOTE_PASSWD="$(git config --get git-ftp.$SCOPE.password)"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(git config --get git-ftp.password)"
 }
