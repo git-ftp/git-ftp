@@ -429,7 +429,7 @@ set_changed_files() {
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		git ls-files -t > '.git-ftp-tmp'
 	else
-		git diff --name-status $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
+		git diff --name-status --no-renames $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
 	fi
 
 	# Filter against ignore file
