@@ -440,8 +440,8 @@ set_changed_files() {
 		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
 	fi
 
-	rm '.git-ftp-tmp'
-	rm '.git-ftp-ignore-tmp'
+	rm -f '.git-ftp-tmp'
+	rm -f '.git-ftp-ignore-tmp'
 	
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
