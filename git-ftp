@@ -139,6 +139,7 @@ SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
+	. git config git-ftp.connections 10
 
 
 SET SCOPE DEFAULTS 
@@ -907,6 +908,10 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode"
+			;;
+		--connections)
+			number_of_connections=$2
+			shift
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
