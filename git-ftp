@@ -488,7 +488,7 @@ handle_file_sync() {
 '
 	IFS="$NIFS"
 
-	number_of_connections=1
+	rm -f upload_manager_pipe
 	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
@@ -502,7 +502,7 @@ handle_file_sync() {
 				handle_submodule_sync $FILE_NAME
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					if [[ $number_of_connections > 1 ]]
+					if [[ $number_of_connections > 0 ]]
 					then
 						# If there are still initial connections left, spawn a
 						# new worker without waiting for anything.
@@ -526,6 +526,7 @@ handle_file_sync() {
 	done
 
 	wait
+	rm -f upload_manager_pipe
 
 	IFS="$OIFS"
 }
@@ -626,6 +627,9 @@ set_remotes() {
 
 	set_remote_user
 	write_log "User is '$REMOTE_USER'"
+
+	set_number_of_threads
+	write_log "Using '$number_of_connections' parallel connections."
 	
 	set_remote_password
 	if [ -z $REMOTE_PASSWD ]; then
@@ -641,6 +645,16 @@ set_remotes() {
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
 	write_log "Path is '$REMOTE_PATH'"
+}
+
+set_number_of_threads() {
+	# try .git-ftp-config
+	[ -z $number_of_connections ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && number_of_connections="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.connections)"
+	[ -z $number_of_connections ] && [ -f '.git-ftp-config' ] && number_of_connections="$(git config -f '.git-ftp-config' --get git-ftp.connections)"
+	#
+	[ -z $number_of_connections ] && [ -n "$SCOPE" ] && number_of_connections="$(git config --get git-ftp.$SCOPE.connections)"
+	[ -z $number_of_connections ] && number_of_connections="$(git config --get git-ftp.connections)"
+	[ -z $number_of_connections ] && number_of_connections=2
 }
 
 # ------------------------------------------------------------
