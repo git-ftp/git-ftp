@@ -501,6 +501,10 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
+
+	number_of_connections=1
+	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
+
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -510,8 +514,23 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync $FILE_NAME
-			else
-				[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
+			else if [ $DRY_RUN -ne 1 ]
+				then
+					if [[ $number_of_connections > 1 ]]
+					then
+						# If there are still initial connections left, spawn a
+						# new worker without waiting for anything.
+						handle_upload_worker "$FILE_NAME" &
+						number_of_connections=$((number_of_connections-1))
+					else
+						# There are no initial connections left, spawn a new
+						# worker one an existing one finishes.
+						if read
+						then
+							handle_upload_worker "$FILE_NAME" &
+						fi <&3
+					fi
+				fi
 			fi
 		else
 			# Removing file
@@ -519,7 +538,17 @@ handle_file_sync() {
 			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname $FILE_NAME)
 		fi
 	done
+
+	wait
+
 	IFS="$OIFS"
+}
+
+handle_upload_worker() {
+	# Upload the given file and notify the manager pipe so that another upload
+	# job can be spawned.
+	upload_file "$1"
+	echo >&3
 }
 
 handle_submodule_sync() {
