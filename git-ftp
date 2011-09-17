@@ -511,7 +511,7 @@ handle_file_sync() {
 '
 	IFS="$NIFS"
 
-	rm -f upload_manager_pipe
+	number_of_connections=1
 	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
@@ -522,10 +522,10 @@ handle_file_sync() {
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
-				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
+				handle_submodule_sync $FILE_NAME
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					if [[ $number_of_connections > 0 ]]
+					if [[ $number_of_connections > 1 ]]
 					then
 						# If there are still initial connections left, spawn a
 						# new worker without waiting for anything.
@@ -549,7 +549,6 @@ handle_file_sync() {
 	done
 
 	wait
-	rm -f upload_manager_pipe
 
 	IFS="$OIFS"
 }
@@ -557,8 +556,7 @@ handle_file_sync() {
 handle_upload_worker() {
 	# Upload the given file and notify the manager pipe so that another upload
 	# job can be spawned.
-	local FILE_NAME="$1"
-	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
+	upload_file "$1"
 	echo >&3
 }
 
