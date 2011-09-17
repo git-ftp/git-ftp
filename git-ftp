@@ -511,7 +511,7 @@ handle_file_sync() {
 '
 	IFS="$NIFS"
 
-	number_of_connections=1
+	rm -f upload_manager_pipe
 	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
@@ -525,7 +525,7 @@ handle_file_sync() {
 				handle_submodule_sync $FILE_NAME
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					if [[ $number_of_connections > 1 ]]
+					if [[ $number_of_connections > 0 ]]
 					then
 						# If there are still initial connections left, spawn a
 						# new worker without waiting for anything.
@@ -549,6 +549,7 @@ handle_file_sync() {
 	done
 
 	wait
+	rm -f upload_manager_pipe
 
 	IFS="$OIFS"
 }
