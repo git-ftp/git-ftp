@@ -140,6 +140,7 @@ OPTIONS
 	-f, --force		Force, does not ask questions
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
+	--connections		Number of simultanious connections
 	--version		Prints version
 
 
