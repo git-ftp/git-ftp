@@ -715,7 +715,8 @@ check_is_git_project() {
 		fi
 	done
 
-	# If we made it till here, a .git dir was found and we are in a git repo.
+	# If we made it till here, a .git dir was found and we are in the root of
+	# the git repo.
 }
 
 check_is_dirty_repository() {
