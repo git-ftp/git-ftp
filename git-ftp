@@ -862,22 +862,7 @@ check_remote_lock() {
 }
 
 check_is_git_project() {
-	# Go up in the directory tree until we hit a .git dir. If there is no .git
-	# dir, the working dir was not a git repo to start with.
-	while [[ ! -d ".git" ]]
-	do
-		# If the current directory is the root and there is no .git in there,
-		# there is no .git to find left.
-		if [[ "$(pwd)" == "/" ]]
-		then
-			print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
-		else
-			cd ..
-		fi
-	done
-
-	# If we made it till here, a .git dir was found and we are in the root of
-	# the git repo.
+	cd $(git rev-parse --show-toplevel) || print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
 }
 
 check_is_dirty_repository() {
