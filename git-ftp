@@ -26,7 +26,7 @@ readonly DEPLOYED_SHA1_FILE=".git-ftp.log"
 readonly LCK_FILE=".git/$(basename $0).lck"
 readonly REMOTE_LCK_FILE="$(basename $0).lck"
 readonly SYSTEM=$(uname)
-readonly VERSION='0.5.2'
+readonly VERSION='0.6.0'
 
 # ------------------------------------------------------------
 # Defaults
@@ -74,7 +74,8 @@ readonly ERROR_GIT=8
 
 usage_long()
 {
-less << EOF
+local pager=$(git config --get core.pager)
+${GIT_PAGER:-${pager:-${PAGER:-less}}} << EOF
 USAGE
 	git-ftp <action> [<options>] <url>
 
@@ -140,6 +141,7 @@ OPTIONS
 	-f, --force		Force, does not ask questions
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
+	--connections		Number of simultanious connections
 	--version		Prints version
 
 
@@ -153,6 +155,7 @@ SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
+	. git config git-ftp.connections 10
 
 
 SET SCOPE DEFAULTS 
@@ -454,8 +457,8 @@ set_changed_files() {
 		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
 	fi
 
-	rm '.git-ftp-tmp'
-	rm '.git-ftp-ignore-tmp'
+	rm -f '.git-ftp-tmp'
+	rm -f '.git-ftp-ignore-tmp'
 	
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
@@ -501,6 +504,10 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
+
+	rm -f upload_manager_pipe
+	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
+
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -510,8 +517,23 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync $FILE_NAME
-			else
-				[ $DRY_RUN -ne 1 ] && upload_file $FILE_NAME
+			else if [ $DRY_RUN -ne 1 ]
+				then
+					if [[ $number_of_connections > 0 ]]
+					then
+						# If there are still initial connections left, spawn a
+						# new worker without waiting for anything.
+						handle_upload_worker "$FILE_NAME" &
+						number_of_connections=$((number_of_connections-1))
+					else
+						# There are no initial connections left, spawn a new
+						# worker one an existing one finishes.
+						if read
+						then
+							handle_upload_worker "$FILE_NAME" &
+						fi <&3
+					fi
+				fi
 			fi
 		else
 			# Removing file
@@ -519,7 +541,18 @@ handle_file_sync() {
 			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname $FILE_NAME)
 		fi
 	done
+
+	wait
+	rm -f upload_manager_pipe
+
 	IFS="$OIFS"
+}
+
+handle_upload_worker() {
+	# Upload the given file and notify the manager pipe so that another upload
+	# job can be spawned.
+	upload_file "$1"
+	echo >&3
 }
 
 handle_submodule_sync() {
@@ -617,6 +650,9 @@ set_remotes() {
 
 	set_remote_user
 	write_log "User is '$REMOTE_USER'"
+
+	set_number_of_threads
+	write_log "Using '$number_of_connections' parallel connections."
 	
 	set_remote_password
 	if [ -z $REMOTE_PASSWD ]; then
@@ -684,6 +720,16 @@ add_all_files_and_commit () {
 cd_to_new_repo () {
 	write_log "cd $NEW_REPO"
 	cd $NEW_REPO || print_error_and_die "cd '$NEW_REPO' failed. Exiting..."
+}
+
+set_number_of_threads() {
+	# try .git-ftp-config
+	[ -z $number_of_connections ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && number_of_connections="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.connections)"
+	[ -z $number_of_connections ] && [ -f '.git-ftp-config' ] && number_of_connections="$(git config -f '.git-ftp-config' --get git-ftp.connections)"
+	#
+	[ -z $number_of_connections ] && [ -n "$SCOPE" ] && number_of_connections="$(git config --get git-ftp.$SCOPE.connections)"
+	[ -z $number_of_connections ] && number_of_connections="$(git config --get git-ftp.connections)"
+	[ -z $number_of_connections ] && number_of_connections=2
 }
 
 # ------------------------------------------------------------
@@ -795,7 +841,9 @@ check_remote_lock() {
 }
 
 check_is_git_project() {
-	[ -d ".git" ] || print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
+	local git_project_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
+	[ -z "$git_project_dir" ] &&  print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
+	cd $git_project_dir
 }
 
 check_is_dirty_repository() {
@@ -972,6 +1020,10 @@ do
 					fi
 					;;
 			esac
+			;;
+		--connections)
+			number_of_connections=$2
+			shift
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
