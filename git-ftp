@@ -45,6 +45,7 @@ SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
+SYNCROOT=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -142,7 +143,7 @@ SET DEFAULTS
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
 	. git config git-ftp.connections 10
-	. git config git-ftp.syncroot output/dir/
+	. git config git-ftp.syncroot path/dir
 
 
 SET SCOPE DEFAULTS 
@@ -525,7 +526,7 @@ handle_file_sync() {
 		else
 			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
+			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
 		fi
 	done
 
@@ -538,7 +539,7 @@ handle_file_sync() {
 handle_upload_worker() {
 	# Upload the given file and notify the manager pipe so that another upload
 	# job can be spawned.
-	local FILENAME="$1"
+	local FILE_NAME="$1"
 	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
 	echo >&3
 }
@@ -664,13 +665,13 @@ set_number_of_threads() {
 
 set_syncroot() {
 		# try .git-ftp-config
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.syncroot | sed 's#/*$##')"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.syncroot | sed 's#/*$##')"
+		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.syncroot)"
+		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.syncroot)"
 		#
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.$SCOPE.syncroot | sed 's#/*$##')"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.syncroot | sed 's#/*$##')"
+		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.$SCOPE.syncroot)"
+		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.syncroot)"
 
-		[ ! -z $SYNCROOT ] && check_is_directory && SYNCROOT=$SYNCROOT/
+		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
 }
 
 # ------------------------------------------------------------
@@ -836,6 +837,25 @@ do
 					;;
 			esac
 			write_log "Using scope $SCOPE if available"
+			;;
+		-r|--syncroot*)
+			case "$#,$1" in
+				*,*=*)
+					SYNCROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						SYNCROOT="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			write_log "Using syncroot $SYNCROOT if exists"
 			;;
 		-c|--commit*)
 			case "$#,$1" in
