@@ -497,7 +497,10 @@ handle_file_sync() {
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
-		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
+		FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
+		FILE_NAME=${FILE_NAME/#\"/}
+		FILE_NAME=${FILE_NAME/%\"/}
+
 
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
