@@ -45,6 +45,7 @@ SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
+SYNCROOT=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -142,6 +143,7 @@ SET DEFAULTS
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
 	. git config git-ftp.connections 10
+	. git config git-ftp.syncroot path/dir
 
 
 SET SCOPE DEFAULTS 
@@ -430,9 +432,9 @@ set_deployed_sha1() {
 set_changed_files() {
 	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
-		git ls-files -t > '.git-ftp-tmp'
+		git ls-files -t $SYNCROOT > '.git-ftp-tmp'
 	else
-		git diff --name-status --no-renames $DEPLOYED_SHA1 2>/dev/null > '.git-ftp-tmp'
+		git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT 2>/dev/null > '.git-ftp-tmp'
 	fi
 
 	# Filter against ignore file
@@ -462,11 +464,11 @@ set_changed_files() {
 				exit 0
 			else
 				write_log "Taking all files";
-				FILES_CHANGED="$(git ls-files -t)"
+				FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
 			fi
 		else
 			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
-			FILES_CHANGED="$(git ls-files -t)"
+			FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
 		fi
 	elif [ -n "$FILES_CHANGED" ]; then
 		write_log "Having changed files";
@@ -502,7 +504,7 @@ handle_file_sync() {
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
-				handle_submodule_sync $FILE_NAME
+				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
 					if [[ $number_of_connections > 0 ]]
@@ -524,7 +526,7 @@ handle_file_sync() {
 		else
 			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
-			[ $DRY_RUN -ne 1 ] && remove_file $FILE_NAME && remove_dir $(dirname $FILE_NAME)
+			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
 		fi
 	done
 
@@ -537,7 +539,8 @@ handle_file_sync() {
 handle_upload_worker() {
 	# Upload the given file and notify the manager pipe so that another upload
 	# job can be spawned.
-	upload_file "$1"
+	local FILE_NAME="$1"
+	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
 	echo >&3
 }
 
@@ -660,6 +663,17 @@ set_number_of_threads() {
 	[ -z $number_of_connections ] && number_of_connections=2
 }
 
+set_syncroot() {
+		# try .git-ftp-config
+		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.syncroot)"
+		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.syncroot)"
+		#
+		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.$SCOPE.syncroot)"
+		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.syncroot)"
+
+		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -667,6 +681,7 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
+	set_syncroot
 	set_remotes
 	lock
 	check_deployed_sha1
@@ -682,6 +697,7 @@ action_push() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
+	set_syncroot
 	set_remotes
 	lock
 	set_deployed_sha1
@@ -696,6 +712,7 @@ action_push() {
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
+	set_syncroot
 	set_remotes
 	lock
 	upload_local_sha1
@@ -703,6 +720,7 @@ action_catchup() {
 }
 
 action_show() {
+	set_syncroot
 	set_remotes
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
@@ -755,6 +773,10 @@ check_is_git_project() {
 check_is_dirty_repository() {
 	local CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
+}
+
+check_is_directory() {
+	[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
 }
 
 # ------------------------------------------------------------
@@ -815,6 +837,25 @@ do
 					;;
 			esac
 			write_log "Using scope $SCOPE if available"
+			;;
+		-r|--syncroot*)
+			case "$#,$1" in
+				*,*=*)
+					SYNCROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+						SYNCROOT="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			write_log "Using syncroot $SYNCROOT if exists"
 			;;
 		-c|--commit*)
 			case "$#,$1" in
