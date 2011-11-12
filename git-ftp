@@ -79,31 +79,36 @@ USAGE
 
 
 DESCRIPTION
-	git-ftp does FTP the GIT way.
+	git-ftp does FTP the Git way.
 
-	It uses GIT to find out which files are different of the uploaded files
-	and let you save time and bandwith by uploading only those files.
+	It uses Git to determine which local files have changed since the last
+	deployment to the remote server and saves you time and bandwith by
+	uploading only those files.
 
-	It remembers the deployed state by uploading the SHA1 in a log file.
+	It keeps track of the deployed state by uploading the SHA1 of the last
+	deployed commit in a log file.
 
 
 ACTIONS
 	. init
-		Initialize the first upload to remote host.
+		Does an initial upload of the latest version of all non-ignored
+		git-tracked files to the remote server and creates .git-ftp.log
+		file containing the SHA1 of the latest commit.
 
 	. push
-		Uploads git tracked files which have changed since last upload.
+		Uploads git-tracked files which have changed since last upload.
 
 	. show
-		Gets last uploaded SHA1 from log and hooks git show.
+		Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
 	. catchup
-		Uploads the current SHA1 to the log, does not upload any files.
+		Uploads current SHA1 to log, does not upload any files.
 
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
+
 	. help
-		Shows this help
+		Shows this help screen.
 
 
 URL
@@ -115,11 +120,11 @@ URL
 
 
 OPTIONS
-	-h, --help		Show this help
+	-h, --help		Shows this help screen
 	-u, --user		FTP login name
 	-p, --passwd		FTP password
 	-k, --keychain		FTP password from KeyChain (Mac OS X only)
-	-s, --scope		Using a scope (e.g. dev, production, testing, foobar) 
+	-s, --scope		Using a scope (e.g. dev, production, testing)
 	-D, --dry-run		Dry run: Does not upload anything
 	-a, --all		Uploads all files, ignores deployed SHA1 hash
 	-c, --commit		Sets SHA1 hash of last deployed commit by option
