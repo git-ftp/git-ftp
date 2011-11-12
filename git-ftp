@@ -865,7 +865,7 @@ check_remote_lock() {
 check_is_git_project() {
 	local git_project_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
 	[ -z "$git_project_dir" ] &&  print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
-	cd $git_project_dir
+	cd "$git_project_dir"
 }
 
 check_is_dirty_repository() {
