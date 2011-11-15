@@ -522,7 +522,7 @@ handle_file_sync() {
 		if [ "$FILE_MODE" != "D"  ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
 			if is_submodule $FILE_NAME; then
-				handle_submodule_sync $FILE_NAME
+				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
 					if [[ $number_of_connections > 0 ]]
@@ -557,7 +557,8 @@ handle_file_sync() {
 handle_upload_worker() {
 	# Upload the given file and notify the manager pipe so that another upload
 	# job can be spawned.
-	upload_file "$1"
+	local FILE_NAME="$1"
+	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
 	echo >&3
 }
 
@@ -862,7 +863,9 @@ check_remote_lock() {
 }
 
 check_is_git_project() {
-	cd $(git rev-parse --show-toplevel) || print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
+	local git_project_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
+	[ -z "$git_project_dir" ] &&  print_error_and_die "Not a Git project? Exiting..." $ERROR_GIT
+	cd $git_project_dir
 }
 
 check_is_dirty_repository() {
@@ -1062,6 +1065,10 @@ do
 					fi
 					;;
 			esac
+		--connections)
+			number_of_connections=$2
+			shift
+			;;
 		--connections)
 			number_of_connections=$2
 			shift
