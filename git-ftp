@@ -1065,9 +1065,6 @@ do
 					fi
 					;;
 			esac
-		--connections)
-			number_of_connections=$2
-			shift
 			;;
 		--connections)
 			number_of_connections=$2
