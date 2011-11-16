@@ -133,6 +133,7 @@ OPTIONS
 	-f, --force		Force, does not ask questions
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
+	--syncroot		Specifies a directory to sync from as if it were the git project root path.
 	--connections		Number of simultanious connections (Linux only)
 	--version		Prints version
 
@@ -855,20 +856,20 @@ do
 			esac
 			write_log "Using scope $SCOPE if available"
 			;;
-		-r|--syncroot*)
+		--syncroot*)
 			case "$#,$1" in
 				*,*=*)
 					SYNCROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+					print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
 						SYNCROOT="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -r" $ERROR_MISSING_ARGUMENTS
+						print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
