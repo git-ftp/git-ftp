@@ -133,7 +133,7 @@ OPTIONS
 	-f, --force		Force, does not ask questions
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
-	--connections		Number of simultanious connections
+	--connections		Number of simultanious connections (Linux only)
 	--version		Prints version
 
 
@@ -497,10 +497,14 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
-
-	rm -f upload_manager_pipe
-	mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
-
+	
+	# Upload workers seems only to work on linux correctly
+	if [ "$SYSTEM" = "Linux" ]
+	then
+		rm -f upload_manager_pipe
+		mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
+	fi
+    
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -512,7 +516,12 @@ handle_file_sync() {
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					if [[ $number_of_connections > 0 ]]
+					# Upload workers seems only to work on linux correctly, legacy mode
+					if [ "$SYSTEM" != "Linux" ]
+					then
+						echo "Legacy: "
+						upload_file "$FILE_NAME"
+					elif [[ $number_of_connections > 0 ]]
 					then
 						# If there are still initial connections left, spawn a
 						# new worker without waiting for anything.
@@ -535,9 +544,12 @@ handle_file_sync() {
 		fi
 	done
 
-	wait
-	rm -f upload_manager_pipe
-
+	# Upload workers seems only to work on linux correctly
+	if [ "$SYSTEM" = "Linux" ]
+	then
+		wait
+		rm -f upload_manager_pipe
+	fi
 	IFS="$OIFS"
 }
 
