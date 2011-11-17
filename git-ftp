@@ -520,7 +520,6 @@ handle_file_sync() {
 					# Upload workers seems only to work on linux correctly, legacy mode
 					if [ "$SYSTEM" != "Linux" ]
 					then
-						echo "Legacy: "
 						upload_file "$FILE_NAME"
 					elif [[ $number_of_connections > 0 ]]
 					then
