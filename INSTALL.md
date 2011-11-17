@@ -23,7 +23,7 @@ Updating using git
 
 Ubuntu PPA (Personal Package Archive) Repository
 ------------------------------------------------
-Adding on Ubuntu 10.04 (Lucid)
+Adding PPA on Ubuntu
 
 	$ sudo -s
 	# add-apt-repository ppa:resmo/git-ftp
