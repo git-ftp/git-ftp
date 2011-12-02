@@ -192,7 +192,7 @@ Ingnoring a single file called `gargantubrain.txt`:
 There are a bunch of different error codes and their corresponding error messages that may appear during bad conditions. At the time of this writing, the exit codes are:
 
 `1`
-:	Unkonwn error
+:	Unknown error
 
 `2`
 :	Wrong Usage
