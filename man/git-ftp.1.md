@@ -14,7 +14,7 @@ git-ftp [actions] [options] [url]...
 
 This manual page documents briefly the git-ftp programm.
 
-Git-ftp is a FTP client using Git to find out which files to upload or which files should be deleted on the remote host. 
+Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host. 
 
 It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file. There is no need for [Git] to be installed on the remote host.
 
@@ -28,13 +28,13 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Initializes the first upload to remote host.
 
 `push`
-:	Syncs your current Git checked out branch with a remote host. 
+:	Uploads files which have changed since last upload.
 
 `catchup` 
 :	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different programm and want to remember its state by uploading the .git-ftp.log file.
 
 `show`
-:	Prints the last uploaded commit log.
+:	Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
 `help`
 :	Prints a usage help.
@@ -83,6 +83,12 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-vv`
 :	Be verbosy as much as possible.
 
+`--syncroot`
+:	Specifies a directory to sync from as if it were the git project root path.
+
+`--connections`
+:	Number of simultanious connections (Linux only).
+
 `--version`
 :	Prints version.
 
@@ -121,6 +127,8 @@ Everyone likes examples
 	$ git config git-ftp.user john
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
+	$ git config git-ftp.connections 10
+	$ git config git-ftp.syncroot path/dir
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
@@ -184,7 +192,7 @@ Ingnoring a single file called `gargantubrain.txt`:
 There are a bunch of different error codes and their corresponding error messages that may appear during bad conditions. At the time of this writing, the exit codes are:
 
 `1`
-:	Unkonwn error
+:	Unknown error
 
 `2`
 :	Wrong Usage
