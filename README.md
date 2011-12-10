@@ -18,11 +18,11 @@ About
 -----
 
 I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
-web hoster does not provide SSH nor git support, only FTP.
+web hosters do not provide SSH or git support, but only FTP.
 
-That is why I needed a easy way to deploy my git tracked projects. Instead to
-transfer always the whole project, I thought, why not only transfer the files
-which changed since the last time, git can tell me those files.
+That is why I needed an easy way to deploy my git tracked projects. Instead of
+transfering the whole project, I thought, why not only transfer the files
+that changed since the last time, git can tell me those files.
 
 Even if you are playing with different branches, git-ftp knows which files
 are different. No ordinary FTP client can do that.
