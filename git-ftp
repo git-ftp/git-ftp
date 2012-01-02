@@ -289,7 +289,7 @@ upload_file() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload" $ERROR_UPLOAD
+	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'" $ERROR_UPLOAD
 }
 
 remove_file() {
