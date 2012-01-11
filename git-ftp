@@ -445,7 +445,7 @@ set_changed_files() {
 
 	# Filter against ignore file
 	if [ -f '.git-ftp-ignore' ]; then
-		cat '.git-ftp-ignore' | tr -d '\r' > '.git-ftp-ignore-tmp'
+		cat '.git-ftp-ignore' | tr -d '\r' | grep -v '^$' > '.git-ftp-ignore-tmp'
 		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore-tmp' '.git-ftp-tmp' | tr '\t' ' ')
 	else
 		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
