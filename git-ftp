@@ -668,8 +668,7 @@ set_remotes() {
 }
 
 set_number_of_threads() {
-	number_of_connections="$(get_config connections)"
-	[ -z $number_of_connections ] && number_of_connections=2
+	number_of_connections="$(get_config connections 2)"
 }
 
 set_syncroot() {
