@@ -12,7 +12,7 @@ git-ftp [actions] [options] [url]...
 
 # DESCRIPTION
 
-This manual page documents briefly the git-ftp programm.
+This manual page documents briefly the git-ftp program.
 
 Git-ftp is a FTP client using Git to find out which files to upload or which files should be deleted on the remote host. 
 
@@ -31,7 +31,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Syncs your current Git checked out branch with a remote host. 
 
 `catchup` 
-:	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different programm and want to remember its state by uploading the .git-ftp.log file.
+:	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different program and want to remember its state by uploading the .git-ftp.log file.
 
 `show`
 :	Prints the last uploaded commit log.
@@ -75,13 +75,13 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Be silent.
 
 `-h`, `--help`
-:	Prints some usage informations.
+:	Prints some usage information.
 
 `-v`, `--verbose`
-:	Be verbosy.
+:	Be verbose.
 
 `-vv`
-:	Be verbosy as much as possible.
+:	Be as verbose as possible.
 
 `--version`
 :	Prints version.
