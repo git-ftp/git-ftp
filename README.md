@@ -104,7 +104,7 @@ Ignoring Files to be synced
 
 Add file names to `.git-ftp-ignore` to be ignored.
 
-Ignoring all in Directory `config`:
+Ignoring all in directory `config`:
 
 	config/*
 
@@ -129,4 +129,3 @@ Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself 
 [FlattrLink]: https://flattr.com/thing/99914/Git-ftp
 [FlattrButton]: http://api.flattr.com/button/button-static-50x60.png
 [GNU General Public License, Version 3.0]: http://www.gnu.org/licenses/gpl-3.0-standalone.html
-
