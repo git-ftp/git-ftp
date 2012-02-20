@@ -23,7 +23,7 @@ Updating using git
 
 Ubuntu PPA (Personal Package Archive) Repository
 ------------------------------------------------
-Adding on Ubuntu 10.04 (Lucid)
+Adding PPA on Ubuntu
 
 	$ sudo -s
 	# add-apt-repository ppa:resmo/git-ftp
@@ -46,6 +46,7 @@ otherwise install msysgit.
 
 After this, open git bash (or cygwin bash for cygwin only):
 
+	$ cd ~
 	$ git clone http://github.com/resmo/git-ftp git-ftp.git
 	$ cd git-ftp.git && chmod +x git-ftp
 	$ cd /bin/

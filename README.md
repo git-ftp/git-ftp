@@ -1,7 +1,7 @@
 README of git-ftp
 =================
 
-* &copy; René Moser, mail@renemoser.net, 2010-2011
+* &copy; René Moser, mail@renemoser.net, 2010-2012
 * This application is licenced under [GNU General Public License, Version 3.0]
 
 This is free and open source software. If you like and use it, flattr it ([flattr?][WhatisFlattr]). Thx.
@@ -18,11 +18,11 @@ About
 -----
 
 I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
-web hoster does not provide SSH nor git support, only FTP.
+web hosters do not provide SSH or git support, but only FTP.
 
-That is why I needed a easy way to deploy my git tracked projects. Instead to
-transfer always the whole project, I thought, why not only transfer the files
-which changed since the last time, git can tell me those files.
+That is why I needed an easy way to deploy my git tracked projects. Instead of
+transfering the whole project, I thought, why not only transfer the files
+that changed since the last time, git can tell me those files.
 
 Even if you are playing with different branches, git-ftp knows which files
 are different. No ordinary FTP client can do that.
@@ -104,7 +104,7 @@ Ignoring Files to be synced
 
 Add file names to `.git-ftp-ignore` to be ignored.
 
-Ignoring all in Directory `config`:
+Ignoring all in directory `config`:
 
 	config/*
 
@@ -129,4 +129,3 @@ Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself 
 [FlattrLink]: https://flattr.com/thing/99914/Git-ftp
 [FlattrButton]: http://api.flattr.com/button/button-static-50x60.png
 [GNU General Public License, Version 3.0]: http://www.gnu.org/licenses/gpl-3.0-standalone.html
-
