@@ -401,7 +401,7 @@ release_lock() {
 }
 
 set_remote_host() {
-	URL="$(get_config url)"
+	[ -z $URL ] && URL="$(get_config url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
@@ -633,7 +633,7 @@ handle_action() {
 }
 
 set_remote_user() {
-	REMOTE_USER="$(get_config user)"
+	[ -z $REMOTE_USER ] && REMOTE_USER="$(get_config user)"
 }
 
 set_remote_password() {
