@@ -8,6 +8,7 @@ This is free and open source software. If you like and use it, flattr it ([flatt
 
 [![][FlattrButton]][FlattrLink] 
 
+
 Summary
 -------
 
@@ -30,7 +31,19 @@ are different. No ordinary FTP client can do that.
 
 Known Issues
 ------------
+
  * See [git-ftp issues on GitHub] for open issues
+
+
+Limitations
+-----------
+
+git-ftp depends on curl.
+
+Due the limitation of curl, for each upload a new ftp connection is going to
+be initialsed. Some web hostster have rate limited FTP which can break git-ftp uploads.
+
+It is planed to move from curl to lftp to use a single connection for all uploads.
 
 
 Installing
@@ -53,19 +66,6 @@ Pushing for the first time:
 
     $ git ftp init -u <user> -p - ftp://host.example.com/public_html
 
-
-Testing and Help
-----------------
-
-For testing mode use --dry-run alias -D
-
-    $ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
-
-For more options see man page or help:
-
-    $ git ftp help
-
-
 Using Defaults
 --------------
 
@@ -75,7 +75,7 @@ Setting defaults for a git project in .git/config
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
 
-After setting defaults, push to john@ftp.example.com is as simple as
+After setting defaults, push to `john@ftp.example.com` is as simple as
 
 	$ git ftp push
 
@@ -87,16 +87,16 @@ For using defaults for different systems, use the so called scope feature.
 
 	$ git config git-ftp.<scope>.<(url|user|password)> <value>
 
-Here I set the params for the scope "foobar"
+Here I set the params for the scope `foobar`
 
 	$ git config git-ftp.foobar.url ftp.testing.com:8080/foobar-path
 	$ git config git-ftp.foobar.password simp3l
 
-Push to scope foobar alias john@ftp.testing.com:8080/foobar-path using password simp3l
+Push to scope `foobar` alias `john@ftp.testing.com:8080/foobar-path` using password `simp3l`
 
 	$ git ftp push -s foobar
 
-Because I didn't set the user for this scope, it takes the user "john" as set before in defaults.
+Because I didn't set the user for this scope, it takes the user `john` as set before in defaults.
 
 
 Ignoring Files to be synced
@@ -106,17 +106,35 @@ Add file names to `.git-ftp-ignore` to be ignored.
 
 Ignoring all in directory `config`:
 
-	config/*
+	config/.*
 
 Ignoring all files having extension `.txt` in `./` :
 
-	*.txt
+	.*\.txt
 
 This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 
-Ingnoring a single file called `gargantubrain.txt`:
+Ingnoring a single file called `foobar.txt`:
 
-	gargantubrain.txt
+	foobar\.txt
+
+
+Testing and Help Manual
+-----------------------
+
+For testing mode use `--dry-run` alias `-D`
+
+    $ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
+
+For more options and features see man page or help:
+
+    $ git ftp help
+
+
+Unit Tested
+-----------
+
+Core functionality is unit tested on Linux using shunit2. You can find the tests in `tests/`.
 
 
 Contributions
