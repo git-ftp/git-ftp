@@ -525,7 +525,8 @@ handle_file_sync() {
 			else if [ $DRY_RUN -ne 1 ]
 				then
 					# Upload workers seems only to work on linux correctly, legacy mode
-					if [ "$SYSTEM" != "Linux" ]
+					# Workaround: always use this. Seems handle_upload_worker is not always working as expected if handling submodules
+					if [ true ]
 					then
 						upload_file "$FILE_NAME"
 					elif [[ $number_of_connections > 0 ]]
