@@ -296,6 +296,10 @@ upload_file() {
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
+	
+	if [ -n "$SYNCROOT" ]; then
+		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
+	fi
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
