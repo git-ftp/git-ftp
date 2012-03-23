@@ -106,6 +106,9 @@ ACTIONS
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
 
+	. add
+		Add a scope (e.g. dev, production, testing).
+
 	. help
 		Shows this help screen.
 
@@ -140,6 +143,7 @@ OPTIONS
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
+	. git-ftp add production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
 
 
