@@ -626,6 +626,9 @@ handle_action() {
 		show)
 			action_show
 			;;
+		add)
+			action_add
+			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
@@ -682,6 +685,33 @@ set_syncroot() {
 		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
 }
 
+set_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+	[ -z $URL ] && print_error_and_die "Missing URL" $ERROR_MISSING_ARGUMENTS
+
+	# URI without credentials
+	if [ $(expr index "$URL" '@') = 0 ]; then
+		$(git config git-ftp.$SCOPE.url $URL)
+		return
+	fi
+
+	# set url
+	local protocol=$(expr match "$URL" '\(.*://\)')
+	local path=${URL##*@}
+	$(git config git-ftp.$SCOPE.url ${protocol}${path})
+
+	local credentials=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
+	# credentials have only username
+	if [ $(expr index "$credentials" ':') = 0 ]; then
+		$(git config git-ftp.$SCOPE.user ${credentials})
+		return
+	fi
+
+	# credentials have both username and pass
+	$(git config git-ftp.$SCOPE.user ${credentials%:*})
+	$(git config git-ftp.$SCOPE.password ${credentials#*:})
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -733,6 +763,11 @@ action_show() {
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
 	git show "$DEPLOYED_SHA1"
+}
+
+action_add() {
+	check_is_git_project
+	set_scope
 }
 
 # ------------------------------------------------------------
@@ -803,8 +838,13 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show)
+		init|push|catchup|show|add)
 			ACTION="$1"
+			# catch scope
+			if [ "$1" == "add" ]; then
+				SCOPE="$2"
+				shift
+			fi
 			;;
 		-h|--h|--he|--hel|--help|help)
 			usage_long
