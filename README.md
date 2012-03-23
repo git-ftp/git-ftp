@@ -93,6 +93,7 @@ Here I set the params for the scope `foobar`
 	$ git config git-ftp.foobar.password simp3l
 
 Set scope params using action `add`
+
 	$ git ftp add foobar ftp://username:simp3l@ftp.testing.com:8080/foobar-path
 
 Push to scope `foobar` alias `john@ftp.testing.com:8080/foobar-path` using password `simp3l`
