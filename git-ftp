@@ -633,6 +633,9 @@ handle_action() {
 		add-scope)
 			action_add_scope
 			;;
+		remove-scope)
+			action_remove_scope
+			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
@@ -716,6 +719,15 @@ set_scope() {
 	$(git config git-ftp.$SCOPE.password ${credentials#*:})
 }
 
+remove_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+
+	$(git config --remove-section git-ftp.$SCOPE &>/dev/null)
+
+	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE" $ERROR_GIT
+	echo "Successfully removed scope $SCOPE"
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -774,6 +786,10 @@ action_add_scope() {
 	set_scope
 }
 
+action_remove_scope() {
+	check_is_git_project
+	remove_scope
+}
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
@@ -842,10 +858,10 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|add-scope)
+		init|push|catchup|show|add-scope|remove-scope)
 			ACTION="$1"
 			# catch scope
-			if [ "$1" == "add-scope" ]; then
+			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
 				SCOPE="$2"
 				shift
 			fi
