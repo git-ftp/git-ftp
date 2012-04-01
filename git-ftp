@@ -109,6 +109,9 @@ ACTIONS
 	. add-scope
 		Add a scope (e.g. dev, production, testing).
 
+	. remove-scope
+		Completely remove a scope.
+
 	. help
 		Shows this help screen.
 
@@ -145,6 +148,7 @@ EXAMPLES
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
 	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
+	. git-ftp remove-scope production
 
 
 SET DEFAULTS
