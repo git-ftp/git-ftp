@@ -106,7 +106,7 @@ ACTIONS
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
 
-	. add
+	. add-scope
 		Add a scope (e.g. dev, production, testing).
 
 	. help
@@ -143,7 +143,7 @@ OPTIONS
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
-	. git-ftp add production ftp://user:secr3t@ftp.example.com:4445/public_ftp
+	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
 
 
@@ -630,8 +630,8 @@ handle_action() {
 		show)
 			action_show
 			;;
-		add)
-			action_add
+		add-scope)
+			action_add_scope
 			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
@@ -769,7 +769,7 @@ action_show() {
 	git show "$DEPLOYED_SHA1"
 }
 
-action_add() {
+action_add_scope() {
 	check_is_git_project
 	set_scope
 }
@@ -842,10 +842,10 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|add)
+		init|push|catchup|show|add-scope)
 			ACTION="$1"
 			# catch scope
-			if [ "$1" == "add" ]; then
+			if [ "$1" == "add-scope" ]; then
 				SCOPE="$2"
 				shift
 			fi
