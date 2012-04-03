@@ -711,16 +711,29 @@ set_scope() {
 	local path=${URL##*@}
 	$(git config git-ftp.$SCOPE.url ${protocol}${path})
 
-	local credentials=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
-	# credentials have only username
-	if [ $(expr index "$credentials" ':') = 0 ]; then
-		$(git config git-ftp.$SCOPE.user ${credentials})
-		return
-	fi
+	# strip protocol
+	local credentials=${URL#${protocol}}
+	# cut at last '@' occurence
+	local credentials=${credentials%${URL##*@}}
+	# strip trailing '@'
+	local credentials=${credentials%?}
 
-	# credentials have both username and pass
-	$(git config git-ftp.$SCOPE.user ${credentials%:*})
-	$(git config git-ftp.$SCOPE.password ${credentials#*:})
+	local colons=${credentials//[^:]/}
+	case ${#colons} in
+		0)
+			# assume only username
+			$(git config git-ftp.$SCOPE.user ${credentials})
+			;;
+		1)
+			# credentials have both username and password
+			$(git config git-ftp.$SCOPE.user ${credentials%:*})
+			$(git config git-ftp.$SCOPE.password ${credentials#*:})
+			;;
+		*)
+			# we can't know where to cut with multiple ':'
+			echo "Warning, multiple ':' characters detected, only URL was set in scope."
+			echo "Use --user and --passwd options to set login and password respectively."
+	esac
 }
 
 remove_scope() {
