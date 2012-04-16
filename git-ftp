@@ -106,6 +106,12 @@ ACTIONS
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
 
+	. add-scope
+		Add a scope (e.g. dev, production, testing).
+
+	. remove-scope
+		Completely remove a scope.
+
 	. help
 		Shows this help screen.
 
@@ -140,7 +146,9 @@ OPTIONS
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
+	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
+	. git-ftp remove-scope production
 
 
 SET DEFAULTS
@@ -626,6 +634,12 @@ handle_action() {
 		show)
 			action_show
 			;;
+		add-scope)
+			action_add_scope
+			;;
+		remove-scope)
+			action_remove_scope
+			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
@@ -682,6 +696,55 @@ set_syncroot() {
 		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
 }
 
+set_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+	[ -z $URL ] && print_error_and_die "Missing URL" $ERROR_MISSING_ARGUMENTS
+
+	# URI without credentials
+	if [ $(expr index "$URL" '@') = 0 ]; then
+		$(git config git-ftp.$SCOPE.url $URL)
+		return
+	fi
+
+	# set url
+	local protocol=$(expr match "$URL" '\(.*://\)')
+	local path=${URL##*@}
+	$(git config git-ftp.$SCOPE.url ${protocol}${path})
+
+	# strip protocol
+	local credentials=${URL#${protocol}}
+	# cut at last '@' occurence
+	local credentials=${credentials%${URL##*@}}
+	# strip trailing '@'
+	local credentials=${credentials%?}
+
+	local colons=${credentials//[^:]/}
+	case ${#colons} in
+		0)
+			# assume only username
+			$(git config git-ftp.$SCOPE.user ${credentials})
+			;;
+		1)
+			# credentials have both username and password
+			$(git config git-ftp.$SCOPE.user ${credentials%:*})
+			$(git config git-ftp.$SCOPE.password ${credentials#*:})
+			;;
+		*)
+			# we can't know where to cut with multiple ':'
+			echo "Warning, multiple ':' characters detected, only URL was set in scope."
+			echo "Use --user and --passwd options to set login and password respectively."
+	esac
+}
+
+remove_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+
+	$(git config --remove-section git-ftp.$SCOPE &>/dev/null)
+
+	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE" $ERROR_GIT
+	echo "Successfully removed scope $SCOPE"
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -735,6 +798,15 @@ action_show() {
 	git show "$DEPLOYED_SHA1"
 }
 
+action_add_scope() {
+	check_is_git_project
+	set_scope
+}
+
+action_remove_scope() {
+	check_is_git_project
+	remove_scope
+}
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
@@ -803,8 +875,13 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show)
+		init|push|catchup|show|add-scope|remove-scope)
 			ACTION="$1"
+			# catch scope
+			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
+				SCOPE="$2"
+				shift
+			fi
 			;;
 		-h|--h|--he|--hel|--help|help)
 			usage_long
