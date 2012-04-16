@@ -36,6 +36,12 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
+`add-scope <scope>`
+:	Creates a new scope (e.g. dev, production, testing, foobar). This is a wrapper action over git-config. See **SCOPES** section for more information.
+
+`remove-scope <scope>`
+:	Remove a scope.
+
 `help`
 :	Prints a usage help.
 
@@ -168,6 +174,14 @@ password *n0tThatSimp3l*
 
 	$ git ftp push -s production
 
+You can also create scopes using the add-scope action. All settings can be defined in the URL.
+Here we create the *production* scope using add-scope
+
+	$ git ftp add-scope production ftp://manager:n0tThatSimp3l@live.example.com/foobar-path
+
+Deleting scopes is easy using the `remove-scope` action.
+
+	$ git ftp remove-scope production
 
 # IGNORING FILES
 
