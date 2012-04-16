@@ -22,8 +22,8 @@
 
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
-readonly LCK_FILE=".git/$(basename $0).lck"
-readonly REMOTE_LCK_FILE="$(basename $0).lck"
+readonly LCK_FILE=".git/$(basename "$0").lck"
+readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
 readonly VERSION='0.7.1'
 
