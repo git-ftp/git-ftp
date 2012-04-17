@@ -631,7 +631,7 @@ set_remote_password() {
 }
 
 set_syncroot() {
-		[ -z $SYNCROOT] && REMOTE_PASSWD="$(get_config syncroot)"
+		[ -z $SYNCROOT] && SYNCROOT="$(get_config syncroot)"
 		if [ $SYNCROOT ]; then
 			[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
 			SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
