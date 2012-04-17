@@ -6,7 +6,8 @@ oneTimeSetUp() {
 	GIT_PROJECT_PATH="/tmp/git-ftp-test"
 	FTP_PROJECT_PATH="/opt/lampp/htdocs/$GIT_PROJECT_NAME"
 	
-	GIT_FTP_CMD="git-ftp"
+	BASE_PATH="$(pwd)/../"
+	GIT_FTP_CMD="${BASE_PATH}git-ftp"
 	GIT_FTP_USER="nobody"
 	GIT_FTP_PASSWD="lampp"
 	GIT_FTP_URL="localhost/$GIT_PROJECT_NAME"
@@ -54,7 +55,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 0.7.1"  "$version"
+	assertEquals = "git-ftp version 0.7.3"  "$version"
 }
 
 test_inits_and_pushes() {
