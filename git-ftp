@@ -139,7 +139,6 @@ OPTIONS
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
-	--connections		Number of simultanious connections (Linux only)
 	--version		Prints version
 
 
@@ -155,7 +154,6 @@ SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
-	. git config git-ftp.connections 10
 	. git config git-ftp.syncroot path/dir
 
 
@@ -517,14 +515,7 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
-	
-	# Upload workers seems only to work on linux correctly
-	if [ "$SYSTEM" = "Linux" ]
-	then
-		rm -f upload_manager_pipe
-		mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
-	fi
-    
+	   
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -539,25 +530,7 @@ handle_file_sync() {
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					# Upload workers seems only to work on linux correctly, legacy mode
-					# Workaround: always use this. Seems handle_upload_worker is not always working as expected if handling submodules
-					if [ true ]
-					then
-						upload_file "$FILE_NAME"
-					elif [[ $number_of_connections > 0 ]]
-					then
-						# If there are still initial connections left, spawn a
-						# new worker without waiting for anything.
-						handle_upload_worker "$FILE_NAME" &
-						number_of_connections=$((number_of_connections-1))
-					else
-						# There are no initial connections left, spawn a new
-						# worker one an existing one finishes.
-						if read
-						then
-							handle_upload_worker "$FILE_NAME" &
-						fi <&3
-					fi
+					upload_file "$FILE_NAME"
 				fi
 			fi
 		else
@@ -567,12 +540,6 @@ handle_file_sync() {
 		fi
 	done
 
-	# Upload workers seems only to work on linux correctly
-	if [ "$SYSTEM" = "Linux" ]
-	then
-		wait
-		rm -f upload_manager_pipe
-	fi
 	IFS="$OIFS"
 }
 
@@ -669,9 +636,6 @@ set_remotes() {
 
 	set_remote_user
 	write_log "User is '$REMOTE_USER'"
-
-	set_number_of_threads
-	write_log "Using '$number_of_connections' parallel connections."
 	
 	set_remote_password
 	if [ -z $REMOTE_PASSWD ]; then
@@ -687,10 +651,6 @@ set_remotes() {
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
 	write_log "Path is '$REMOTE_PATH'"
-}
-
-set_number_of_threads() {
-	number_of_connections="$(get_config connections 2)"
 }
 
 set_syncroot() {
@@ -1046,10 +1006,6 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode"
-			;;
-		--connections)
-			number_of_connections=$2
-			shift
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
