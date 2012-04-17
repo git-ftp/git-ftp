@@ -630,6 +630,14 @@ set_remote_password() {
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(get_config password)"
 }
 
+set_syncroot() {
+		[ -z $SYNCROOT] && REMOTE_PASSWD="$(get_config syncroot)"
+		if [ $SYNCROOT ]; then
+			[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
+			SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+		fi
+}
+
 set_remotes() {
 	set_remote_host
 	write_log "Host is '$REMOTE_HOST'"
@@ -651,18 +659,11 @@ set_remotes() {
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
 	write_log "Path is '$REMOTE_PATH'"
+	
+	set_syncroot
+	write_log "Syncroot is '$SYNCROOT'"
 }
 
-set_syncroot() {
-		# try .git-ftp-config
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.syncroot)"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.syncroot)"
-		#
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.$SCOPE.syncroot)"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.syncroot)"
-
-		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
-}
 
 set_scope() {
 	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
@@ -720,7 +721,6 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	check_deployed_sha1
@@ -736,7 +736,6 @@ action_push() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	set_deployed_sha1
@@ -751,7 +750,6 @@ action_push() {
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	upload_local_sha1
@@ -759,7 +757,6 @@ action_catchup() {
 }
 
 action_show() {
-	set_syncroot
 	set_remotes
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
@@ -821,10 +818,6 @@ check_is_git_project() {
 check_is_dirty_repository() {
 	local CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
-}
-
-check_is_directory() {
-	[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
 }
 
 # ------------------------------------------------------------
