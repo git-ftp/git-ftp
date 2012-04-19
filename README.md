@@ -19,7 +19,7 @@ About
 -----
 
 I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
-web hosters do not provide SSH or git support, but only FTP.
+web hosting companies do not provide SSH or git support, but only FTP.
 
 That is why I needed an easy way to deploy my git tracked projects. Instead of
 transfering the whole project, I thought, why not only transfer the files
@@ -41,7 +41,7 @@ Limitations
 git-ftp depends on curl.
 
 Due the limitation of curl, for each upload a new ftp connection is going to
-be initialsed. Some web hostster have rate limited FTP which can break git-ftp uploads.
+be initialsed. Some web hosting companies have rate limited FTP which can break git-ftp uploads.
 
 It is planed to move from curl to lftp to use a single connection for all uploads.
 
