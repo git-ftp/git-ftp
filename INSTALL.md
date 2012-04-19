@@ -20,6 +20,10 @@ Updating using git
 	$ git pull
 	$ sudo make install
 
+Debian (unstable) 
+-----------------
+See http://packages.debian.org/sid/git-ftp
+
 
 Ubuntu PPA (Personal Package Archive) Repository
 ------------------------------------------------
