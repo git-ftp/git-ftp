@@ -25,7 +25,7 @@ setUp() {
 	sudo rm -rf $FTP_PROJECT_PATH
 	mkdir -p $GIT_PROJECT_PATH
 	(
-		cd 	$GIT_PROJECT_PATH
+		cd $GIT_PROJECT_PATH
 		 
 		# make some content
 		for i in 1 2 3 4 5
