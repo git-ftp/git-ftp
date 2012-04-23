@@ -37,6 +37,13 @@ Adding PPA on Ubuntu
 Note: Usually updated after every release (tag).
 
 
+Mac OS X
+--------
+Using homebrew:
+
+	$ brew install git-ftp
+
+
 Windows
 -------
 There are at least two ways to install git-ftp on Windows.
