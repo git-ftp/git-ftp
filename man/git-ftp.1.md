@@ -12,7 +12,7 @@ git-ftp [actions] [options] [url]...
 
 # DESCRIPTION
 
-This manual page documents briefly the git-ftp programm.
+This manual page documents briefly the git-ftp program.
 
 Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host. 
 
@@ -31,10 +31,16 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Uploads files which have changed since last upload.
 
 `catchup` 
-:	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different programm and want to remember its state by uploading the .git-ftp.log file.
+:	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different program and want to remember its state by uploading the .git-ftp.log file.
 
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
+
+`add-scope <scope>`
+:	Creates a new scope (e.g. dev, production, testing, foobar). This is a wrapper action over git-config. See **SCOPES** section for more information.
+
+`remove-scope <scope>`
+:	Remove a scope.
 
 `help`
 :	Prints a usage help.
@@ -75,13 +81,13 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Be silent.
 
 `-h`, `--help`
-:	Prints some usage informations.
+:	Prints some usage information.
 
 `-v`, `--verbose`
-:	Be verbosy.
+:	Be verbose.
 
 `-vv`
-:	Be verbosy as much as possible.
+:	Be as verbose as possible.
 
 `--syncroot`
 :	Specifies a directory to sync from as if it were the git project root path.
@@ -168,6 +174,14 @@ password *n0tThatSimp3l*
 
 	$ git ftp push -s production
 
+You can also create scopes using the add-scope action. All settings can be defined in the URL.
+Here we create the *production* scope using add-scope
+
+	$ git ftp add-scope production ftp://manager:n0tThatSimp3l@live.example.com/foobar-path
+
+Deleting scopes is easy using the `remove-scope` action.
+
+	$ git ftp remove-scope production
 
 # IGNORING FILES
 

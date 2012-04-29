@@ -22,10 +22,10 @@
 
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
-readonly LCK_FILE=".git/$(basename $0).lck"
-readonly REMOTE_LCK_FILE="$(basename $0).lck"
+readonly LCK_FILE=".git/$(basename "$0").lck"
+readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='0.6.1'
+readonly VERSION='0.7.3'
 
 # ------------------------------------------------------------
 # Defaults
@@ -119,6 +119,12 @@ ACTIONS
 		This is useful in situations where others make updates directly
 		through FTP.
 
+	. add-scope
+		Add a scope (e.g. dev, production, testing).
+
+	. remove-scope
+		Completely remove a scope.
+
 	. help
 		Shows this help screen.
 
@@ -146,21 +152,21 @@ OPTIONS
 	-n, --silent      	Silent
 	-v, --verbose		Verbose
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
-	--connections		Number of simultanious connections (Linux only)
 	--version		Prints version
 
 
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
+	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
+	. git-ftp remove-scope production
 
 
 SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
-	. git config git-ftp.connections 10
 	. git config git-ftp.syncroot path/dir
 
 
@@ -309,6 +315,10 @@ upload_file() {
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
+	
+	if [ -n "$SYNCROOT" ]; then
+		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
+	fi
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
@@ -414,7 +424,7 @@ release_lock() {
 }
 
 set_remote_host() {
-	URL="$(get_config url)"
+	[ -z $URL ] && URL="$(get_config url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
@@ -465,7 +475,7 @@ set_changed_files() {
 
 	# Filter against ignore file
 	if [ -f '.git-ftp-ignore' ]; then
-		cat '.git-ftp-ignore' | tr -d '\r' | grep -v '^$' > '.git-ftp-ignore-tmp'
+		grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > '.git-ftp-ignore-tmp'
 		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore-tmp' '.git-ftp-tmp' | tr '\t' ' ')
 	else
 		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
@@ -518,18 +528,14 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
-	
-	# Upload workers seems only to work on linux correctly
-	if [ "$SYSTEM" = "Linux" ]
-	then
-		rm -f upload_manager_pipe
-		mkfifo upload_manager_pipe; exec 3<>upload_manager_pipe
-	fi
-    
+	   
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
-		FILE_NAME=$(echo "$FILE_ITERATOR" | cut -f2- -d ' ')
+		FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
+		FILE_NAME=${FILE_NAME/#\"/}
+		FILE_NAME=${FILE_NAME/%\"/}
+
 
 		if [ "$FILE_MODE" != "D" ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
@@ -537,24 +543,7 @@ handle_file_sync() {
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					# Upload workers seems only to work on linux correctly, legacy mode
-					if [ "$SYSTEM" != "Linux" ]
-					then
-						upload_file "$FILE_NAME"
-					elif [[ $number_of_connections > 0 ]]
-					then
-						# If there are still initial connections left, spawn a
-						# new worker without waiting for anything.
-						handle_upload_worker "$FILE_NAME" &
-						number_of_connections=$((number_of_connections-1))
-					else
-						# There are no initial connections left, spawn a new
-						# worker one an existing one finishes.
-						if read
-						then
-							handle_upload_worker "$FILE_NAME" &
-						fi <&3
-					fi
+					upload_file "$FILE_NAME"
 				fi
 			fi
 		else
@@ -564,12 +553,6 @@ handle_file_sync() {
 		fi
 	done
 
-	# Upload workers seems only to work on linux correctly
-	if [ "$SYSTEM" = "Linux" ]
-	then
-		wait
-		rm -f upload_manager_pipe
-	fi
 	IFS="$OIFS"
 }
 
@@ -645,6 +628,12 @@ handle_action() {
 		fetch)
 			action_fetch
 			;;
+		add-scope)
+			action_add_scope
+			;;
+		remove-scope)
+			action_remove_scope
+			;;
 		*)
 			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
 			;;
@@ -652,12 +641,20 @@ handle_action() {
 }
 
 set_remote_user() {
-	REMOTE_USER="$(get_config user)"
+	[ -z $REMOTE_USER ] && REMOTE_USER="$(get_config user)"
 }
 
 set_remote_password() {
 	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(get_config password)"
+}
+
+set_syncroot() {
+		[ -z $SYNCROOT] && SYNCROOT="$(get_config syncroot)"
+		if [ $SYNCROOT ]; then
+			[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
+			SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+		fi
 }
 
 set_remotes() {
@@ -666,9 +663,6 @@ set_remotes() {
 
 	set_remote_user
 	write_log "User is '$REMOTE_USER'"
-
-	set_number_of_threads
-	write_log "Using '$number_of_connections' parallel connections."
 	
 	set_remote_password
 	if [ -z $REMOTE_PASSWD ]; then
@@ -684,6 +678,9 @@ set_remotes() {
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
 	write_log "Path is '$REMOTE_PATH'"
+	
+	set_syncroot
+	write_log "Syncroot is '$SYNCROOT'"
 }
 
 create_new_repo() {
@@ -748,15 +745,53 @@ set_number_of_threads() {
 	number_of_connections="$(get_config connections 2)"
 }
 
-set_syncroot() {
-		# try .git-ftp-config
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.syncroot)"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && [ -f '.git-ftp-config' ] && SYNCROOT="$(git config -f '.git-ftp-config' --get git-ftp.syncroot)"
-		#
-		[ -z $SYNCROOT ] && [ -n "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.$SCOPE.syncroot)"
-		[ -z $SYNCROOT ] && [ -z "$SCOPE" ] && SYNCROOT="$(git config --get git-ftp.syncroot)"
+set_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+	[ -z $URL ] && print_error_and_die "Missing URL" $ERROR_MISSING_ARGUMENTS
 
-		[ $SYNCROOT ] && check_is_directory && SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+	# URI without credentials
+	if [ $(expr index "$URL" '@') = 0 ]; then
+		$(git config git-ftp.$SCOPE.url $URL)
+		return
+	fi
+
+	# set url
+	local protocol=$(expr match "$URL" '\(.*://\)')
+	local path=${URL##*@}
+	$(git config git-ftp.$SCOPE.url ${protocol}${path})
+
+	# strip protocol
+	local credentials=${URL#${protocol}}
+	# cut at last '@' occurence
+	local credentials=${credentials%${URL##*@}}
+	# strip trailing '@'
+	local credentials=${credentials%?}
+
+	local colons=${credentials//[^:]/}
+	case ${#colons} in
+		0)
+			# assume only username
+			$(git config git-ftp.$SCOPE.user ${credentials})
+			;;
+		1)
+			# credentials have both username and password
+			$(git config git-ftp.$SCOPE.user ${credentials%:*})
+			$(git config git-ftp.$SCOPE.password ${credentials#*:})
+			;;
+		*)
+			# we can't know where to cut with multiple ':'
+			echo "Warning, multiple ':' characters detected, only URL was set in scope."
+			echo "Use --user and --passwd options to set login and password respectively."
+	esac
+}
+
+remove_scope() {
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+
+	$(git config --remove-section git-ftp.$SCOPE &>/dev/null)
+
+	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE" $ERROR_GIT
+	echo "Successfully removed scope $SCOPE"
 }
 
 # ------------------------------------------------------------
@@ -766,7 +801,6 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	check_deployed_sha1
@@ -795,7 +829,6 @@ action_push() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	set_deployed_sha1
@@ -810,7 +843,6 @@ action_push() {
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
-	set_syncroot
 	set_remotes
 	lock
 	upload_local_sha1
@@ -818,7 +850,6 @@ action_catchup() {
 }
 
 action_show() {
-	set_syncroot
 	set_remotes
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
@@ -832,6 +863,16 @@ action_fetch() {
 	lock
 	pull_remote_updates
 	release_lock
+}
+
+action_add_scope() {
+	check_is_git_project
+	set_scope
+}
+
+action_remove_scope() {
+	check_is_git_project
+	remove_scope
 }
 
 # ------------------------------------------------------------
@@ -882,10 +923,6 @@ check_is_dirty_repository() {
 	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
-check_is_directory() {
-	[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
-}
-
 # ------------------------------------------------------------
 # Main
 # ------------------------------------------------------------
@@ -902,8 +939,13 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|bootstrap|push|catchup|show|fetch)
+		init|bootstrap|push|catchup|show|fetch|add-scope|remove-scope)
 			ACTION="$1"
+			# catch scope
+			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
+				SCOPE="$2"
+				shift
+			fi
 			;;
 		-h|--h|--he|--hel|--help|help)
 			usage_long

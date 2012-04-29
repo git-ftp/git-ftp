@@ -20,6 +20,10 @@ Updating using git
 	$ git pull
 	$ sudo make install
 
+Debian (unstable) 
+-----------------
+See http://packages.debian.org/sid/git-ftp
+
 
 Ubuntu PPA (Personal Package Archive) Repository
 ------------------------------------------------
@@ -31,6 +35,13 @@ Adding PPA on Ubuntu
 	# aptitude install git-ftp
 
 Note: Usually updated after every release (tag).
+
+
+Mac OS X
+--------
+Using homebrew:
+
+	$ brew install git-ftp
 
 
 Windows
