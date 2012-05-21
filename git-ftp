@@ -419,7 +419,7 @@ set_remote_host() {
 
 set_remote_protocol() {
 	# Split protocol from url
-	REMOTE_PROTOCOL=$(echo "$URL" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1)
+	REMOTE_PROTOCOL=$(get_protocol_of_url "$URL")
 
 	# Protocol found?
 	if [ ! -z $REMOTE_PROTOCOL ]; then
@@ -664,19 +664,22 @@ set_remotes() {
 	write_log "Syncroot is '$SYNCROOT'"
 }
 
+get_protocol_of_url() {
+	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1
+}
 
 set_scope() {
 	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
 	[ -z $URL ] && print_error_and_die "Missing URL" $ERROR_MISSING_ARGUMENTS
 
 	# URI without credentials
-	if [ $(expr index "$URL" '@') = 0 ]; then
+	if ! echo "$URL" | grep -q '@'; then
 		$(git config git-ftp.$SCOPE.url $URL)
 		return
 	fi
 
 	# set url
-	local protocol=$(expr match "$URL" '\(.*://\)')
+	local protocol=$(get_protocol_of_url "$URL")
 	local path=${URL##*@}
 	$(git config git-ftp.$SCOPE.url ${protocol}${path})
 
