@@ -433,7 +433,7 @@ set_remote_protocol() {
 	if [ -z $UNKNOWN_PROTOCOL ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
-		[ $(echo "$URL" | egrep "/" | wc -l) -ne 0 ] && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
+		echo "$URL" | egrep -q "/" && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
 		return
 	fi
@@ -654,7 +654,7 @@ set_remotes() {
 
 	set_remote_protocol
 	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && [ $(echo "$REMOTE_PATH" | egrep "*/$" | wc -l) -ne 1 ]; then
+	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "*/$"; then
 		write_log "Added missing trailing / in path"
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
@@ -816,8 +816,7 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-	local CLEAN_REPO=$(git status -uno | egrep "nothing to commit*" | wc -l)
-	[ $CLEAN_REPO -ne 1 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
+	! git status -uno | egrep -q "nothing to commit*" && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
 # ------------------------------------------------------------
@@ -856,7 +855,7 @@ do
 					REMOTE_USER="$USER"
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						REMOTE_USER="$2"
 						shift
 					else
@@ -874,7 +873,7 @@ do
 					print_error_and_die "Too few arguments for option -s" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						SCOPE="$2"
 						shift
 					else
@@ -893,7 +892,7 @@ do
 					print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						SYNCROOT="$2"
 						shift
 					else
@@ -912,7 +911,7 @@ do
 					print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						DEPLOYED_SHA1="$2"
 						shift
 					else
@@ -931,7 +930,7 @@ do
 					ask_for_passwd
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						REMOTE_PASSWD="$2"
 						shift
 					else
@@ -951,7 +950,7 @@ do
 					# Nothing is handed over, this is okay
 					;;
 				*)
-					if [ ! $(echo "$2" | egrep '^-' | wc -l) -eq 1 ]; then
+					if ! echo "$2" | egrep '^-'; then
 						KEYCHAIN_USER="$2"
 						shift
 					fi
