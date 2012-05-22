@@ -960,7 +960,7 @@ do
 					REMOTE_USER="$USER"
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						REMOTE_USER="$2"
 						shift
 					else
@@ -978,7 +978,7 @@ do
 					print_error_and_die "Too few arguments for option -s" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						SCOPE="$2"
 						shift
 					else
@@ -997,7 +997,7 @@ do
 					print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						SYNCROOT="$2"
 						shift
 					else
@@ -1016,7 +1016,7 @@ do
 					print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						DEPLOYED_SHA1="$2"
 						shift
 					else
@@ -1035,7 +1035,7 @@ do
 					ask_for_passwd
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						REMOTE_PASSWD="$2"
 						shift
 					else
@@ -1055,7 +1055,7 @@ do
 					# Nothing is handed over, this is okay
 					;;
 				*)
-					if ! echo "$2" | egrep '^-'; then
+					if ! echo "$2" | egrep -q '^-'; then
 						KEYCHAIN_USER="$2"
 						shift
 					fi
