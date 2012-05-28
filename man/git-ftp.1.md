@@ -92,9 +92,6 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--syncroot`
 :	Specifies a directory to sync from as if it were the git project root path.
 
-`--connections`
-:	Number of simultanious connections (Linux only).
-
 `--version`
 :	Prints version.
 
@@ -133,7 +130,6 @@ Everyone likes examples
 	$ git config git-ftp.user john
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
-	$ git config git-ftp.connections 10
 	$ git config git-ftp.syncroot path/dir
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
