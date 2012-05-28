@@ -179,26 +179,27 @@ Deleting scopes is easy using the `remove-scope` action.
 
 	$ git ftp remove-scope production
 
-# IGNORING FILES
+# IGNORING FILES TO BE SYNCED
 
 Add file names to `.git-ftp-ignore` to be ignored.
 
 Ignoring all in Directory `config`:
 
-	config/*
+	config/.*
 
 Ignoring all files having extension `.txt` in `./` :
 
-	*.txt
+	.*\.txt
 
 This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 
-Ingnoring a single file called `gargantubrain.txt`:
+Ingnoring a single file called `foobar.txt`:
 
-	gargantubrain.txt
+	foobar\.txt
 
 
 # EXIT CODES
+
 There are a bunch of different error codes and their corresponding error messages that may appear during bad conditions. At the time of this writing, the exit codes are:
 
 `1`
