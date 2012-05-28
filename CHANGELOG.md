@@ -1,3 +1,14 @@
+Version 0.7.5
+=============
+
+* Updated man page.
+
+Version 0.7.4
+=============
+
+* Code cleanup.
+* Fixed bug in add-scope action, related to OS X only.
+
 Version 0.7.3
 =============
 
