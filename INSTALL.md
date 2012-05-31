@@ -1,8 +1,8 @@
 INSTALL
 =======
 
-Stable on Linux/Unix based systems using make (recommended)
--------------------------------------------------------------
+Stable on Linux/Unix based systems using make
+---------------------------------------------
 
 Note: Make sure Git and cURL is installed.
 
@@ -20,12 +20,18 @@ Updating using git
 	$ git pull
 	$ sudo make install
 
-Debian (unstable) 
------------------
-See http://packages.debian.org/sid/git-ftp
+
+Debian official
+---------------
+See http://packages.qa.debian.org/g/git-ftp.html
 
 
-Ubuntu PPA (Personal Package Archive) Repository
+Ubuntu official
+---------------
+See https://launchpad.net/ubuntu/+source/git-ftp
+
+
+Ubuntu PPA (Personal Package Archive) repository
 ------------------------------------------------
 Adding PPA on Ubuntu
 
@@ -66,7 +72,7 @@ After this, open git bash (or cygwin bash for cygwin only):
 Note: Option -p without argument is showing password while entering.
 
 
-Upstream using Symlinking
+Upstream using symlinking
 -------------------------
 
 This usually works on Linux based systems, but not on Mac OS X without extending $PATH.
