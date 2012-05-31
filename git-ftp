@@ -819,7 +819,7 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-	! git status -uno | egrep -q "nothing to commit*" && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
+    [ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
 # ------------------------------------------------------------
