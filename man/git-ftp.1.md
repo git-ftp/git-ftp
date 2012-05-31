@@ -1,10 +1,10 @@
 % GIT-FTP(1) git-ftp User Manual
 % Rene Moser <mail@renemoser.net>
-% December 23, 2010
+% 2012-05-31
 
 # NAME
 
-Git-ftp - FTP done the Git way 
+Git-ftp - Git powered FTP client written as shell script. 
 
 # SYNOPSIS
 
@@ -58,9 +58,6 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
-
-`-c`, `--commit`
-:	Sets the SHA1 hash of last deployed commit by option.
 
 `-A`, `--active`
 :	Uses FTP active mode.
