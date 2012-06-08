@@ -2,7 +2,7 @@ Version 0.7.5
 =============
 
 * Updated man page.
-* Fixed bug check for dirty repository was dependent on english
+* Fixed bug, check for dirty repository was dependent on english.
 
 Version 0.7.4
 =============
