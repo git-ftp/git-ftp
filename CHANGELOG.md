@@ -1,3 +1,8 @@
+Version 0.7.6
+=============
+
+* Fixed bug, DEFAULS config are not over-writeable by SCOPES config using emtpy string
+
 Version 0.7.5
 =============
 
