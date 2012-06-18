@@ -235,11 +235,31 @@ check_exit_status() {
 get_config() {
 	# try .git-ftp-config
 	[ -n "$SCOPE" ] && [ -f '.git-ftp-config' ] && OUT="$(git config -f '.git-ftp-config' --get git-ftp.$SCOPE.$1)"
-	[ -z $OUT ] && [ -f '.git-ftp-config' ] && OUT="$(git config -f '.git-ftp-config' --get git-ftp.$1)"
+	if [ $? -eq 0 ];
+	then
+		echo $OUT
+		return 0
+	fi
+	[ -f '.git-ftp-config' ] && OUT="$(git config -f '.git-ftp-config' --get git-ftp.$1)"
+	if [ $? -eq 0 ];
+	then
+		echo $OUT
+		return 0
+	fi
 	#
-	[ -z $OUT ] && [ -n "$SCOPE" ] && OUT="$(git config --get git-ftp.$SCOPE.$1)"
-	[ -z $OUT ] && OUT="$(git config --get git-ftp.$1)"
-	[ -z $OUT ] && [ -n $2 ] && OUT=$2
+	[ -n "$SCOPE" ] && OUT="$(git config --get git-ftp.$SCOPE.$1)"
+	if [ $? -eq 0 ];
+	then
+		echo $OUT
+		return 0
+	fi
+	OUT="$(git config --get git-ftp.$1)"
+	if [ $? -eq 0 ];
+	then
+		echo $OUT
+		return 0
+	fi
+	[ -n $2 ] && OUT=$2
   echo $OUT
 }
 
