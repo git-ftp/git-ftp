@@ -162,6 +162,21 @@ test_scopes() {
 	)
 }
 
+test_overwrite_defaults_by_scopes_emtpy_string() {
+	(
+		cd $GIT_PROJECT_PATH
+		git config git-ftp.user $GIT_FTP_USER
+		git config git-ftp.password $GIT_FTP_PASSWD
+		git config git-ftp.url $GIT_FTP_URL
+
+		git config git-ftp.testing.password ''
+
+		init=$($GIT_FTP_CMD init -s testing)
+		rtrn=$?
+		assertEquals 4 $rtrn
+	)
+}
+
 test_scopes_uses_password_by_cli() {
 	(
 		cd $GIT_PROJECT_PATH
