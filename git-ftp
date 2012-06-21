@@ -594,14 +594,6 @@ handle_file_sync() {
 	fire_upload_buffer
 }
 
-handle_upload_worker() {
-	# Upload the given file and notify the manager pipe so that another upload
-	# job can be spawned.
-	local FILE_NAME="$1"
-	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
-	echo >&3
-}
-
 handle_submodule_sync() {
 	print_info "Handling submodule sync for $1"
 
