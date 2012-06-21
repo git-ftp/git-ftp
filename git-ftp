@@ -591,7 +591,7 @@ handle_submodule_sync() {
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
 
 	(
-		cd $1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+		cd ${SYNCROOT}$1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 	)
 
 	local EXIT_CODE=$?
