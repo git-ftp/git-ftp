@@ -1,7 +1,9 @@
-Version 0.7.6
+Version 0.8.0
 =============
 
-* Fixed bug, DEFAULTS config are not over-writeable by SCOPES config using emtpy string.
+* Fixed bug, DEFAULTS config are not over-writeable by SCOPES config using emtpy string. Thanks to Ingo Migliarina.
+* Fixed long outstanding issue, using a single connection for all uploads now. This makes git-ftp 5x faster!
+* Fixed bug, respect syncroot while syncing a submodule. Thanks to https://github.com/escaped.
 
 Version 0.7.5
 =============
