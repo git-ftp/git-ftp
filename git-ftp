@@ -45,6 +45,7 @@ KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
 SYNCROOT=""
+CURL_UPLOADS=()
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -334,6 +335,34 @@ upload_file() {
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'" $ERROR_UPLOAD
 }
 
+upload_file_buffered() {
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
+	
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$SRC_FILE
+	fi
+	
+	if [ -n "$SYNCROOT" ]; then
+		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
+	fi
+	CURL_UPLOADS+=(-T "$SRC_FILE")
+	CURL_UPLOADS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+}
+
+fire_upload_buffer() {
+	if [ -z "$CURL_UPLOADS" ]; then
+		return 0
+	fi
+	print_info "Uploading ..."
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=("${CURL_UPLOADS[@]}")
+	curl "${CURL_ARGS[@]}"
+	CURL_UPLOADS=()
+	check_exit_status "Could not upload files." $ERROR_UPLOAD
+}
+
 remove_file() {
 	local FILENAME="$1"
 	set_default_curl_options
@@ -527,7 +556,7 @@ handle_file_sync() {
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	write_log "There are $TOTAL_ITEMS files to upload"
+	print_info "There are $TOTAL_ITEMS files to sync:"
 
 	# Changing internal field separator, file names could have spaces
 	OIFS="$IFS"
@@ -535,7 +564,7 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
-	   
+
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -545,12 +574,12 @@ handle_file_sync() {
 
 
 		if [ "$FILE_MODE" != "D" ]; then
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 			else if [ $DRY_RUN -ne 1 ]
 				then
-					upload_file "$FILE_NAME"
+					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
 		else
@@ -561,6 +590,8 @@ handle_file_sync() {
 	done
 
 	IFS="$OIFS"
+
+	fire_upload_buffer
 }
 
 handle_upload_worker() {
