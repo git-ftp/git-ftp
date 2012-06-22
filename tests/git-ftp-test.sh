@@ -14,9 +14,13 @@ oneTimeSetUp() {
 
 	echo Starting FTP Server
 	sudo /opt/lampp/lampp start > /dev/null 2>&1
+	START=$(date +%s)
 }
 
 oneTimeTearDown() {
+	END=$(date +%s)
+	DIFF=$(( $END - $START ))
+	echo "It took $DIFF seconds"
 	echo Stopping FTP Server
 	sudo /opt/lampp/lampp stop > /dev/null 2>&1
 }
