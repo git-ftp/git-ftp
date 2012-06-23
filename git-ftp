@@ -304,7 +304,6 @@ set_default_curl_options() {
 	IFS=" "
 	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
 	IFS="$OIFS"
-	CURL_ARGS+=(--retry 5)
 	CURL_ARGS+=(--globoff)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
@@ -674,7 +673,7 @@ set_remote_password() {
 }
 
 set_syncroot() {
-		[ -z $SYNCROOT] && SYNCROOT="$(get_config syncroot)"
+		[ -z $SYNCROOT ] && SYNCROOT="$(get_config syncroot)"
 		if [ $SYNCROOT ]; then
 			[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
 			SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
