@@ -40,6 +40,7 @@ REMOTE_DELETE_CMD="-DELE "
 REMOTE_CMD_OPTIONS="-s"
 ACTION=""
 LOG_CACHE=""
+ERROR_LOG=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
@@ -279,6 +280,22 @@ write_log() {
 	fi
 }
 
+write_error_log() {
+	write_log $1
+	if [ -n "$ERROR_LOG" ]; then
+		ERROR_LOG="$ERROR_LOG\n: $1"
+	else
+		ERROR_LOG="$1"
+	fi
+}
+
+print_error_log() {
+	if [ -n "$ERROR_LOG" ]; then
+		echo "Error log:"
+		echo $ERROR_LOG
+	fi
+}
+
 # Simple error printer
 print_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
@@ -372,7 +389,7 @@ remove_file() {
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
-			write_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
+			write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 		fi
 	fi
 }
@@ -869,6 +886,7 @@ check_is_dirty_repository() {
 # ------------------------------------------------------------
 main() {
 	handle_action
+	print_error_log
 	exit 0
 }
 
