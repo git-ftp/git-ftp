@@ -607,7 +607,7 @@ handle_submodule_sync() {
 
 	if [ $VERBOSE -eq 1 ]; then
 		args+=(--verbose)
-	else
+	elif [ $VERBOSE -eq -1 ]; then
 		args+=(--silent)
 	fi
 
