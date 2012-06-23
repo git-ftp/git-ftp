@@ -206,7 +206,7 @@ test_ignore_single_file() {
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: file was not ignored' "[ -r '$FTP_PROJECT_PATH/test 1.txt' ]"
+	assertFalse 'test failed: file was not ignored' "[ -f '$FTP_PROJECT_PATH/test 1.txt' ]"
 }
 
 test_ignore_dir() {
@@ -215,8 +215,8 @@ test_ignore_dir() {
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: dir was not ignored' "[ -r '$FTP_PROJECT_PATH/dir 1/test 1.txt' ]"
-	assertTrue 'test failed: wrong dir was ignored' "[ -r '$FTP_PROJECT_PATH/dir 2/test 2.txt' ]"
+	assertFalse 'test failed: dir was not ignored' "[ -f '$FTP_PROJECT_PATH/dir 1/test 1.txt' ]"
+	assertTrue 'test failed: wrong dir was ignored' "[ -f '$FTP_PROJECT_PATH/dir 2/test 2.txt' ]"
 }
 
 test_ignore_wildcard_files() {
@@ -227,8 +227,26 @@ test_ignore_wildcard_files() {
 
 	for i in 1 2 3 4 5
 	do
-		assertFalse 'test failed: was not ignored' "[ -r '$FTP_PROJECT_PATH/test $i.txt' ]"
+		assertFalse 'test failed: was not ignored' "[ -f '$FTP_PROJECT_PATH/test $i.txt' ]"
 	done;
+}
+
+test_hidden_file_only() {
+	cd $GIT_PROJECT_PATH
+	echo "test" > .htaccess
+	git add . > /dev/null 2>&1
+	git commit -a -m "init" > /dev/null 2>&1
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL
+	assertTrue 'test failed: .htaccess not uploaded' "[ -f '$FTP_PROJECT_PATH/.htaccess' ]"
+}
+
+test_syncroot() {
+	cd $GIT_PROJECT_PATH
+	mkdir foobar && echo "test" > foobar/syncroot.txt
+	git add .
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
+	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
 }
 
 # load and run shUnit2
