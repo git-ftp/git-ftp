@@ -236,14 +236,14 @@ test_hidden_file_only() {
 	echo "test" > .htaccess
 	git add . > /dev/null 2>&1
 	git commit -a -m "init" > /dev/null 2>&1
-	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertTrue 'test failed: .htaccess not uploaded' "[ -f '$FTP_PROJECT_PATH/.htaccess' ]"
 }
 
 test_syncroot() {
 	cd $GIT_PROJECT_PATH
 	mkdir foobar && echo "test" > foobar/syncroot.txt
-	git add .
+	git add . > /dev/null 2>&1
 	git commit -a -m "syncroot test" > /dev/null 2>&1
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
 	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
