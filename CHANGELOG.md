@@ -1,3 +1,7 @@
+Version 0.8.1
+=============
+* Added feature, --scope without argument takes the current branch name as scope. Thanks to Chris J. Lee.
+
 Version 0.8.0
 =============
 

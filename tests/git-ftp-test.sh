@@ -57,7 +57,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 0.8.0"  "$version"
+	assertEquals = "git-ftp version 0.8.1-snapshot"  "$version"
 }
 
 test_inits_and_pushes() {
@@ -149,6 +149,19 @@ test_scopes() {
 	rtrn=$?
 	assertEquals 0 $rtrn
 }
+
+test_scopes_using_branchname_as_scope() {
+	cd $GIT_PROJECT_PATH
+	git config git-ftp.production.user $GIT_FTP_USER
+	git config git-ftp.production.password $GIT_FTP_PASSWD
+	git config git-ftp.production.url $GIT_FTP_URL
+	git checkout -b production > /dev/null 2>&1
+
+	init=$($GIT_FTP_CMD init -s)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
 
 test_overwrite_defaults_by_scopes_emtpy_string() {
 	cd $GIT_PROJECT_PATH
