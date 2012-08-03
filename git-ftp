@@ -54,6 +54,7 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
+declare -i ARG_MAX=4096
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -190,6 +191,26 @@ git_submodules() {
 
 is_submodule() {
 	has $1 $(git_submodules)
+}
+
+set_arg_max() {
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
+		ARG_MAX=$ARG_MAX_SYSTEM
+	fi
+	print_log "ARG_MAX is $ARG_MAX"
+}
+
+is_arg_max_reached() {
+	local ARGS_TO_ADD=$1
+	local BUFFER=100
+
+	ARGS_STRING="${CURL_UPLOADS[@]}"
+	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} - $BUFFER)
+	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
+		return 1
+	fi
+	return 0
 }
 
 ask_for_passwd() {
@@ -547,18 +568,24 @@ handle_file_sync() {
 		FILE_NAME=${FILE_NAME/#\"/}
 		FILE_NAME=${FILE_NAME/%\"/}
 
-
 		if [ "$FILE_MODE" != "D" ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
+
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
-			else if [ $DRY_RUN -ne 1 ]
-				then
+
+			else if [ $DRY_RUN -ne 1 ]; then
+					if is_arg_max_reached "$FILE_NAME"; then
+						IFS="$OIFS"
+						fire_upload_buffer
+						IFS="$NIFS"
+						CURL_UPLOADS=()
+					fi
 					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
+		# Removing file
 		else
-			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'."
 			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
 		fi
@@ -838,6 +865,7 @@ check_is_dirty_repository() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_arg_max
 	handle_action
 	print_error_log
 	exit 0
