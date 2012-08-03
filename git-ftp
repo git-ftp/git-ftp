@@ -206,7 +206,7 @@ is_arg_max_reached() {
 	local BUFFER=100
 
 	ARGS_STRING="${CURL_UPLOADS[@]}"
-	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} - $BUFFER)
+	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} + $BUFFER)
 	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
 		return 1
 	fi
