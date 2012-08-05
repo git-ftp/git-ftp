@@ -1,6 +1,8 @@
 Version 0.8.1
 =============
+
 * Added feature, --scope without argument takes the current branch name as scope. Thanks to Chris J. Lee.
+* Fixed bug, respect ARG_MAX if there is a large number of files.
 
 Version 0.8.0
 =============
