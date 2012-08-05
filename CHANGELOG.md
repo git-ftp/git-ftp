@@ -3,6 +3,7 @@ Version 0.8.1
 
 * Added feature, --scope without argument takes the current branch name as scope. Thanks to Chris J. Lee.
 * Fixed bug, respect ARG_MAX if there is a large number of files.
+* Fixed bug, local locking did not work correctly with submodule handilng. Removed.
 
 Version 0.8.0
 =============

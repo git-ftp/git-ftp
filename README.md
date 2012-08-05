@@ -101,6 +101,8 @@ Ignoring Files to be synced
 
 Add file names to `.git-ftp-ignore` to be ignored.
 
+Unlike `.gitignore`, the pattern matching uses regular expressions (instead of globbing).
+
 Ignoring all in directory `config`:
 
 	config/.*
@@ -111,7 +113,7 @@ Ignoring all files having extension `.txt` in `./` :
 
 This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 
-Ingnoring a single file called `foobar.txt`:
+Ignoring a single file called `foobar.txt`:
 
 	foobar\.txt
 

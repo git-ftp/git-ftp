@@ -22,7 +22,6 @@
 
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
-readonly LCK_FILE=".git/$(basename "$0").lck"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
 readonly VERSION='0.8.1-snapshot'
@@ -55,6 +54,7 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
+declare -i ARG_MAX=4096
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -193,6 +193,26 @@ is_submodule() {
 	has $1 $(git_submodules)
 }
 
+set_arg_max() {
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
+		ARG_MAX=$ARG_MAX_SYSTEM
+	fi
+	print_log "ARG_MAX is $ARG_MAX"
+}
+
+is_arg_max_reached() {
+	local ARGS_TO_ADD=$1
+	local BUFFER=100
+
+	ARGS_STRING="${CURL_UPLOADS[@]}"
+	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} + $BUFFER)
+	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
+		return 1
+	fi
+	return 0
+}
+
 ask_for_passwd() {
 	echo -n "Password: "
 	stty -echo > /dev/null 2>&1
@@ -303,7 +323,6 @@ print_error_and_die() {
 	else
 		write_log "fatal: $1"
 	fi
-	release_lock
 	exit $2
 }
 
@@ -438,43 +457,6 @@ release_remote_lock() {
 	remove_file $REMOTE_LCK_FILE
 }
 
-lock() {
-	if [ $(uname | grep 'MINGW') ]; then
-		write_log "Ingnoring lock on MinGW."
-		return
-	fi
-	# Checks locking, make sure this only run once a time
-	if [ -f "$LCK_FILE" ]; then
-
-		# The file exists so read the PID to see if it is still running
-		local MYPID=$(head -n 1 "$LCK_FILE")
-
-		local TEST_RUNNING=$(ps -p $MYPID | grep $MYPID)
-
-		if [ -z "$TEST_RUNNING" ]; then
-			# The process is not running echo current PID into lock file
-			write_log "Not running yet, locking."
-			echo $$ > "$LCK_FILE"
-		else
-			write_log "$(basename $0) is already running [$MYPID]."
-			exit 0
-		fi
-	else
-		write_log "Not running yet, locking."
-		echo $$ > "$LCK_FILE"
-	fi
-}
-
-# Release lock func
-release_lock() {
-	if [ $(uname | grep 'MINGW') ]; then
-		write_log "Ingnoring lock on MinGW."
-		return
-	fi
-	write_log "Releasing lock."
-	rm -f "$LCK_FILE"
-}
-
 set_remote_host() {
 	[ -z $URL ] && URL="$(get_config url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
@@ -548,7 +530,6 @@ set_changed_files() {
 			read ANSWER_STATE
 			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 				print_info "Aborting..."
-				release_lock
 				exit 0
 			else
 				write_log "Taking all files.";
@@ -562,7 +543,6 @@ set_changed_files() {
 		write_log "Having changed files.";
 	else
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-		release_lock
 		exit 0
 	fi
 }
@@ -588,18 +568,24 @@ handle_file_sync() {
 		FILE_NAME=${FILE_NAME/#\"/}
 		FILE_NAME=${FILE_NAME/%\"/}
 
-
 		if [ "$FILE_MODE" != "D" ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
+
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
-			else if [ $DRY_RUN -ne 1 ]
-				then
+
+			else if [ $DRY_RUN -ne 1 ]; then
+					if is_arg_max_reached "$FILE_NAME"; then
+						IFS="$OIFS"
+						fire_upload_buffer
+						IFS="$NIFS"
+						CURL_UPLOADS=()
+					fi
 					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
+		# Removing file
 		else
-			# Removing file
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'."
 			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
 		fi
@@ -784,14 +770,12 @@ action_init() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	check_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	release_lock
 }
 
 action_push() {
@@ -799,23 +783,19 @@ action_push() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	set_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	release_lock
 }
 
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	upload_local_sha1
-	release_lock
 }
 
 action_show() {
@@ -885,6 +865,7 @@ check_is_dirty_repository() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_arg_max
 	handle_action
 	print_error_log
 	exit 0
