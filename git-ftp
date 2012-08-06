@@ -198,7 +198,7 @@ set_arg_max() {
 	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
 		ARG_MAX=$ARG_MAX_SYSTEM
 	fi
-	print_log "ARG_MAX is $ARG_MAX"
+	write_log "ARG_MAX is $ARG_MAX"
 }
 
 is_arg_max_reached() {
