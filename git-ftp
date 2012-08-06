@@ -35,6 +35,7 @@ REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
 REMOTE_PATH=""
+REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-DELE "
 REMOTE_CMD_OPTIONS="-s"
 ACTION=""
@@ -47,6 +48,7 @@ DEPLOYED_SHA1=""
 SYNCROOT=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
+declare -i CURL_INSECURE=0
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
@@ -142,6 +144,8 @@ OPTIONS
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
+	--insecure		Don't verify server's certificate.
+	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--version		Prints version.
 
 
@@ -158,6 +162,7 @@ SET DEFAULTS
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
 	. git config git-ftp.syncroot path/dir
+	. git config git-ftp.cacert path/cacert
 
 
 SET SCOPE DEFAULTS 
@@ -636,8 +641,21 @@ handle_submodule_sync() {
 handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
+
+	# Check for using cacert
+	if [ "$REMOTE_PROTOCOL" = "ftpes" -o "$REMOTE_PROTOCOL" = "ftps" ] && \
+	[ -n "$REMOTE_CACERT" -a -r "$REMOTE_CACERT" ]; then
+		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --cacert $REMOTE_CACERT"
+	fi
+
 	# Options for curl if using FTPES
-	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_PROTOCOL="ftp" && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl -k"
+	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
+		REMOTE_PROTOCOL="ftp"
+		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl"
+	fi
+
+	# Require users' explicit consent for insecure connections
+	[ $CURL_INSECURE -ne 0 ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
 handle_action() {
@@ -668,6 +686,10 @@ handle_action() {
 
 set_remote_user() {
 	[ -z $REMOTE_USER ] && REMOTE_USER="$(get_config user)"
+}
+
+set_remote_cacert() {
+	[ -z $REMOTE_CACERT ] && REMOTE_CACERT="$(get_config cacert)"
 }
 
 set_remote_password() {
@@ -707,6 +729,9 @@ set_remotes() {
 
 	set_syncroot
 	write_log "Syncroot is '$SYNCROOT'."
+
+	set_remote_cacert
+	write_log "CACert is $REMOTE_CACERT"
 }
 
 get_protocol_of_url() {
@@ -1038,6 +1063,28 @@ do
 		--version|version)
 			echo "git-ftp version $VERSION"
 			exit 0
+			;;
+		--insecure)
+			CURL_INSECURE=1
+			write_log "Insecure SSL/TLS connection allowed"
+			;;
+		--cacert*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_CACERT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print error_and_die "Too few arguments for option --cacert" $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						REMOTE_CACERT="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --cacert" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
 			;;
 		-A|--active)
 			ACTIVE_MODE=1
