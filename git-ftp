@@ -85,7 +85,7 @@ DESCRIPTION
 	git-ftp does FTP the Git way.
 
 	It uses Git to determine which local files have changed since the last
-	deployment to the remote server and saves you time and bandwith by
+	deployment to the remote server and saves you time and bandwidth by
 	uploading only those files.
 
 	It keeps track of the deployed state by uploading the SHA1 of the last
