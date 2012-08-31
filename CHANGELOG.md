@@ -1,4 +1,5 @@
 Version 0.8.2
+=============
 
 * Hotfixed bug, string length buffer was too small. This could cause the file upload to fail.
 
