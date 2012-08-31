@@ -208,7 +208,7 @@ set_arg_max() {
 
 is_arg_max_reached() {
 	local ARGS_TO_ADD=$1
-	local BUFFER=100
+	local BUFFER=1000
 
 	ARGS_STRING="${CURL_UPLOADS[@]}"
 	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} + $BUFFER)
