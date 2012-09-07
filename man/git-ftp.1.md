@@ -1,6 +1,6 @@
 % GIT-FTP(1) git-ftp User Manual
 % Rene Moser <mail@renemoser.net>
-% 2012-05-31
+% 2012-08-06
 
 # NAME
 
@@ -62,7 +62,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-A`, `--active`
 :	Uses FTP active mode.
 
-`-s <scope>`, `--scope <scope>`
+`-s [scope]`, `--scope [scope]`
 :	Using a scope (e.g. dev, production, testing, foobar). See **SCOPE** and **DEFAULTS** section for more information.
 
 `-l`, `--lock`
@@ -84,10 +84,16 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Be verbose.
 
 `-vv`
-:	Be as verbose as possible.
+:	Be as verbose as possible. Useful for debug information.
 
 `--syncroot`
 :	Specifies a directory to sync from as if it were the git project root path.
+
+`--insecure`
+:	Don't verify server's certificate.
+
+`--cacert <file>`
+:	Use <file> as CA certificate store. Useful when a server has got a self-signed certificate. 
 
 `--version`
 :	Prints version.
@@ -120,7 +126,7 @@ But, there is not just FTP. Supported protocols are:
 
 Don't repeat yourself. Setting defaults for git-ftp in .git/config
 	
-	$ git config git-ftp.<(url|user|password)> <value>
+	$ git config git-ftp.<(url|user|password|syncroot|cacert)> <value>
 
 Everyone likes examples
 
@@ -139,7 +145,7 @@ Need different defaults per each system or environment? Use the so called scope 
 
 Useful if you use multi environment development. Like a development, testing and a production environment. 
 
-	$ git config git-ftp.<scope>.<(url|user|password)> <value>
+	$ git config git-ftp.<scope>.<(url|user|password|syncroot|cacert)> <value>
 
 So in the case below you would set a testing scope and a production scope.
 
@@ -154,7 +160,6 @@ Here we set the params for the scope "production"
 	$ git config git-ftp.production.url live.example.com
 	$ git config git-ftp.production.password n0tThatSimp3l
 
-
 Pushing to scope *testing* alias *john@ftp.testing.com:8080/foobar-path* using 
 password *simp3l*
 
@@ -166,6 +171,10 @@ Pushing to scope *production* alias *manager@live.example.com* using
 password *n0tThatSimp3l*
 
 	$ git ftp push -s production
+
+*Hint:* If your scope name is identical with your branch name. You can skip the scope argument, e.g. if your current branch is "production":
+
+	$ git ftp push -s
 
 You can also create scopes using the add-scope action. All settings can be defined in the URL.
 Here we create the *production* scope using add-scope

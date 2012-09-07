@@ -32,18 +32,7 @@ are different. No ordinary FTP client can do that.
 Known Issues
 ------------
 
- * See [git-ftp issues on GitHub] for open issues
-
-
-Limitations
------------
-
-git-ftp depends on curl.
-
-Due the limitation of curl, for each upload a new ftp connection is going to
-be initialsed. Some web hosting companies have rate limited FTP which can break git-ftp uploads.
-
-It is planed to move from curl to lftp to use a single connection for all uploads.
+* See [git-ftp issues on GitHub] for open issues
 
 
 Installing
@@ -55,16 +44,16 @@ See INSTALL file.
 Usage
 -----
 
-    $ cd my_git_tracked_project
-    $ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+	$ cd my_git_tracked_project
+	$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
 
 For interactive password prompt use:
 
-    $ git ftp push -u <user> -p - ftp://host.example.com/public_html
+	$ git ftp push -u <user> -p - ftp://host.example.com/public_html
 
 Pushing for the first time:
 
-    $ git ftp init -u <user> -p - ftp://host.example.com/public_html
+	$ git ftp init -u <user> -p - ftp://host.example.com/public_html
 
 Using Defaults
 --------------
@@ -150,6 +139,8 @@ Ignoring Files to be synced
 
 Add file names to `.git-ftp-ignore` to be ignored.
 
+Unlike `.gitignore`, the pattern matching uses regular expressions (instead of globbing).
+
 Ignoring all in directory `config`:
 
 	config/.*
@@ -160,7 +151,7 @@ Ignoring all files having extension `.txt` in `./` :
 
 This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 
-Ingnoring a single file called `foobar.txt`:
+Ignoring a single file called `foobar.txt`:
 
 	foobar\.txt
 
@@ -170,11 +161,11 @@ Testing and Help Manual
 
 For testing mode use `--dry-run` alias `-D`
 
-    $ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
+	$ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
 
 For more options and features see man page or help:
 
-    $ git ftp help
+	$ git ftp help
 
 
 Unit Tested

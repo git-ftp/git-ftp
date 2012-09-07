@@ -22,10 +22,9 @@
 
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
-readonly LCK_FILE=".git/$(basename "$0").lck"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='0.7.6-snapshot'
+readonly VERSION='0.8.2-snapshot'
 
 # ------------------------------------------------------------
 # Defaults
@@ -38,17 +37,21 @@ REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
 REMOTE_PATH=""
+REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-DELE "
 REMOTE_CMD_OPTIONS="-s"
 LFTP_OPTIONS=""
 ACTION=""
 LOG_CACHE=""
+ERROR_LOG=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
 SYNCROOT=""
+CURL_UPLOADS=()
 declare -a CURL_ARGS
+declare -i CURL_INSECURE=0
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
@@ -56,6 +59,7 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
+declare -i ARG_MAX=4096
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -84,7 +88,7 @@ DESCRIPTION
 	git-ftp does FTP the Git way.
 
 	It uses Git to determine which local files have changed since the last
-	deployment to the remote server and saves you time and bandwith by
+	deployment to the remote server and saves you time and bandwidth by
 	uploading only those files.
 
 	It keeps track of the deployed state by uploading the SHA1 of the last
@@ -138,21 +142,24 @@ URL
 
 
 OPTIONS
-	-h, --help		Shows this help screen
-	-u, --user		FTP login name
-	-p, --passwd		FTP password
-	-k, --keychain		FTP password from KeyChain (Mac OS X only)
-	-s, --scope		Using a scope (e.g. dev, production, testing)
-	-D, --dry-run		Dry run: Does not upload anything
-	-a, --all		Uploads all files, ignores deployed SHA1 hash
-	-c, --commit		Sets SHA1 hash of last deployed commit by option
-	-A, --active		Use FTP active mode
-	-l, --lock		Enable/Disable remote locking
-	-f, --force		Force, does not ask questions
-	-n, --silent      	Silent
-	-v, --verbose		Verbose
+	-h, --help		Shows this help screen.
+	-u, --user		FTP login name.
+	-p, --passwd		FTP password.
+	-k, --keychain		FTP password from KeyChain (Mac OS X only).
+	-s, --scope		Using a scope (e.g. dev, production, testing).
+	-D, --dry-run		Dry run: Does not upload anything.
+	-a, --all		Uploads all files, ignores deployed SHA1 hash.
+	-c, --commit		Sets SHA1 hash of last deployed commit by option.
+	-A, --active		Use FTP active mode.
+	-l, --lock		Enable/Disable remote locking.
+	-f, --force		Force, does not ask questions.
+	-n, --silent		Silent mode.
+	-v, --verbose		Verbose mode.
+	-vv			Very verbose or debug mode.
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
-	--version		Prints version
+	--insecure		Don't verify server's certificate.
+	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
+	--version		Prints version.
 
 
 EXAMPLES
@@ -168,6 +175,7 @@ SET DEFAULTS
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
 	. git config git-ftp.syncroot path/dir
+	. git config git-ftp.cacert path/cacert
 
 
 SET SCOPE DEFAULTS 
@@ -203,6 +211,26 @@ is_submodule() {
 	has $1 $(git_submodules)
 }
 
+set_arg_max() {
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
+		ARG_MAX=$ARG_MAX_SYSTEM
+	fi
+	write_log "ARG_MAX is $ARG_MAX"
+}
+
+is_arg_max_reached() {
+	local ARGS_TO_ADD=$1
+	local BUFFER=1000
+
+	ARGS_STRING="${CURL_UPLOADS[@]}"
+	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} + $BUFFER)
+	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
+		return 1
+	fi
+	return 0
+}
+
 ask_for_passwd() {
 	echo -n "Password: "
 	stty -echo > /dev/null 2>&1
@@ -222,7 +250,7 @@ get_keychain_password () {
 			[ -z $KEYCHAIN_HOST ] && KEYCHAIN_HOST=$REMOTE_HOST
 		fi
 
-		[ -z $KEYCHAIN_USER ] && print_error_and_die "Missing keychain account" $ERROR_MISSING_ARGUMENTS
+		[ -z $KEYCHAIN_USER ] && print_error_and_die "Missing keychain account." $ERROR_MISSING_ARGUMENTS
 		CURL_ARGS=(-a "$KEYCHAIN_USER")
 		[ -n "$KEYCHAIN_HOST" ] && CURL_ARGS+=(-s "$KEYCHAIN_HOST")
 
@@ -234,7 +262,7 @@ get_keychain_password () {
 			print_error_and_die "Password not found in keychain for account '$KEYCHAIN_USER @ $KEYCHAIN_HOST'." $ERROR_MISSING_ARGUMENTS
 		fi
 	else
-		write_log "Ingoring -k on non-Darwin systems"
+		write_log "Ingoring -k on non-Darwin systems."
 	fi
 }
 
@@ -259,7 +287,6 @@ get_config() {
 		echo $OUT
 		return 0
 	fi
-	#
 	[ -n "$SCOPE" ] && OUT="$(git config --get git-ftp.$SCOPE.$1)"
 	if [ $? -eq 0 ];
 	then
@@ -273,7 +300,7 @@ get_config() {
 		return 0
 	fi
 	[ -n $2 ] && OUT=$2
-  echo $OUT
+	echo $OUT
 }
 
 readonly DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
@@ -291,6 +318,22 @@ write_log() {
 	fi
 }
 
+write_error_log() {
+	write_log $1
+	if [ -n "$ERROR_LOG" ]; then
+		ERROR_LOG="$ERROR_LOG\n: $1"
+	else
+		ERROR_LOG="$1"
+	fi
+}
+
+print_error_log() {
+	if [ -n "$ERROR_LOG" ]; then
+		echo "Error log:"
+		echo $ERROR_LOG
+	fi
+}
+
 # Simple error printer
 print_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
@@ -298,7 +341,6 @@ print_error_and_die() {
 	else
 		write_log "fatal: $1"
 	fi
-	release_lock
 	exit $2
 }
 
@@ -316,7 +358,6 @@ set_default_curl_options() {
 	IFS=" "
 	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
 	IFS="$OIFS"
-	CURL_ARGS+=(--retry 5)
 	CURL_ARGS+=(--globoff)
 	if [ ! -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
@@ -335,7 +376,7 @@ upload_file() {
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
 	fi
-	
+
 	if [ -n "$SYNCROOT" ]; then
 		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
 	fi
@@ -344,7 +385,35 @@ upload_file() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'" $ERROR_UPLOAD
+	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
+}
+
+upload_file_buffered() {
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
+
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$SRC_FILE
+	fi
+
+	if [ -n "$SYNCROOT" ]; then
+		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
+	fi
+	CURL_UPLOADS+=(-T "$SRC_FILE")
+	CURL_UPLOADS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+}
+
+fire_upload_buffer() {
+	if [ -z "$CURL_UPLOADS" ]; then
+		return 0
+	fi
+	print_info "Uploading ..."
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=("${CURL_UPLOADS[@]}")
+	curl "${CURL_ARGS[@]}"
+	CURL_UPLOADS=()
+	check_exit_status "Could not upload files." $ERROR_UPLOAD
 }
 
 remove_file() {
@@ -357,7 +426,7 @@ remove_file() {
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 		if [ $? -ne 0 ]; then
-			write_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
+			write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 		fi
 	fi
 }
@@ -378,12 +447,12 @@ get_file_content() {
 
 upload_local_sha1() {
 	DEPLOYED_SHA1=$(git log -n 1 --pretty=format:%H)
-	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE"
+	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
-		check_exit_status "Could not upload" $ERROR_UPLOAD
+		check_exit_status "Could not upload." $ERROR_UPLOAD
 	fi
-	print_info "Last deployment changed to $DEPLOYED_SHA1";
+	print_info "Last deployment changed to $DEPLOYED_SHA1.";
 }
 
 remote_lock() {
@@ -393,61 +462,24 @@ remote_lock() {
 	local LCK_MESSAGE="${USER}@$(hostname --fqdn) on $(date --utc --rfc-2822)"
 	local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 
-	write_log "Remote locking $LCK_MESSAGE"
+	write_log "Remote locking $LCK_MESSAGE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "${LOCAL_SHA1}\n${LCK_MESSAGE}" | upload_file - $REMOTE_LCK_FILE
-		check_exit_status "Could not upload remote lock file" $ERROR_UPLOAD
+		check_exit_status "Could not upload remote lock file." $ERROR_UPLOAD
 	fi
 }
 
 release_remote_lock() {
 	[ $ENABLE_REMOTE_LCK != 1 ] && return;
-	write_log "Releasing remote lock"
+	write_log "Releasing remote lock."
 	remove_file $REMOTE_LCK_FILE
-}
-
-lock() {
-	if [ $(uname | grep 'MINGW') ]; then
-		write_log "Ingnoring lock on MinGW"
-		return
-	fi
-	# Checks locking, make sure this only run once a time
-	if [ -f "$LCK_FILE" ]; then
-
-		# The file exists so read the PID to see if it is still running
-		local MYPID=$(head -n 1 "$LCK_FILE")
-
-		local TEST_RUNNING=$(ps -p $MYPID | grep $MYPID)
-
-		if [ -z "$TEST_RUNNING" ]; then
-			# The process is not running echo current PID into lock file
-			write_log "Not running yet, locking"
-			echo $$ > "$LCK_FILE"
-		else
-			write_log "$(basename $0) is already running [$MYPID]"
-			exit 0
-		fi
-	else
-		write_log "Not running yet, locking"
-		echo $$ > "$LCK_FILE"
-	fi
-}
-
-# Release lock func
-release_lock() {
-	if [ $(uname | grep 'MINGW') ]; then
-		write_log "Ingnoring lock on MinGW"
-		return
-	fi
-	write_log "Releasing lock"
-	rm -f "$LCK_FILE"
 }
 
 set_remote_host() {
 	[ -z $URL ] && URL="$(get_config url)"
 	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
 	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:-]*\).*")
-	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set" $ERROR_MISSING_ARGUMENTS
+	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set." $ERROR_MISSING_ARGUMENTS
 }
 
 set_remote_protocol() {
@@ -464,13 +496,13 @@ set_remote_protocol() {
 	# Check if a unknown protocol is set, handle it or use default protocol
 	local UNKNOWN_PROTOCOL=$(expr "$URL" : "\(.*:[/]*\).*")
 	if [ -z $UNKNOWN_PROTOCOL ]; then
-		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://"
+		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://."
 		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
 		echo "$URL" | egrep -q "/" && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
 		return
 	fi
-	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'" $ERROR_UNKNOWN_PROTOCOL
+	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'." $ERROR_UNKNOWN_PROTOCOL
 }
 
 set_deployed_sha1() {
@@ -479,10 +511,10 @@ set_deployed_sha1() {
 		return
 	fi
 	# Get the last commit (SHA) we deployed if not ignored or not found
-	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
+	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1"
+	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
 }
 
 set_changed_files() {
@@ -503,7 +535,7 @@ set_changed_files() {
 
 	rm -f '.git-ftp-tmp'
 	rm -f '.git-ftp-ignore-tmp'
-	
+
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Sync all files."
 		return
@@ -512,25 +544,23 @@ set_changed_files() {
 	if [ $? -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-			echo -n "Do you want to ignore and upload all files again? [y/N] "
+			echo -n "Do you want to ignore and upload all files again? [y/N]: "
 			read ANSWER_STATE
 			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 				print_info "Aborting..."
-				release_lock
 				exit 0
 			else
-				write_log "Taking all files";
+				write_log "Taking all files.";
 				FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
 			fi
 		else
-			print_info "Unknown SHA1 object, could not determine changed filed, taking all files"
+			print_info "Unknown SHA1 object, could not determine changed filed, taking all files."
 			FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
 		fi
 	elif [ -n "$FILES_CHANGED" ]; then
-		write_log "Having changed files";
+		write_log "Having changed files.";
 	else
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-		release_lock
 		exit 0
 	fi
 }
@@ -540,7 +570,7 @@ handle_file_sync() {
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	write_log "There are $TOTAL_ITEMS files to upload"
+	print_info "There are $TOTAL_ITEMS files to sync:"
 
 	# Changing internal field separator, file names could have spaces
 	OIFS="$IFS"
@@ -548,7 +578,7 @@ handle_file_sync() {
 	NIFS=$'
 '
 	IFS="$NIFS"
-	   
+
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
@@ -556,36 +586,36 @@ handle_file_sync() {
 		FILE_NAME=${FILE_NAME/#\"/}
 		FILE_NAME=${FILE_NAME/%\"/}
 
-
 		if [ "$FILE_MODE" != "D" ]; then
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Uploading '$FILE_NAME'"
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
+
 			if is_submodule $FILE_NAME; then
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
-			else if [ $DRY_RUN -ne 1 ]
-				then
-					upload_file "$FILE_NAME"
+
+			else if [ $DRY_RUN -ne 1 ]; then
+					if is_arg_max_reached "$FILE_NAME"; then
+						IFS="$OIFS"
+						fire_upload_buffer
+						IFS="$NIFS"
+						CURL_UPLOADS=()
+					fi
+					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
+		# Removing file
 		else
-			# Removing file
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'"
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'."
 			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
 		fi
 	done
 
 	IFS="$OIFS"
-}
 
-handle_upload_worker() {
-	# Upload the given file and notify the manager pipe so that another upload
-	# job can be spawned.
-	local FILE_NAME="$1"
-	upload_file "$FILE_NAME" ${FILE_NAME#$SYNCROOT}
-	echo >&3
+	fire_upload_buffer
 }
 
 handle_submodule_sync() {
-	print_info "Handling submodule sync for $1"
+	print_info "Handling submodule sync for $1."
 
 	# Duplicate the current required parameters
 	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
@@ -597,14 +627,14 @@ handle_submodule_sync() {
 
 	if [ $VERBOSE -eq 1 ]; then
 		args+=(--verbose)
-	else
+	elif [ $VERBOSE -eq -1 ]; then
 		args+=(--silent)
 	fi
 
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
 
 	(
-		cd $1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+		cd ${SYNCROOT}$1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 	)
 
 	local EXIT_CODE=$?
@@ -615,17 +645,30 @@ handle_submodule_sync() {
 		(
 			cd $1 && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 		)
-		check_exit_status "Failed to sync submodules" $ERROR_UPLOAD
+		check_exit_status "Failed to sync submodules." $ERROR_UPLOAD
 	elif [ $EXIT_CODE -ne 0 ]; then
-		print_error_and_die "Failed to sync submodules" $ERROR_UPLOAD
+		print_error_and_die "Failed to sync submodules." $ERROR_UPLOAD
 	fi
 }
 
 handle_remote_protocol_options() {
 	# SFTP uses a different remove command and uses absolute paths
 	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
+
+	# Check for using cacert
+	if [ "$REMOTE_PROTOCOL" = "ftpes" -o "$REMOTE_PROTOCOL" = "ftps" ] && \
+	[ -n "$REMOTE_CACERT" -a -r "$REMOTE_CACERT" ]; then
+		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --cacert $REMOTE_CACERT"
+	fi
+
 	# Options for curl if using FTPES
-	[ "$REMOTE_PROTOCOL" = "ftpes" ] && REMOTE_PROTOCOL="ftp" && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl -k"
+	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
+		REMOTE_PROTOCOL="ftp"
+		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl"
+	fi
+
+	# Require users' explicit consent for insecure connections
+	[ $CURL_INSECURE -ne 0 ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
 handle_action() {
@@ -640,7 +683,7 @@ handle_action() {
 			action_push
 			;;
 		catchup)
-			action_catchup	
+			action_catchup
 			;;
 		show)
 			action_show
@@ -655,7 +698,7 @@ handle_action() {
 			action_remove_scope
 			;;
 		*)
-			print_error_and_die "Action unknown" $ERROR_MISSING_ARGUMENTS
+			print_error_and_die "Action unknown." $ERROR_MISSING_ARGUMENTS
 			;;
 	esac
 }
@@ -664,43 +707,50 @@ set_remote_user() {
 	[ -z $REMOTE_USER ] && REMOTE_USER="$(get_config user)"
 }
 
+set_remote_cacert() {
+	[ -z $REMOTE_CACERT ] && REMOTE_CACERT="$(get_config cacert)"
+}
+
 set_remote_password() {
 	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
 	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(get_config password)"
 }
 
 set_syncroot() {
-		[ -z $SYNCROOT] && SYNCROOT="$(get_config syncroot)"
-		if [ $SYNCROOT ]; then
-			[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
-			SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
-		fi
+	[ -z $SYNCROOT ] && SYNCROOT="$(get_config syncroot)"
+	if [ $SYNCROOT ]; then
+		[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
+		SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+	fi
 }
 
 set_remotes() {
 	set_remote_host
-	write_log "Host is '$REMOTE_HOST'"
+	write_log "Host is '$REMOTE_HOST'."
 
 	set_remote_user
-	write_log "User is '$REMOTE_USER'"
-	
+	write_log "User is '$REMOTE_USER'."
+
 	set_remote_password
 	if [ -z $REMOTE_PASSWD ]; then
-		write_log "No password is set"
+		write_log "No password is set."
 	else
-		write_log "Password is set"
+		write_log "Password is set."
 	fi 
 
 	set_remote_protocol
 	# Add trailing slash if missing
 	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "*/$"; then
-		write_log "Added missing trailing / in path"
+		write_log "Added missing trailing / in path."
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
-	write_log "Path is '$REMOTE_PATH'"
-	
+	write_log "Path is '$REMOTE_PATH'."
+
 	set_syncroot
-	write_log "Syncroot is '$SYNCROOT'"
+	write_log "Syncroot is '$SYNCROOT'."
+
+	set_remote_cacert
+	write_log "CACert is $REMOTE_CACERT"
 }
 
 create_new_repo() {
@@ -715,6 +765,9 @@ create_new_repo() {
 	fi
 	[ -e $NEW_REPO ] && print_error_and_die "$NEW_REPO already exists. Exiting..." $ERROR_USAGE
 	git init $NEW_REPO || print_error_and_die "git init $NEW_REPO failed. Exiting..."
+}
+get_protocol_of_url() {
+	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1
@@ -769,8 +822,8 @@ set_number_of_threads() {
 }
 
 set_scope() {
-	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
-	[ -z $URL ] && print_error_and_die "Missing URL" $ERROR_MISSING_ARGUMENTS
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
+	[ -z $URL ] && print_error_and_die "Missing URL." $ERROR_MISSING_ARGUMENTS
 
 	# URI without credentials
 	if ! echo "$URL" | grep -q '@'; then
@@ -803,18 +856,18 @@ set_scope() {
 			;;
 		*)
 			# we can't know where to cut with multiple ':'
-			echo "Warning, multiple ':' characters detected, only URL was set in scope."
-			echo "Use --user and --passwd options to set login and password respectively."
+			print_info "Warning, multiple ':' characters detected, only URL was set in scope."
+			print_info "Use --user and --passwd options to set login and password respectively."
 	esac
 }
 
 remove_scope() {
-	[ -z $SCOPE ] && print_error_and_die "Missing scope argument" $ERROR_MISSING_ARGUMENTS
+	[ -z $SCOPE ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
 
 	$(git config --remove-section git-ftp.$SCOPE &>/dev/null)
 
-	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE" $ERROR_GIT
-	echo "Successfully removed scope $SCOPE"
+	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE." $ERROR_GIT
+	print_info "Successfully removed scope $SCOPE."
 }
 
 # ------------------------------------------------------------
@@ -825,14 +878,12 @@ action_init() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	check_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	release_lock
 }
 
 action_bootstrap() {
@@ -840,12 +891,12 @@ action_bootstrap() {
 	set_remotes
 	create_new_repo
 	cd_to_new_repo
-	lock
+	remote_lock
 	pull_remote_updates "into $NEW_REPO"
 	write_configs
 	add_all_files_and_commit
 	upload_local_sha1
-	release_lock
+	release_remote_lock
 }
 
 action_push() {
@@ -853,23 +904,19 @@ action_push() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	set_deployed_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	release_lock
 }
 
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
 	upload_local_sha1
-	release_lock
 }
 
 action_show() {
@@ -883,9 +930,9 @@ action_fetch() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
-	lock
+	remote_lock
 	pull_remote_updates
-	release_lock
+	release_remote_lock
 }
 
 action_add_scope() {
@@ -901,7 +948,7 @@ action_remove_scope() {
 # Checks
 # ------------------------------------------------------------
 check_deployed_sha1() {
-	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean"
+	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	if [ "$DEPLOYED_SHA1" != "" ]; then
 		print_error_and_die "Commit found, use 'git ftp push' to sync. Exiting..." $ERROR_USAGE
@@ -915,21 +962,21 @@ check_git_version() {
 	local MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
 	local MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
 	if [ $MAJOR -lt 2 ] && [ $MINOR -lt 7 ]; then
-		print_error_and_die "Git is too old, 1.7.0 or higher suported only" $ERROR_GIT
+		print_error_and_die "Git is too old, 1.7.0 or higher suported only." $ERROR_GIT
 	fi
 }
 
 check_remote_lock() {
-	write_log "Checking remote lock"
+	write_log "Checking remote lock."
 	local LCK_CONTENT="$(get_file_content $REMOTE_LCK_FILE 2>/dev/null)"
 	if [ -n "$LCK_CONTENT" ]; then
 		local LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
-		write_log "Remote lock sha1 $LCK_SHA1"
+		write_log "Remote lock sha1 $LCK_SHA1."
 		local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
-		write_log "Local sha1 $LOCAL_SHA1"
+		write_log "Local sha1 $LOCAL_SHA1."
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			local LCK_USER=$(echo "$LCK_CONTENT" | tail -n 1)
-			print_error_and_die "Remote locked by $LCK_USER" $ERROR_REMOTE_LOCKED
+			print_error_and_die "Remote locked by $LCK_USER." $ERROR_REMOTE_LOCKED
 		fi
 	fi
 }
@@ -941,14 +988,16 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-    [ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
+	[ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
 # ------------------------------------------------------------
 # Main
 # ------------------------------------------------------------
 main() {
+	set_arg_max
 	handle_action
+	print_error_log
 	exit 0
 }
 
@@ -995,14 +1044,14 @@ do
 					SCOPE=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option -s" $ERROR_MISSING_ARGUMENTS
+					check_is_git_project && SCOPE=$(git branch | grep '*' | awk '{print $2}')
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						SCOPE="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -s" $ERROR_MISSING_ARGUMENTS
+						check_is_git_project && SCOPE=$(git branch | grep '*' | awk '{print $2}')
 					fi
 					;;
 			esac
@@ -1014,18 +1063,18 @@ do
 					SYNCROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
+					print_error_and_die "Too few arguments for option --syncroot." $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						SYNCROOT="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option --syncroot" $ERROR_MISSING_ARGUMENTS
+						print_error_and_die "Too few arguments for option --syncroot." $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
-			write_log "Using syncroot $SYNCROOT if exists"
+			write_log "Using syncroot $SYNCROOT if exists."
 			;;
 		-c|--commit*)
 			case "$#,$1" in
@@ -1033,18 +1082,18 @@ do
 					DEPLOYED_SHA1=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
+					print_error_and_die "Too few arguments for option -c." $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						DEPLOYED_SHA1="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -c" $ERROR_MISSING_ARGUMENTS
+						print_error_and_die "Too few arguments for option -c." $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
-			write_log "Using commit $DEPLOYED_SHA1 as deployed"
+			write_log "Using commit $DEPLOYED_SHA1 as deployed."
 			;;
 		-p|--passwd*)
 			case "$#,$1" in
@@ -1066,7 +1115,7 @@ do
 			;;
 		-k|--keychain*)
 			USE_KEYCHAIN=1
-			write_log "Enabled keychain"
+			write_log "Enabled keychain."
 			case "$#,$1" in
 				*,*=*)
 					KEYCHAIN_USER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
@@ -1087,16 +1136,16 @@ do
 			;;
 		-l|--lock)
 			if [ $ENABLE_REMOTE_LCK -ne 1 ]; then
-				write_log "Enabling remote locking feature"
+				write_log "Enabling remote locking feature."
 				ENABLE_REMOTE_LCK=1
 			else
-				write_log "Disabling remote locking feature"
+				write_log "Disabling remote locking feature."
 				ENABLE_REMOTE_LCK=0
 			fi
 			;;
 		-D|--dry-run)
 			DRY_RUN=1
-			write_log "Running dry, won't do anything"
+			write_log "Running dry, won't do anything."
 			;;
 		-n|--silent)
 			VERBOSE=-1
@@ -1115,15 +1164,37 @@ do
 			;;
 		-f|--force)
 			FORCE=1
-			write_log "Forced mode enabled"
+			write_log "Forced mode enabled."
 			;;
 		--version|version)
 			echo "git-ftp version $VERSION"
 			exit 0
 			;;
+		--insecure)
+			CURL_INSECURE=1
+			write_log "Insecure SSL/TLS connection allowed"
+			;;
+		--cacert*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_CACERT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print error_and_die "Too few arguments for option --cacert" $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						REMOTE_CACERT="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --cacert" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			;;
 		-A|--active)
 			ACTIVE_MODE=1
-			write_log "Using active mode"
+			write_log "Using active mode."
 			;;
 		-m|--message)
 			case "$#,$1" in
