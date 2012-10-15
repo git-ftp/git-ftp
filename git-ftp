@@ -200,7 +200,7 @@ is_submodule() {
 }
 
 set_arg_max() {
-	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX 2>/dev/null)
 	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
 		ARG_MAX=$ARG_MAX_SYSTEM
 	fi
