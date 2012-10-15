@@ -57,6 +57,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i ARG_MAX=4096
+declare -a GIT_SUBMODULES
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -190,12 +191,12 @@ has() {
 	echo " $@ " | grep -q " $(escape $item) "
 }
 
-git_submodules() {
-	git submodule | awk '{print $2}'
+cache_git_submodules() {
+	GIT_SUBMODULES=$(git submodule | awk '{print $2}')
 }
 
 is_submodule() {
-	has $1 $(git_submodules)
+	has $1 ${GIT_SUBMODULES[@]}
 }
 
 set_arg_max() {
@@ -891,6 +892,7 @@ check_is_dirty_repository() {
 # ------------------------------------------------------------
 main() {
 	set_arg_max
+	cache_git_submodules
 	handle_action
 	print_error_log
 	exit 0
