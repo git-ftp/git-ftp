@@ -57,6 +57,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i ARG_MAX=4096
+declare -a GIT_SUBMODULES
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -190,16 +191,16 @@ has() {
 	echo " $@ " | grep -q " $(escape $item) "
 }
 
-git_submodules() {
-	git submodule | awk '{print $2}'
+cache_git_submodules() {
+	GIT_SUBMODULES=$(git submodule | awk '{print $2}')
 }
 
 is_submodule() {
-	has $1 $(git_submodules)
+	has $1 ${GIT_SUBMODULES[@]}
 }
 
 set_arg_max() {
-	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX 2>/dev/null)
 	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
 		ARG_MAX=$ARG_MAX_SYSTEM
 	fi
@@ -845,6 +846,14 @@ action_remove_scope() {
 check_deployed_sha1() {
 	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
+
+	# We expect curl to fail if the file does not exists (which would be normal for the initial 'init'.
+	# from the curl(1) man page:
+	# 	Exit Code 78: The resource referenced in the URL does not exist.
+	if  [ $? -ne 0 -a $? -ne 78 ]; then
+		print_error_and_die "Failed to contact host. Network down? Wrong URL? Wrong username/password?" $ERROR_DOWNLOAD
+	fi
+
 	if [ "$DEPLOYED_SHA1" != "" ]; then
 		print_error_and_die "Commit found, use 'git ftp push' to sync. Exiting..." $ERROR_USAGE
 	fi
@@ -891,6 +900,7 @@ check_is_dirty_repository() {
 # ------------------------------------------------------------
 main() {
 	set_arg_max
+	cache_git_submodules
 	handle_action
 	print_error_log
 	exit 0
