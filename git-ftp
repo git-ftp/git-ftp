@@ -562,9 +562,7 @@ handle_file_sync() {
 
 	# Changing internal field separator, file names could have spaces
 	OIFS="$IFS"
-	# dash does not like NIFS=$'\n', using WYSIWYG
-	NIFS=$'
-'
+	NIFS=$'\n'
 	IFS="$NIFS"
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
