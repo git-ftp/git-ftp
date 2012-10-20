@@ -400,8 +400,8 @@ fire_upload_buffer() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("${CURL_UPLOADS[@]}")
 	curl "${CURL_ARGS[@]}"
-	CURL_UPLOADS=()
 	check_exit_status "Could not upload files." $ERROR_UPLOAD
+	CURL_UPLOADS=()
 }
 
 remove_file() {
@@ -585,7 +585,6 @@ handle_file_sync() {
 						IFS="$OIFS"
 						fire_upload_buffer
 						IFS="$NIFS"
-						CURL_UPLOADS=()
 					fi
 					upload_file_buffered "$FILE_NAME"
 				fi
