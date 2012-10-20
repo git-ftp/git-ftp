@@ -1,3 +1,9 @@
+Version 0.8.3
+=============
+
+* Hotfix 0.8.2 did not fix the bug. Another try fixing bug related to ARG_MAX.
+* Fixed bug 'egrep: repetition-operator operand invalid' if running on OSX 10.8.
+
 Version 0.8.2
 =============
 
