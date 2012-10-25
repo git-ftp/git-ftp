@@ -45,6 +45,7 @@ SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
+LOCAL_SHA1=""
 SYNCROOT=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
@@ -433,8 +434,12 @@ get_file_content() {
 	curl "${CURL_ARGS[@]}"
 }
 
+set_local_sha1() {
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+}
+
 upload_local_sha1() {
-	DEPLOYED_SHA1=$(git log -n 1 --pretty=format:%H)
+	DEPLOYED_SHA1=$LOCAL_SHA1
 	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
@@ -448,7 +453,6 @@ remote_lock() {
 	[ $FORCE -ne 1 ] && check_remote_lock
 
 	local LCK_MESSAGE="${USER}@$(hostname --fqdn) on $(date --utc --rfc-2822)"
-	local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 
 	write_log "Remote locking $LCK_MESSAGE."
 	if [ $DRY_RUN -ne 1 ]; then
@@ -794,6 +798,7 @@ action_init() {
 	check_is_dirty_repository
 	set_remotes
 	check_deployed_sha1
+	set_local_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
@@ -807,6 +812,7 @@ action_push() {
 	check_is_dirty_repository
 	set_remotes
 	set_deployed_sha1
+	set_local_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
@@ -818,6 +824,7 @@ action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
+	set_local_sha1
 	upload_local_sha1
 }
 
@@ -865,7 +872,6 @@ check_remote_lock() {
 	if [ -n "$LCK_CONTENT" ]; then
 		local LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
 		write_log "Remote lock sha1 $LCK_SHA1."
-		local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 		write_log "Local sha1 $LOCAL_SHA1."
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			local LCK_USER=$(echo "$LCK_CONTENT" | tail -n 1)
