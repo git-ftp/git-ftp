@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='0.8.2-snapshot'
+readonly VERSION='0.8.3-snapshot'
 
 # ------------------------------------------------------------
 # Defaults
@@ -48,6 +48,7 @@ SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
+LOCAL_SHA1=""
 SYNCROOT=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
@@ -60,6 +61,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i ARG_MAX=4096
+declare -a GIT_SUBMODULES
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -203,17 +205,18 @@ has() {
 	echo " $@ " | grep -q " $(escape $item) "
 }
 
-git_submodules() {
-	git submodule | awk '{print $2}'
+cache_git_submodules() {
+	GIT_SUBMODULES=$(git submodule | awk '{print $2}')
 }
 
 is_submodule() {
-	has $1 $(git_submodules)
+	has $1 ${GIT_SUBMODULES[@]}
 }
 
 set_arg_max() {
-	local ARG_MAX_SYSTEM=$(getconf ARG_MAX)
+	local ARG_MAX_SYSTEM=$(getconf ARG_MAX 2>/dev/null)
 	if [ ! -z "$ARG_MAX_SYSTEM" ]; then
+		ARG_MAX_SYSTEM=$(( $ARG_MAX_SYSTEM - $(env|wc -c) - $(env|wc -l) * 4 - 2048 ))
 		ARG_MAX=$ARG_MAX_SYSTEM
 	fi
 	write_log "ARG_MAX is $ARG_MAX"
@@ -221,10 +224,9 @@ set_arg_max() {
 
 is_arg_max_reached() {
 	local ARGS_TO_ADD=$1
-	local BUFFER=1000
 
 	ARGS_STRING="${CURL_UPLOADS[@]}"
-	CURRENT_LENGTH=$(expr ${#ARGS_STRING} + ${#ARGS_TO_ADD} + $BUFFER)
+	CURRENT_LENGTH=$(( ${#ARGS_STRING} + ${#ARGS_TO_ADD} ))
 	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
 		return 1
 	fi
@@ -412,8 +414,8 @@ fire_upload_buffer() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("${CURL_UPLOADS[@]}")
 	curl "${CURL_ARGS[@]}"
-	CURL_UPLOADS=()
 	check_exit_status "Could not upload files." $ERROR_UPLOAD
+	CURL_UPLOADS=()
 }
 
 remove_file() {
@@ -445,8 +447,12 @@ get_file_content() {
 	curl "${CURL_ARGS[@]}"
 }
 
+set_local_sha1() {
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+}
+
 upload_local_sha1() {
-	DEPLOYED_SHA1=$(git log -n 1 --pretty=format:%H)
+	DEPLOYED_SHA1=$LOCAL_SHA1
 	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - $DEPLOYED_SHA1_FILE
@@ -460,7 +466,6 @@ remote_lock() {
 	[ $FORCE -ne 1 ] && check_remote_lock
 
 	local LCK_MESSAGE="${USER}@$(hostname --fqdn) on $(date --utc --rfc-2822)"
-	local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 
 	write_log "Remote locking $LCK_MESSAGE."
 	if [ $DRY_RUN -ne 1 ]; then
@@ -574,9 +579,7 @@ handle_file_sync() {
 
 	# Changing internal field separator, file names could have spaces
 	OIFS="$IFS"
-	# dash does not like NIFS=$'\n', using WYSIWYG
-	NIFS=$'
-'
+	NIFS=$'\n'
 	IFS="$NIFS"
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
@@ -597,7 +600,6 @@ handle_file_sync() {
 						IFS="$OIFS"
 						fire_upload_buffer
 						IFS="$NIFS"
-						CURL_UPLOADS=()
 					fi
 					upload_file_buffered "$FILE_NAME"
 				fi
@@ -770,7 +772,7 @@ get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1
 }
 get_protocol_of_url() {
-	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://.*' | cut -d ':' -f 1
+	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
 
 pull_remote_updates () {
@@ -879,6 +881,7 @@ action_init() {
 	check_is_dirty_repository
 	set_remotes
 	check_deployed_sha1
+	set_local_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
@@ -905,6 +908,7 @@ action_push() {
 	check_is_dirty_repository
 	set_remotes
 	set_deployed_sha1
+	set_local_sha1
 	set_changed_files
 	remote_lock
 	handle_file_sync
@@ -916,6 +920,7 @@ action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
+	set_local_sha1
 	upload_local_sha1
 }
 
@@ -972,7 +977,6 @@ check_remote_lock() {
 	if [ -n "$LCK_CONTENT" ]; then
 		local LCK_SHA1=$(echo "$LCK_CONTENT" | head -n 1)
 		write_log "Remote lock sha1 $LCK_SHA1."
-		local LOCAL_SHA1="$(git log -n 1 --pretty=format:%H)"
 		write_log "Local sha1 $LOCAL_SHA1."
 		if [ "$LCK_SHA1" != "$LOCAL_SHA1" ]; then
 			local LCK_USER=$(echo "$LCK_CONTENT" | tail -n 1)
@@ -996,6 +1000,7 @@ check_is_dirty_repository() {
 # ------------------------------------------------------------
 main() {
 	set_arg_max
+	cache_git_submodules
 	handle_action
 	print_error_log
 	exit 0
