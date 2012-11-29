@@ -4,7 +4,7 @@ INSTALL
 Stable on Linux/Unix based systems using make
 ---------------------------------------------
 
-Note: Make sure Git and cURL is installed.
+Note: Make sure Git and cURL are installed.
 
 This should work on Mac OS X, Debian, Ubuntu, Fedora, RedHat, etc.
 
