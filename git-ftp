@@ -165,6 +165,8 @@ SET DEFAULTS
 	. git config git-ftp.password secr3t
 	. git config git-ftp.syncroot path/dir
 	. git config git-ftp.cacert path/cacert
+	. git config git-ftp.deployedsha1file mySHA1File
+	. git config git-ftp.insecure 1
 
 
 SET SCOPE DEFAULTS 
@@ -733,9 +735,15 @@ set_remotes() {
 	write_log "Syncroot is '$SYNCROOT'."
 
 	set_remote_cacert
-	write_log "CACert is $REMOTE_CACERT"
+	write_log "CACert is '$REMOTE_CACERT'."
+	
+	set_curl_insecure
+	write_log "Insecure is '$CURL_INSECURE'."
 }
 
+set_curl_insecure() {
+	[ -z $CURL_INSECURE ] && $CURL_INSECURE="$(get_config insecure)"
+}
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
