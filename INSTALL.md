@@ -66,10 +66,13 @@ After this, open git bash (or cygwin bash for cygwin only):
 	$ cd ~
 	$ git clone https://github.com/resmo/git-ftp git-ftp.git
 	$ cd git-ftp.git && chmod +x git-ftp
-	$ cd /bin/
-	$ ln -s ~/git-ftp.git/git-ftp git-ftp
+	$ cp ~/git-ftp.git/git-ftp /bin/git-ftp
 
-Note: Option -p without argument is showing password while entering.
+__Important:__ Because Windows does not support symbolic links (shortcuts),
+the above steps will create a copy of the git-ftp script in your /bin/ directory.
+If you update your git-ftp clone, you will have to repeat the last command.
+
+*Note: the /bin/ directory is a alias, and if you use msysgit this is the same as C:\Program Files (x86)\Git\bin\*
 
 
 Upstream using symlinking
