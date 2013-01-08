@@ -788,7 +788,7 @@ pull_remote_updates () {
 		ignore=`grep -v ^# .git-ftp-ignore | sed 's/^/--exclude /'`
 		ignore=`echo $ignore | tr -d '\r'`
 	fi
-	lftp $LFTP_OPTIONS -e "mirror$dr $ignore --delete --exclude=.git* . && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$dr $ignore --delete --exclude=.git* . && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 write_configs () {
