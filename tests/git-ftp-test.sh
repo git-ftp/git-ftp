@@ -29,7 +29,7 @@ setUp() {
 	sudo rm -rf $FTP_PROJECT_PATH
 	mkdir -p $GIT_PROJECT_PATH
 	cd $GIT_PROJECT_PATH
-	 
+
 	# make some content
 	for i in 1 2 3 4 5
 	do
@@ -262,5 +262,15 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
 }
 
+test_file_named_dash() {
+	cd $GIT_PROJECT_PATH
+	echo "foobar" > -
+	assertTrue 'test failed: file named - not there as expected' "[ -f '$GIT_PROJECT_PATH/-' ]"
+	git add . > /dev/null 2>&1
+	git commit -a -m "file named - test" > /dev/null 2>&1
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
 # load and run shUnit2
 . ./shunit2-2.1.6/src/shunit2
