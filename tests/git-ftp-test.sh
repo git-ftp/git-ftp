@@ -69,7 +69,7 @@ test_inits_and_pushes() {
 	assertEquals 0 $rtrn
 
 	# this should fail
-	init2=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL) 
+	init2=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)
 	rtrn=$?
 	assertEquals 2 $rtrn
 	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
