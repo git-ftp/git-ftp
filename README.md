@@ -63,6 +63,11 @@ Setting defaults for a git project in .git/config
 	$ git config git-ftp.user john
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
+	$ git config git-ftp.cacert caCertStore
+	$ git config deployedsha1file mySHA1File
+	$ git config syncroot Output
+	$ git config curl-insecure 1
+	
 
 After setting defaults, push to `john@ftp.example.com` is as simple as
 
@@ -74,7 +79,8 @@ Using Scopes
 
 For using defaults for different systems, use the so called scope feature.
 
-	$ git config git-ftp.<scope>.<(url|user|password)> <value>
+	$ git config git-ftp.<scope>.<(param)> <value>
+	with param := {url|user|password|cacert|syncroot|curl-insecure|deployedsha1file}
 
 Here I set the params for the scope `foobar`
 
