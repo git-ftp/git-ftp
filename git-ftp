@@ -326,7 +326,7 @@ print_error_log() {
 # Simple error printer
 print_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
-		echo "fatal: $1"
+		echo "fatal: $1" >&2
 	else
 		write_log "fatal: $1"
 	fi
