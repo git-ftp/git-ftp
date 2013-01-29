@@ -47,9 +47,9 @@ KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
+CURL_INSECURE=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
-declare -i CURL_INSECURE=0
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
@@ -650,7 +650,7 @@ handle_remote_protocol_options() {
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ $CURL_INSECURE -ne 0 ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
+    [ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
 handle_action() {
@@ -733,7 +733,7 @@ set_remotes() {
 }
 
 set_curl_insecure() {
-	[ -z $CURL_INSECURE ] && $CURL_INSECURE="$(get_config insecure)"
+    [ -z $CURL_INSECURE ] && CURL_INSECURE="$(get_config insecure)"
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
