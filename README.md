@@ -64,9 +64,9 @@ Setting defaults for a git project in .git/config
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
 	$ git config git-ftp.cacert caCertStore
-	$ git config deployedsha1file mySHA1File
-	$ git config syncroot Output
-	$ git config curl-insecure 1
+	$ git config git-ftp.deployedsha1file mySHA1File
+	$ git config git-ftp.syncroot Output
+	$ git config git-ftp.insecure 1
 	
 
 After setting defaults, push to `john@ftp.example.com` is as simple as
