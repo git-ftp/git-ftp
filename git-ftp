@@ -510,6 +510,45 @@ set_changed_files() {
 		git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT 2>/dev/null > '.git-ftp-tmp'
 	fi
 
+	# Add files from include file
+	if [ -f '.git-ftp-include' ]; then
+		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
+
+		for LINE in `grep ':' '.git-ftp-include-tmp'`
+		do
+			OIFS="$IFS"
+			IFS=":"
+			FILE_PAIR=($LINE)
+			IFS="$OIFS"
+			if [[ `grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp'` && ! `grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp'` ]]; then
+				DELETE_COUNT=0
+				MODIFY_COUNT=0
+
+				for SUB_LINE in `grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp'`
+				do
+					OIFS="$IFS"
+					IFS=":"
+					SUB_FILE_PAIR=($SUB_LINE)
+					IFS="$OIFS"
+					if [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+						let DELETE_COUNT++
+					else
+						let MODIFY_COUNT++
+					fi
+				done
+
+				if [ -f "${FILE_PAIR[0]}" ]; then
+					if [ "$DELETE_COUNT" -gt 0 ] && [ "$MODIFY_COUNT" -eq 0 ]; then
+						FILE_STATUS='D'
+					else
+						FILE_STATUS='M'
+					fi
+					echo "$FILE_STATUS	${FILE_PAIR[0]}" >> '.git-ftp-tmp'
+				fi
+			fi
+		done
+	fi
+
 	# Filter against ignore file
 	if [ -f '.git-ftp-ignore' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > '.git-ftp-ignore-tmp'
@@ -519,6 +558,7 @@ set_changed_files() {
 	fi
 
 	rm -f '.git-ftp-tmp'
+	rm -f '.git-ftp-include-tmp'
 	rm -f '.git-ftp-ignore-tmp'
 
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then

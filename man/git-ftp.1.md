@@ -203,6 +203,17 @@ Ingnoring a single file called `foobar.txt`:
 
 	foobar\.txt
 
+# SYNCING UNTRACKED FILES
+
+To upload an untracked file when a paired tracked file changes (e.g. uploading a compiled CSS file when its source SCSS or LESS file changes), add a file pair to `.git-ftp-include`:
+
+    css/style.css:scss/style.scss
+
+If you have multiple source files being combined into a single untracked file, you can pair the untracked file with multiple tracked files, one per line. This ensures the combined untracked file is properly uploaded when any of the component tracked files change:
+
+    css/style.css:scss/style.scss
+    css/style.css:scss/mixins.scss
+
 
 # EXIT CODES
 
