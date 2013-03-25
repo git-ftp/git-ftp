@@ -665,7 +665,7 @@ handle_submodule_sync() {
 	if [ $EXIT_CODE -eq $ERROR_DOWNLOAD ] && [ "$ACTION" == "push" ]; then
 		print_info "Could not push $1, trying to init..."
 		(
-			cd $1 && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+			cd ${SYNCROOT}$1 && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 		)
 		check_exit_status "Failed to sync submodules." $ERROR_UPLOAD
 	elif [ $EXIT_CODE -ne 0 ]; then
