@@ -134,6 +134,9 @@ Everyone likes examples
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
 	$ git config git-ftp.syncroot path/dir
+	$ git config git-ftp.cacert caCertStore
+	$ git config git-ftp.deployedsha1file mySHA1File
+	$ git config git-ftp.insecure 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
