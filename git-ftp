@@ -48,8 +48,8 @@ DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 CURL_INSECURE=""
-SFTP_PUBLIC_KEY=""
-SFTP_PRIVATE_KEY=""
+CURL_PUBLIC_KEY=""
+CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
 declare -i VERBOSE=0
@@ -679,15 +679,14 @@ handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" == "sftp" ]; then
 		set_sftp_config
 		
-		if [ ! -z "$SFTP_PRIVATE_KEY" ]; then
-			write_log "Public key authentication is enabled"
-			write_log "Using ssh private key file $SFTP_PRIVATE_KEY"
-			if [ -z "$SFTP_PUBLIC_KEY" ]; then
+		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
+			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
+			if [ -z "$CURL_PUBLIC_KEY" ]; then
 				# If public key is not specified, use private key with .pub extension
-				SFTP_PUBLIC_KEY="$SFTP_PRIVATE_KEY.pub"
+				CURL_PUBLIC_KEY="$CURL_PRIVATE_KEY.pub"
 			fi
-			write_log "Using ssh public key file $SFTP_PUBLIC_KEY"
-			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $SFTP_PRIVATE_KEY --pubkey $SFTP_PUBLIC_KEY"
+			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
+			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
 		
 		# SFTP uses a different remove command and uses absolute paths
@@ -758,8 +757,8 @@ set_syncroot() {
 }
 
 set_sftp_config() {
-	[ -z $SFTP_PRIVATE_KEY ] && SFTP_PRIVATE_KEY="$(get_config sftp-key)"
-	[ -z $SFTP_PUBLIC_KEY ] && SFTP_PUBLIC_KEY="$(get_config sftp-public-key)"
+	[ -z $CURL_PRIVATE_KEY ] && CURL_PRIVATE_KEY="$(get_config key)"
+	[ -z $CURL_PUBLIC_KEY ] && CURL_PUBLIC_KEY="$(get_config pubkey)"
 }
 
 set_remotes() {
@@ -1151,38 +1150,38 @@ do
 					;;
 			esac
 			;;
-		--sftp-key)
+		--key)
 			case "$#,$1" in
 				*,*=*)
-					SFTP_PRIVATE_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					CURL_PRIVATE_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option --sftp-key." $ERROR_MISSING_ARGUMENTS
+					print_error_and_die "Too few arguments for option --key." $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
-						SFTP_PRIVATE_KEY="$2"
+						CURL_PRIVATE_KEY="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option --sftp-key." $ERROR_MISSING_ARGUMENTS
+						print_error_and_die "Too few arguments for option --key." $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
 			;;
-		--sftp-public-key)
+		--pubkey)
 			case "$#,$1" in
 				*,*=*)
-					SFTP_PUBLIC_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					CURL_PUBLIC_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print_error_and_die "Too few arguments for option --sftp-public-key." $ERROR_MISSING_ARGUMENTS
+					print_error_and_die "Too few arguments for option --pubkey." $ERROR_MISSING_ARGUMENTS
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
-						SFTP_PUBLIC_KEY="$2"
+						CURL_PUBLIC_KEY="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option --sftp-public-key." $ERROR_MISSING_ARGUMENTS
+						print_error_and_die "Too few arguments for option --pubkey." $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
