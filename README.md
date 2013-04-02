@@ -62,7 +62,7 @@ Limitations
 -----------
 
 * Windows and OS X: I am very limited in testing on Windows and OS X. Thanks for helping me out fixing bugs on these platforms.
-* git-ftp as deployment tool: git-ftp was not designed as centralized deployment tool. While running git-ftp, you have to take care, no one pushes touches this repo (e.g. no commits, no checkouts, no file modifications)!
+* git-ftp as deployment tool: git-ftp was not designed as centralized deployment tool. While running git-ftp, you have to take care, no one pushes or touches this repo (e.g. no commits, no checkouts, no file modifications)!
 
 
 Unit Tested
@@ -74,7 +74,7 @@ Core functionality is unit tested on Linux using shunit2. You can find the tests
 Contributions
 -------------
 
-Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself to the AUTHORS file.
+Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself to the [AUTHORS](AUTHORS) file.
 
 [git-ftp issues on GitHub]: http://github.com/resmo/git-ftp/issues
 [WhatisFlattr]: http://en.wikipedia.org/wiki/Flattr
