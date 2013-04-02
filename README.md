@@ -38,7 +38,7 @@ Known Issues
 Installing
 ----------
 
-See INSTALL file.
+See [INSTALL](INSTALL.md) file.
 
 
 Usage
@@ -55,98 +55,14 @@ Pushing for the first time:
 
 	$ git ftp init -u <user> -p - ftp://host.example.com/public_html
 
-Using Defaults
---------------
-
-Setting defaults for a git project in .git/config
-
-	$ git config git-ftp.user john
-	$ git config git-ftp.url ftp.example.com
-	$ git config git-ftp.password secr3t
-	$ git config git-ftp.cacert caCertStore
-	$ git config git-ftp.deployedsha1file mySHA1File
-	$ git config git-ftp.syncroot Output
-	$ git config git-ftp.insecure 1
-	
-
-After setting defaults, push to `john@ftp.example.com` is as simple as
-
-	$ git ftp push
+See [man page](man/git-ftp.1.md) for more options, features and examples!
 
 
-Using Scopes
-------------
+Limitations
+-----------
 
-For using defaults for different systems, use the so called scope feature.
-
-	$ git config git-ftp.<scope>.<(param)> <value>
-	with param := {url|user|password|cacert|syncroot|curl-insecure|deployedsha1file}
-
-Here I set the params for the scope `foobar`
-
-	$ git config git-ftp.foobar.url ftp.testing.com:8080/foobar-path
-	$ git config git-ftp.foobar.password simp3l
-
-Set scope params using action `add-scope`
-
-	$ git ftp add-scope foobar ftp://username:simp3l@ftp.testing.com:8080/foobar-path
-
-You can also remove a previously set scope using `remove-scope`
-
-	$ git ftp remove-scope foobar
-
-Push to scope `foobar` alias `john@ftp.testing.com:8080/foobar-path` using password `simp3l`
-
-	$ git ftp push -s foobar
-
-Because I didn't set the user for this scope, it takes the user `john` as set before in defaults.
-
-
-Ignoring Files to be synced
----------------------------
-
-Add file names to `.git-ftp-ignore` to be ignored.
-
-Unlike `.gitignore`, the pattern matching uses regular expressions (instead of globbing).
-
-Ignoring all in directory `config`:
-
-	config/.*
-
-Ignoring all files having extension `.txt` in `./` :
-
-	.*\.txt
-
-This ignores `a.txt` and `b.txt` but not `dir/c.txt`
-
-Ignoring a single file called `foobar.txt`:
-
-	foobar\.txt
-
-
-Syncing Untracked Files
---------------------
-
-To upload an untracked file when a paired tracked file changes (e.g. uploading a compiled CSS file when its source SCSS or LESS file changes), add a file pair to `.git-ftp-include`:
-
-    css/style.css:scss/style.scss
-
-If you have multiple source files being combined into a single untracked file, you can pair the untracked file with multiple tracked files, one per line. This ensures the combined untracked file is properly uploaded when any of the component tracked files change:
-
-    css/style.css:scss/style.scss
-    css/style.css:scss/mixins.scss
-
-
-Testing and Help Manual
------------------------
-
-For testing mode use `--dry-run` alias `-D`
-
-	$ git ftp push -u <user> -p --dry-run ftp://host.example.com/public_html
-
-For more options and features see man page or help:
-
-	$ git ftp help
+* Windows and OS X: I am very limited in testing on Windows and OS X. Thanks for helping me out fixing bugs on these platforms.
+* git-ftp as deployment tool: git-ftp was not designed as centralized deployment tool. While running git-ftp, you have to take care, no one pushes touches this repo (e.g. no commits, no checkouts, no file modifications)!
 
 
 Unit Tested
