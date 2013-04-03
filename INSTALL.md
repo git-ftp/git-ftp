@@ -45,10 +45,13 @@ Note: Usually updated after every release (tag).
 
 Mac OS X
 --------
+Warning: git-ftp will not work with OS X 10.8 without GNU grep!
+
 Using homebrew:
-
-	$ brew install git-ftp
-
+	# brew install grep
+	# brew install git
+	# brew install curl --with-ssl --with-ssh
+	# brew install git-ftp
 
 Windows
 -------
