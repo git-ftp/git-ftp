@@ -1,7 +1,6 @@
 README of git-ftp
 =================
 
-* &copy; René Moser, mail@renemoser.net, 2010-2012
 * This application is licenced under [GNU General Public License, Version 3.0]
 
 Summary
@@ -71,8 +70,5 @@ Contributions
 
 Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself to the [AUTHORS](AUTHORS) file.
 
-[git-ftp issues on GitHub]: http://github.com/resmo/git-ftp/issues
-[WhatisFlattr]: http://en.wikipedia.org/wiki/Flattr
-[FlattrLink]: https://flattr.com/thing/99914/Git-ftp
-[FlattrButton]: http://api.flattr.com/button/button-static-50x60.png
+[git-ftp issues on GitHub]: http://github.com/git-ftp/git-ftp/issues
 [GNU General Public License, Version 3.0]: http://www.gnu.org/licenses/gpl-3.0-standalone.html
