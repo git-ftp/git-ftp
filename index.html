@@ -1,37 +1,39 @@
 <!DOCTYPE html>
 <html>
+
   <head>
-    <meta charset='utf-8'>
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Git-ftp : Git powered FTP client written as shell script." />
 
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
-    <title>Git-ftp by git-ftp</title>
+    <title>Git-ftp</title>
   </head>
 
   <body>
 
-    <header>
-      <div class="container">
-        <h1>Git-ftp</h1>
-        <h2>Git powered FTP client written as shell script.</h2>
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/git-ftp/git-ftp">View on GitHub</a>
 
-        <section id="downloads">
-          <a href="https://github.com/git-ftp/git-ftp/zipball/master" class="btn">Download as .zip</a>
-          <a href="https://github.com/git-ftp/git-ftp/tarball/master" class="btn">Download as .tar.gz</a>
-          <a href="https://github.com/git-ftp/git-ftp" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
-        </section>
-      </div>
-    </header>
+          <h1 id="project_title">Git-ftp</h1>
+          <h2 id="project_tagline">Git powered FTP client written as shell script.</h2>
 
-    <div class="container">
-      <section id="main_content">
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/git-ftp/git-ftp/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/git-ftp/git-ftp/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
         <h1>README of git-ftp</h1>
 
 <ul>
-<li>© René Moser, <a href="mailto:mail@renemoser.net">mail@renemoser.net</a>, 2010-2012</li>
 <li>This application is licenced under <a href="http://www.gnu.org/licenses/gpl-3.0-standalone.html">GNU General Public License, Version 3.0</a>
 </li>
 </ul><h2>Summary</h2>
@@ -50,14 +52,6 @@ that changed since the last time, git can tell me those files.</p>
 <p>Even if you are playing with different branches, git-ftp knows which files
 are different. No ordinary FTP client can do that.</p>
 
-<h2>Known Issues</h2>
-
-<ul>
-<li>See <a href="http://github.com/resmo/git-ftp/issues">git-ftp issues on GitHub</a> for open issues</li>
-</ul><h2>Installing</h2>
-
-<p>See <a href="INSTALL.md">INSTALL</a> file.</p>
-
 <h2>Usage</h2>
 
 <pre><code>$ cd my_git_tracked_project
@@ -74,23 +68,19 @@ $ git ftp push --user &lt;user&gt; --passwd &lt;password&gt; ftp://host.example.
 <pre><code>$ git ftp init -u &lt;user&gt; -p - ftp://host.example.com/public_html
 </code></pre>
 
-<p>See <a href="man/git-ftp.1.md">man page</a> for more options, features and examples!</p>
-
-<h2>Limitations</h2>
-
-<ul>
-<li>Windows and OS X: I am very limited in testing on Windows and OS X. Thanks for helping me out fixing bugs on these platforms.</li>
-<li>git-ftp as deployment tool: git-ftp was not designed as centralized deployment tool. While running git-ftp, you have to take care, no one pushes or touches this repo (e.g. no commits, no checkouts, no file modifications)!</li>
-</ul><h2>Unit Tested</h2>
-
-<p>Core functionality is unit tested on Linux using shunit2. You can find the tests in <code>tests/</code>.</p>
-
-<h2>Contributions</h2>
-
-<p>Don't hesitate to use GitHub to improve this tool. Don't forget to add yourself to the <a href="AUTHORS">AUTHORS</a> file.</p>
+<p>See <a href="https://github.com/git-ftp/git-ftp/blob/master/man/git-ftp.1.md">man page</a> for more options, features and examples!</p>
       </section>
     </div>
 
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Git-ftp maintained by <a href="https://github.com/git-ftp">git-ftp</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
     
+
   </body>
 </html>
