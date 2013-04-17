@@ -4,11 +4,6 @@ README of git-ftp
 * &copy; René Moser, mail@renemoser.net, 2010-2012
 * This application is licenced under [GNU General Public License, Version 3.0]
 
-This is free and open source software. If you like and use it, flattr it ([flattr?][WhatisFlattr]). Thx.
-
-[![][FlattrButton]][FlattrLink] 
-
-
 Summary
 -------
 
