@@ -134,6 +134,9 @@ Everyone likes examples
 	$ git config git-ftp.url ftp.example.com
 	$ git config git-ftp.password secr3t
 	$ git config git-ftp.syncroot path/dir
+	$ git config git-ftp.cacert caCertStore
+	$ git config git-ftp.deployedsha1file mySHA1File
+	$ git config git-ftp.insecure 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
@@ -202,6 +205,17 @@ This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 Ingnoring a single file called `foobar.txt`:
 
 	foobar\.txt
+
+# SYNCING UNTRACKED FILES
+
+To upload an untracked file when a paired tracked file changes (e.g. uploading a compiled CSS file when its source SCSS or LESS file changes), add a file pair to `.git-ftp-include`:
+
+    css/style.css:scss/style.scss
+
+If you have multiple source files being combined into a single untracked file, you can pair the untracked file with multiple tracked files, one per line. This ensures the combined untracked file is properly uploaded when any of the component tracked files change:
+
+    css/style.css:scss/style.scss
+    css/style.css:scss/mixins.scss
 
 
 # EXIT CODES

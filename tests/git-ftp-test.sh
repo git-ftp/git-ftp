@@ -29,7 +29,7 @@ setUp() {
 	sudo rm -rf $FTP_PROJECT_PATH
 	mkdir -p $GIT_PROJECT_PATH
 	cd $GIT_PROJECT_PATH
-	 
+
 	# make some content
 	for i in 1 2 3 4 5
 	do
@@ -57,7 +57,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 0.8.2"  "$version"
+	assertEquals = "git-ftp version 0.8.4"  "$version"
 }
 
 test_inits_and_pushes() {
@@ -69,7 +69,7 @@ test_inits_and_pushes() {
 	assertEquals 0 $rtrn
 
 	# this should fail
-	init2=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL) 
+	init2=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)
 	rtrn=$?
 	assertEquals 2 $rtrn
 	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
@@ -171,7 +171,7 @@ test_overwrite_defaults_by_scopes_emtpy_string() {
 
 	git config git-ftp.testing.password ''
 
-	init=$($GIT_FTP_CMD init -s testing)
+	init=$($GIT_FTP_CMD init -s testing 2>/dev/null)
 	rtrn=$?
 	assertEquals 4 $rtrn
 }
@@ -262,5 +262,15 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
 }
 
+disabled_test_file_named_dash() {
+	cd $GIT_PROJECT_PATH
+	echo "foobar" > -
+	assertTrue 'test failed: file named - not there as expected' "[ -f '$GIT_PROJECT_PATH/-' ]"
+	git add . > /dev/null 2>&1
+	git commit -a -m "file named - test" > /dev/null 2>&1
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
 # load and run shUnit2
 . ./shunit2-2.1.6/src/shunit2
