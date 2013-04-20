@@ -1,9 +1,16 @@
-Version 0.8.3
+Version 0.8.4
 =============
 
 * Performance improvments in submodule handling. Thanks to Adam Brengesjö.
 * Hotfix 0.8.2 did not fix the bug. Another try fixing bug related to ARG_MAX.
-* Fixed bug 'egrep: repetition-operator operand invalid' if running on OSX 10.8.
+* Info for OS X 10.8 users: Make sure you are using GNU grep. See commit f4baf02731ada267d399a6206d21fffc0357d75a.
+* Info: Repo moved to https://github.com/git-ftp/git-ftp
+* Added support for syncing untracked files. Thanks to Jonathan Patt.
+* Added support for --insecure in config. Thanks to Erik Erkelens.
+* Fixed issues with insecure config option being ignored. Thanks to Andrew Fenn.
+* Fixed error output not using stderr.
+* Fixed sync root missing from submodule sync. Thanks to John Learn.
+* Lots of minor fixes and documentation updates.
 
 Version 0.8.2
 =============

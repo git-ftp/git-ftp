@@ -57,7 +57,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 0.8.3-snapshot"  "$version"
+	assertEquals = "git-ftp version 0.8.4"  "$version"
 }
 
 test_inits_and_pushes() {
@@ -171,7 +171,7 @@ test_overwrite_defaults_by_scopes_emtpy_string() {
 
 	git config git-ftp.testing.password ''
 
-	init=$($GIT_FTP_CMD init -s testing)
+	init=$($GIT_FTP_CMD init -s testing 2>/dev/null)
 	rtrn=$?
 	assertEquals 4 $rtrn
 }
@@ -262,7 +262,7 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
 }
 
-test_file_named_dash() {
+disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
 	assertTrue 'test failed: file named - not there as expected' "[ -f '$GIT_PROJECT_PATH/-' ]"
