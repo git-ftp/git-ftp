@@ -10,7 +10,7 @@ This should work on Mac OS X, Debian, Ubuntu, Fedora, RedHat, etc.
 
 The easiest way is to use Git for installing:
 
-	$ git clone https://github.com/resmo/git-ftp.git
+	$ git clone https://github.com/git-ftp/git-ftp.git
 	$ cd git-ftp
 	$ git checkout master
 	$ sudo make install
@@ -36,7 +36,7 @@ Ubuntu PPA (Personal Package Archive) repository
 Adding PPA on Ubuntu
 
 	$ sudo -s
-	# add-apt-repository ppa:resmo/git-ftp
+	# add-apt-repository ppa:git-ftp/git-ftp
 	# aptitude update
 	# aptitude install git-ftp
 
@@ -67,7 +67,7 @@ otherwise install msysgit.
 After this, open git bash (or cygwin bash for cygwin only):
 
 	$ cd ~
-	$ git clone https://github.com/resmo/git-ftp git-ftp.git
+	$ git clone https://github.com/git-ftp/git-ftp git-ftp.git
 	$ cd git-ftp.git && chmod +x git-ftp
 	$ cp ~/git-ftp.git/git-ftp /bin/git-ftp
 
@@ -89,7 +89,7 @@ This is a easy way to have more then one git-ftp installed
 
 	$ mkdir -p ~/develop/git-ftp.git
 	$ cd ~/develop/git-ftp.git
-	$ git clone https://github.com/resmo/git-ftp.git .
+	$ git clone https://github.com/git-ftp/git-ftp.git .
 	$ chmod +x git-ftp
 	$ mkdir ~/bin && cd ~/bin/
 	$ ln -s ~/develop/git-ftp.git/git-ftp git-ftp.dev
