@@ -18,7 +18,7 @@ Git-ftp is a FTP client using Git to determine which local files to upload or wh
 
 It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file. There is no need for [Git] to be installed on the remote host.
 
-Even if you play with different branches, git-ftp knows which files are different and only handles those files. No ordinary FTP client can do this and it saves time and bandwith.
+Even if you play with different branches, git-ftp knows which files are different and only handles those files. No ordinary FTP client can do this and it saves time and bandwidth.
 
 Another advantage is Git-ftp only handles files which are tracked with [Git]. 
 
