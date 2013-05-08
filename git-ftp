@@ -676,7 +676,7 @@ handle_submodule_sync() {
 }
 
 handle_remote_protocol_options() {
-	if [ "$REMOTE_PROTOCOL" == "sftp" ]; then
+	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
 		
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
