@@ -89,6 +89,12 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--syncroot`
 :	Specifies a directory to sync from as if it were the git project root path.
 
+`--sftp-key`
+:	SSH Private key file name.
+
+`--sftp-public-key`
+:	SSH Public key file name. Used with --sftp-key option.
+
 `--insecure`
 :	Don't verify server's certificate.
 
@@ -137,6 +143,7 @@ Everyone likes examples
 	$ git config git-ftp.cacert caCertStore
 	$ git config git-ftp.deployedsha1file mySHA1File
 	$ git config git-ftp.insecure 1
+	$ git config git-ftp.sftp-key ~/.ssh/id_rsa
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 

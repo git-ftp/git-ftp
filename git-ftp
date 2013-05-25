@@ -48,6 +48,8 @@ DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 CURL_INSECURE=""
+CURL_PUBLIC_KEY=""
+CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
 declare -a CURL_ARGS
 declare -i VERBOSE=0
@@ -674,8 +676,22 @@ handle_submodule_sync() {
 }
 
 handle_remote_protocol_options() {
-	# SFTP uses a different remove command and uses absolute paths
-	[ "$REMOTE_PROTOCOL" = "sftp" ] && REMOTE_DELETE_CMD="rm /"
+	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
+		set_sftp_config
+		
+		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
+			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
+			if [ -z "$CURL_PUBLIC_KEY" ]; then
+				# If public key is not specified, use private key with .pub extension
+				CURL_PUBLIC_KEY="$CURL_PRIVATE_KEY.pub"
+			fi
+			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
+			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
+		fi
+		
+		# SFTP uses a different remove command and uses absolute paths
+		REMOTE_DELETE_CMD="rm /"
+	fi
 
 	# Check for using cacert
 	if [ "$REMOTE_PROTOCOL" = "ftpes" -o "$REMOTE_PROTOCOL" = "ftps" ] && \
@@ -738,6 +754,11 @@ set_syncroot() {
 		[ -d $SYNCROOT ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
 		SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
 	fi
+}
+
+set_sftp_config() {
+	[ -z $CURL_PRIVATE_KEY ] && CURL_PRIVATE_KEY="$(get_config key)"
+	[ -z $CURL_PUBLIC_KEY ] && CURL_PUBLIC_KEY="$(get_config pubkey)"
 }
 
 set_remotes() {
@@ -1125,6 +1146,42 @@ do
 						shift
 					else
 						print_error_and_die "Too few arguments for option --cacert" $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			;;
+		--key)
+			case "$#,$1" in
+				*,*=*)
+					CURL_PRIVATE_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --key." $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						CURL_PRIVATE_KEY="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --key." $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			;;
+		--pubkey)
+			case "$#,$1" in
+				*,*=*)
+					CURL_PUBLIC_KEY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --pubkey." $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						CURL_PUBLIC_KEY="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --pubkey." $ERROR_MISSING_ARGUMENTS
 					fi
 					;;
 			esac
