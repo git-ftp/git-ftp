@@ -108,6 +108,9 @@ ACTIONS
 	. show
 		Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
+	. log
+		Downloads last uploaded SHA1 from log and hooks \`git log\`.
+
 	. catchup
 		Uploads current SHA1 to log, does not upload any files.
 
@@ -723,6 +726,9 @@ handle_action() {
 		show)
 			action_show
 			;;
+		log)
+			action_log
+			;;
 		add-scope)
 			action_add_scope
 			;;
@@ -895,6 +901,13 @@ action_show() {
 	git show "$DEPLOYED_SHA1"
 }
 
+action_log() {
+	set_remotes
+	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
+	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
+	git log "$DEPLOYED_SHA1"
+}
+
 action_add_scope() {
 	check_is_git_project
 	set_scope
@@ -968,7 +981,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|add-scope|remove-scope)
+		init|push|catchup|show|add-scope|remove-scope|log)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
