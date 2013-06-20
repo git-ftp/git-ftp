@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2010-2012 RenÃ© Moser
+# Copyright 2010-2012 René Moser
 # http://github.com/resmo/git-ftp
 #
 # Git-ftp is free software: you can redistribute it and/or modify
@@ -532,7 +532,7 @@ set_changed_files() {
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
 					IFS="$OIFS"
-					if [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
 						let DELETE_COUNT++
 					else
 						let MODIFY_COUNT++
