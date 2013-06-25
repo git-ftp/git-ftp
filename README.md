@@ -2,6 +2,7 @@ README of git-ftp
 =================
 
 * This application is licenced under [GNU General Public License, Version 3.0]
+* Follow this project on twitter [@gitftp](https://twitter.com/gitftp)
 
 Summary
 -------
