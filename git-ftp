@@ -408,13 +408,13 @@ remove_file() {
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
-	if [ "$REMOTE_CMD_OPTIONS" = "-v" ]; then
+	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
-		if [ $? -ne 0 ]; then
-			write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
-		fi
+	fi
+	if [ $? -ne 0 ]; then
+		write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 	fi
 }
 
