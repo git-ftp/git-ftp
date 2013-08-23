@@ -412,9 +412,9 @@ remove_file() {
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
-		if [ $? -ne 0 ]; then
-			write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
-		fi
+	fi
+	if [ $? -ne 0 ]; then
+		write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 	fi
 }
 
