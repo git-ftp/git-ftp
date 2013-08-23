@@ -750,8 +750,8 @@ set_remote_cacert() {
 }
 
 set_remote_password() {
-	[ -z $REMOTE_PASSWD ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
-	[ -z $REMOTE_PASSWD ] && REMOTE_PASSWD="$(get_config password)"
+	[ -z "$REMOTE_PASSWD" ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
+	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
 }
 
 set_syncroot() {
@@ -775,7 +775,7 @@ set_remotes() {
 	write_log "User is '$REMOTE_USER'."
 
 	set_remote_password
-	if [ -z $REMOTE_PASSWD ]; then
+	if [ -z "$REMOTE_PASSWD" ]; then
 		write_log "No password is set."
 	else
 		write_log "Password is set."
