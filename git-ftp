@@ -467,8 +467,8 @@ release_remote_lock() {
 
 set_remote_host() {
 	[ -z $URL ] && URL="$(get_config url)"
-	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:-]*\).*")
-	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:-]*\).*")
+	REMOTE_HOST=$(expr "$URL" : ".*://\([[:alpha:]0-9\.:_-]*\).*")
+	[ -z $REMOTE_HOST ] && REMOTE_HOST=$(expr "$URL" : "\([[:alpha:]0-9\.:_-]*\).*")
 	[ -z $REMOTE_HOST ] && print_error_and_die "Remote host not set." $ERROR_MISSING_ARGUMENTS
 }
 
