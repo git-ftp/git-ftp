@@ -519,7 +519,7 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		for LINE in `grep ':' '.git-ftp-include-tmp'`
+		grep ':' '.git-ftp-include-tmp' | while read LINE
 		do
 			OIFS="$IFS"
 			IFS=":"
