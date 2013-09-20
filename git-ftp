@@ -525,12 +525,25 @@ set_changed_files() {
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			if [[ `grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp'` && ! `grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp'` ]]; then
+			HAS_PAIR_0=0
+			HAS_PAIR_1=0
+			while read TMP_LINE # < .git-ftp-tmp
+			do
+				if [ "${TMP_LINE:2}" = "${FILE_PAIR[0]}" ]; then
+					let HAS_PAIR_1++
+				elif [ "${TMP_LINE:2}" = "${FILE_PAIR[1]}" ]; then
+					let HAS_PAIR_1++
+				fi
+			done < '.git-ftp-tmp'
+			if [ "$HAS_PAIR_0" -eq 0 ] && [ "$HAS_PAIR_1" -gt 0 ]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
-				for SUB_LINE in `grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp'`
+				while read SUB_LINE # < .git-ftp-include-tmp
 				do
+					if [ "${SUB_LINE:0:((${#FILE_PAIR[0]}+1))}" != "${FILE_PAIR[0]}:" ]; then
+						continue
+					fi
 					OIFS="$IFS"
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
@@ -540,7 +553,7 @@ set_changed_files() {
 					else
 						let MODIFY_COUNT++
 					fi
-				done
+				done < '.git-ftp-include-tmp'
 
 				if [ -f "${FILE_PAIR[0]}" ]; then
 					if [ "$DELETE_COUNT" -gt 0 ] && [ "$MODIFY_COUNT" -eq 0 ]; then
