@@ -432,6 +432,16 @@ get_file_content() {
 	curl "${CURL_ARGS[@]}"
 }
 
+get_file_lastmodified()
+{
+	local SRC_FILE="$1"
+	set_default_curl_options
+	CURL_ARGS+=("--head")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+
+	curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:" | cut -d ' ' -f 2-
+}
+
 set_local_sha1() {
 	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
 }
@@ -504,7 +514,11 @@ set_deployed_sha1() {
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+
+	DEPLOYED_SHA1_LAST_MODIFIED="$(get_file_lastmodified $DEPLOYED_SHA1_FILE)"
+	check_exit_status "Could not get the last modified date." $ERROR_DOWNLOAD
+
+	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $DEPLOYED_SHA1_LAST_MODIFIED."
 }
 
 set_changed_files() {
