@@ -386,6 +386,14 @@ upload_file_buffered() {
 	if [ -n "$SYNCROOT" ]; then
 		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
 	fi
+
+	if [ "$DEPLOYED_SHA1_LAST_MODIFIED" -ne 0 ]; then
+		local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
+		if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+			write_log "Remote file has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+		fi
+	fi
+
 	CURL_UPLOADS+=(-T "./$SRC_FILE")
 	CURL_UPLOADS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 }
