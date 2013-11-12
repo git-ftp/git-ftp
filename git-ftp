@@ -391,6 +391,15 @@ upload_file_buffered() {
 		local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
 		if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
 			write_log "Remote file has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+
+			get_file_content "$DEST_FILE" > "$SRC_FILE"
+
+			if [ $(git status -uno --porcelain | grep -F "$SRC_FILE" | wc -l) -ne 0 ]; then
+				print_info "$SRC_FILE has remote changes that have not committed yet. (O)verwrite, (L)eave as is or (D)ownload to working copy?"
+				exit 1
+			else
+				write_log "No remote changes found."
+			fi
 		fi
 	fi
 
