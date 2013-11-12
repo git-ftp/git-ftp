@@ -439,7 +439,16 @@ get_file_lastmodified()
 	CURL_ARGS+=("--head")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
 
-	curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:" | cut -d ' ' -f 2-
+	local GMT_TIME=$(curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:" | cut -d ' ' -f 2-)
+	date --date="$GMT_TIME" +"%s"
+}
+
+format_date()
+{
+	local UNIX_TIME="$1"
+
+	# Format according to local timezone settings
+	date --date="@$UNIX_TIME"
 }
 
 set_local_sha1() {
@@ -516,9 +525,13 @@ set_deployed_sha1() {
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
 
 	DEPLOYED_SHA1_LAST_MODIFIED="$(get_file_lastmodified $DEPLOYED_SHA1_FILE)"
-	check_exit_status "Could not get the last modified date." $ERROR_DOWNLOAD
+	if [ "$DEPLOYED_SHA1_LAST_MODIFIED" -lt 100 ]; then
+		write_log "Last modified date of $DEPLOYED_SHA1_FILE could not be determined, switching remote change detection off."
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+	else
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $(format_date $DEPLOYED_SHA1_LAST_MODIFIED) (server time)."
+	fi
 
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $DEPLOYED_SHA1_LAST_MODIFIED."
 }
 
 set_changed_files() {
