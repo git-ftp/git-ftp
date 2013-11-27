@@ -375,6 +375,10 @@ upload_file() {
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
 }
 
+grep_quote() {
+    sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
+}
+
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
@@ -395,8 +399,32 @@ upload_file_buffered() {
 			get_file_content "$DEST_FILE" > "$SRC_FILE"
 
 			if [ $(git status -uno --porcelain | grep -F "$SRC_FILE" | wc -l) -ne 0 ]; then
-				print_info "$SRC_FILE has remote changes that have not committed yet. (O)verwrite, (L)eave as is or (D)ownload to working copy?"
-				exit 1
+				echo -n "$SRC_FILE has remote changes that have not committed yet. (O)verwrite, (D)ownload to working copy or (N)ever upload this file? "
+				
+				read ANSWER
+
+				SKIP_FILE=0
+				RESET_FILE=0
+					
+				if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
+					SKIP_FILE=1
+					RESET_FILE=1
+
+					echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
+					print_info "Added $SRC_FILE to .git-ftp-ignore."
+				elif [ "$ANSWER" != 'D' ] || [ "$ANSWER" != 'd' ]; then
+					SKIP_FILE=1
+					RESET_FILE=1
+				fi
+
+				if [ $RESET_FILE -eq 1 ]; then
+					git checkout -- "$SRC_FILE"
+				fi
+
+				if [ $SKIP_FILE -eq 1 ]; then
+					print_info "Upload of $SRC_FILE aborted."
+					return
+				fi
 			else
 				write_log "No remote changes found."
 			fi
