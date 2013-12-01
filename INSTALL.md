@@ -47,9 +47,19 @@ Mac OS X
 --------
 Warning: git-ftp will not work with OS X 10.8 without GNU grep!
 
+Using the default grep version (2.5) in OS X will give you error messages, so update to the latest stable version:
+
+1. Go to http://directory.fsf.org/wiki/Grep
+2. Download the package
+3. `cd ~/Downloads`
+4. `tar -xvzf grep-X.XX.tar.xz`
+5. `cd grep-X.XX`
+6. `./configure --prefix=/usr`
+7. `make`
+8. `sudo make install`
+
 Using homebrew:
 
-	# brew install grep
 	# brew install git
 	# brew install curl --with-ssl --with-ssh
 	# brew install git-ftp
