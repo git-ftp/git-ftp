@@ -36,7 +36,7 @@ Ubuntu PPA (Personal Package Archive) repository
 Adding PPA on Ubuntu
 
 	$ sudo -s
-	# add-apt-repository ppa:git-ftp/git-ftp
+	# add-apt-repository ppa:resmo/git-ftp
 	# aptitude update
 	# aptitude install git-ftp
 
