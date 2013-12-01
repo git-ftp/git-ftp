@@ -36,6 +36,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
+`log`
+:   Downloads last uploaded SHA1 from log and hooks \`git log\`.
+
 `add-scope <scope>`
 :	Creates a new scope (e.g. dev, production, testing, foobar). This is a wrapper action over git-config. See **SCOPES** section for more information.
 
