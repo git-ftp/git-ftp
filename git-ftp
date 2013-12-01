@@ -783,7 +783,7 @@ set_remotes() {
 
 	set_remote_protocol
 	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "*/$"; then
+	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
 		write_log "Added missing trailing / in path."
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
