@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2010-2012 René Moser
+# Copyright 2010-2013 René Moser
 # http://github.com/resmo/git-ftp
 #
 # Git-ftp is free software: you can redistribute it and/or modify
@@ -519,24 +519,24 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		for LINE in `grep '^!' '.git-ftp-include-tmp'`
+		for LINE in $(grep '^!' '.git-ftp-include-tmp')
 		do
 			FILE_STATUS='M'
 			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
 			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
 		done
 
-		for LINE in `grep ':' '.git-ftp-include-tmp'`
+		for LINE in $(grep ':' '.git-ftp-include-tmp')
 		do
 			OIFS="$IFS"
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			if [[ `grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp'` && ! `grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp'` ]]; then
+			if [[ $(grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp') && ! $(grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp') ]]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
-				for SUB_LINE in `grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp'`
+				for SUB_LINE in $(grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp')
 				do
 					OIFS="$IFS"
 					IFS=":"
