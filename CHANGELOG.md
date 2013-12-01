@@ -1,3 +1,32 @@
+Version 0.9.0
+=============
+
+Adam Brengesjö:
+* Add action 'log'.
+
+Jason Woofenden:
+* Fixed quoting of REMOTE_PASSWD.
+* Fixed detection of curl verbosity setting.
+* Fixed log deletion failure even when being verbose.
+
+Joyce Babu:
+* Public key authentication key files path as configurable option.
+* Renamed the parameter names to match curl options.
+Louis Li:
+* Fixed a minor formatting issue in INSTALL.
+
+Mar Cejas:
+* Fixed bug, Error: binary operator expected.
+
+Shea Bunge:
+* Doc: Updated Windows installation instructions.
+
+mamzellejuu:
+* Doc: Fixed Repo path wasn't updated.
+
+René Moser:
+* Fixed egrep: repetition-operator operand invalid OS X 10.9
+
 Version 0.8.4
 =============
 
