@@ -542,7 +542,7 @@ set_changed_files() {
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
 					IFS="$OIFS"
-					if [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
 						let DELETE_COUNT++
 					else
 						let MODIFY_COUNT++
