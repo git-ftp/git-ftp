@@ -406,7 +406,7 @@ check_for_remote_changes() {
 		get_file_content "$DEST_FILE" > "$SRC_FILE"
 
 		if [ $(git status -uno --porcelain | grep -F "$SRC_FILE" | wc -l) -ne 0 ]; then
-			echo -n "$SRC_FILE has remote changes that have not committed yet. (O)verwrite, (D)ownload to working copy or (N)ever upload this file? "
+			echo -n "$SRC_FILE has remote changes that have not been committed yet. (O)verwrite, (D)ownload to working copy or (N)ever upload this file? "
 			read ANSWER
 
 			local SKIP_FILE=0
