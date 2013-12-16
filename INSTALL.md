@@ -12,12 +12,15 @@ The easiest way is to use Git for installing:
 
 	$ git clone https://github.com/git-ftp/git-ftp.git
 	$ cd git-ftp
-	$ git checkout master
+	$ git tag # see available tags
+	$ git checkout <tag> # checkout the latest tag by replacing <tag>
 	$ sudo make install
 
 Updating using git
 
 	$ git pull
+	$ git tag # see available tags
+	$ git checkout <tag> # checkout the latest tag by replacing <tag>
 	$ sudo make install
 
 
