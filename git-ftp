@@ -399,7 +399,7 @@ check_for_remote_changes() {
 	[ $FORCE -eq 1 ] && return 0
 	[ "$DEPLOYED_SHA1_LAST_MODIFIED" -eq 0 ] && return 0
 
-	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
+	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
 	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
 		write_log "Remote file has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
 
@@ -418,6 +418,10 @@ echo "-$ANSWER-"
 
 				echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
 				print_info "Added $SRC_FILE to .git-ftp-ignore."
+			elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
+				RESET_FILE=1
+
+				print_info "Overwriting $SRC_FILE..."
 			elif [ "$ANSWER" != 'D' ] && [ "$ANSWER" != 'd' ]; then
 				SKIP_FILE=1
 				RESET_FILE=1
