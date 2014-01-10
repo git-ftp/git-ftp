@@ -411,7 +411,7 @@ check_for_remote_changes() {
 
 			local SKIP_FILE=0
 			local RESET_FILE=0
-echo "-$ANSWER-"
+
 			if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
 				SKIP_FILE=1
 				RESET_FILE=1
