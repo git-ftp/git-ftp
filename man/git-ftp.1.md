@@ -104,6 +104,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--cacert <file>`
 :	Use <file> as CA certificate store. Useful when a server has got a self-signed certificate. 
 
+`--disable-epsv`
+:	Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+
 `--version`
 :	Prints version.
 
