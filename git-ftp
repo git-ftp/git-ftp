@@ -51,6 +51,7 @@ CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
+CURL_DISABLE_EPSV=0
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -153,6 +154,7 @@ OPTIONS
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
+	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
 
@@ -354,6 +356,10 @@ set_default_curl_options() {
 	CURL_ARGS+=(-#)
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		CURL_ARGS+=(-P "-")
+	else
+		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
+			CURL_ARGS+=(--disable-epsv)
+		fi
 	fi
 }
 
@@ -1209,6 +1215,12 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode."
+			;;
+		--disable-epsv)
+			if [ $ACTIVE_MODE -eq 0 ]; then
+				CURL_DISABLE_EPSV=1
+				write_log "Disabling EPSV."
+			fi
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
