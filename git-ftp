@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2010-2012 René Moser
+# Copyright 2010-2013 René Moser
 # http://github.com/resmo/git-ftp
 #
 # Git-ftp is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='0.8.4'
+readonly VERSION='0.9.0'
 
 # ------------------------------------------------------------
 # Defaults
@@ -51,6 +51,7 @@ CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
+CURL_DISABLE_EPSV=0
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -158,6 +159,7 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--remote-changes	Check for changes on remote server before uploading
+	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
 
@@ -359,6 +361,10 @@ set_default_curl_options() {
 	CURL_ARGS+=(-#)
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		CURL_ARGS+=(-P "-")
+	else
+		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
+			CURL_ARGS+=(--disable-epsv)
+		fi
 	fi
 }
 
@@ -621,23 +627,30 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		for LINE in `grep ':' '.git-ftp-include-tmp'`
+		for LINE in $(grep '^!' '.git-ftp-include-tmp')
+		do
+			FILE_STATUS='M'
+			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
+			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
+		done
+
+		for LINE in $(grep ':' '.git-ftp-include-tmp')
 		do
 			OIFS="$IFS"
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			if [[ `grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp'` && ! `grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp'` ]]; then
+			if [[ $(grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp') && ! $(grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp') ]]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
-				for SUB_LINE in `grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp'`
+				for SUB_LINE in $(grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp')
 				do
 					OIFS="$IFS"
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
 					IFS="$OIFS"
-					if [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
 						let DELETE_COUNT++
 					else
 						let MODIFY_COUNT++
@@ -924,7 +937,7 @@ set_remotes() {
 
 	set_remote_protocol
 	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "*/$"; then
+	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
 		write_log "Added missing trailing / in path."
 		REMOTE_PATH="$REMOTE_PATH/"
 	fi
@@ -1361,6 +1374,11 @@ do
 		--remote-changes)
 			CHECK_FOR_REMOTE_CHANGES=1
 			write_log "Check for remote changes."
+		--disable-epsv)
+			if [ $ACTIVE_MODE -eq 0 ]; then
+				CURL_DISABLE_EPSV=1
+				write_log "Disabling EPSV."
+			fi
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.

@@ -1,6 +1,6 @@
 % GIT-FTP(1) git-ftp User Manual
 % Rene Moser <mail@renemoser.net>
-% 2012-08-06
+% 2013-12-01
 
 # NAME
 
@@ -14,13 +14,13 @@ git-ftp [actions] [options] [url]...
 
 This manual page documents briefly the git-ftp program.
 
-Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host. 
+Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host.
 
 It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file. There is no need for [Git] to be installed on the remote host.
 
 Even if you play with different branches, git-ftp knows which files are different and only handles those files. No ordinary FTP client can do this and it saves time and bandwidth.
 
-Another advantage is Git-ftp only handles files which are tracked with [Git]. 
+Another advantage is Git-ftp only handles files which are tracked with [Git].
 
 # ACTIONS
 
@@ -35,6 +35,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
+
+`log`
+:	Downloads last uploaded SHA1 from log and hooks \`git log\`.
 
 `add-scope <scope>`
 :	Creates a new scope (e.g. dev, production, testing, foobar). This is a wrapper action over git-config. See **SCOPES** section for more information.
@@ -101,6 +104,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--cacert <file>`
 :	Use <file> as CA certificate store. Useful when a server has got a self-signed certificate. 
 
+`--disable-epsv`
+:	Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+
 `--version`
 :	Prints version.
 
@@ -109,7 +115,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 The scheme of an URL is what you would expect
 
 	protocol://host.domain.tld:port/path
-	
+
 Below a full featured URL to *host.exmaple.com* on port *2121* to path *mypath* using protocol *ftp*:
 
 	ftp://host.example.com:2121/mypath
@@ -131,7 +137,7 @@ But, there is not just FTP. Supported protocols are:
 # DEFAULTS
 
 Don't repeat yourself. Setting defaults for git-ftp in .git/config
-	
+
 	$ git config git-ftp.<(url|user|password|syncroot|cacert)> <value>
 
 Everyone likes examples
@@ -153,7 +159,7 @@ After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 Need different defaults per each system or environment? Use the so called scope feature.
 
-Useful if you use multi environment development. Like a development, testing and a production environment. 
+Useful if you use multi environment development. Like a development, testing and a production environment.
 
 	$ git config git-ftp.<scope>.<(url|user|password|syncroot|cacert)> <value>
 
@@ -170,8 +176,7 @@ Here we set the params for the scope "production"
 	$ git config git-ftp.production.url live.example.com
 	$ git config git-ftp.production.password n0tThatSimp3l
 
-Pushing to scope *testing* alias *john@ftp.testing.com:8080/foobar-path* using 
-password *simp3l*
+Pushing to scope *testing* alias *john@ftp.testing.com:8080/foobar-path* using password *simp3l*
 
 	$ git ftp push -s testing
 
@@ -217,12 +222,12 @@ Ingnoring a single file called `foobar.txt`:
 
 To upload an untracked file when a paired tracked file changes (e.g. uploading a compiled CSS file when its source SCSS or LESS file changes), add a file pair to `.git-ftp-include`:
 
-    css/style.css:scss/style.scss
+	css/style.css:scss/style.scss
 
 If you have multiple source files being combined into a single untracked file, you can pair the untracked file with multiple tracked files, one per line. This ensures the combined untracked file is properly uploaded when any of the component tracked files change:
 
-    css/style.css:scss/style.scss
-    css/style.css:scss/mixins.scss
+	css/style.css:scss/style.scss
+	css/style.css:scss/mixins.scss
 
 
 # EXIT CODES
@@ -255,6 +260,6 @@ There are a bunch of different error codes and their corresponding error message
 
 # KNOWN ISSUES & BUGS
 
-The upstream BTS can be found at <http://github.com/resmo/git-ftp/issues>.
+The upstream BTS can be found at <https://github.com/git-ftp/git-ftp/issues>.
 
 [Git]: http://git-scm.org
