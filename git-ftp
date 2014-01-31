@@ -408,7 +408,7 @@ check_for_remote_changes() {
 
 	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
 	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
-		write_log "Remote file has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
 
 		get_file_content "$DEST_FILE" > "$SRC_FILE"
 
@@ -769,6 +769,16 @@ handle_remote_changes() {
 	IFS="$OIFS"
 }
 
+clone_into_temp_repo()
+{
+	local TEMP_REPO=$(mktemp -d -t git-ftp-XXXX)
+	cp -R .git* * "$TEMP_REPO"
+	cd "$TEMP_REPO"
+	print_info "Creating $TEMP_REPO for changed files..."
+	# Delete temp dir if no changes
+	# Delete temp dirs older than a month?
+}
+
 handle_submodule_sync() {
 	print_info "Handling submodule sync for $1."
 
@@ -1042,9 +1052,11 @@ action_log() {
 action_status() {
 	set_remotes
 	CHECK_FOR_REMOTE_CHANGES=1
+	DRY_RUN=1
 	set_deployed_sha1
 	check_exit_status "Could not get uploaded log file" $ERROR_DOWNLOAD
-	# TODO Clone Repo into Temp
+	
+	clone_into_temp_repo
 	IGNORE_DEPLOYED=1
 	set_changed_files
 	handle_remote_changes
