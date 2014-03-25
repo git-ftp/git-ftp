@@ -36,7 +36,7 @@ REMOTE_USER=""
 REMOTE_PASSWD=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
-REMOTE_DELETE_CMD="-DELE "
+REMOTE_DELETE_CMD="-*DELE "
 REMOTE_CMD_OPTIONS="-s"
 ACTION=""
 LOG_CACHE=""
@@ -51,6 +51,7 @@ CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
+CURL_DELETE=()
 CURL_DISABLE_EPSV=0
 declare -a CURL_ARGS
 declare -i VERBOSE=0
@@ -211,8 +212,8 @@ is_submodule() {
 
 is_arg_max_reached() {
 	local ARGS_TO_ADD=$1
+	local ARGS_STRING=$2
 
-	ARGS_STRING="${CURL_UPLOADS[@]}"
 	CURRENT_LENGTH=$(( ${#ARGS_STRING} + ${#ARGS_TO_ADD} ))
 	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
 		return 1
@@ -409,7 +410,7 @@ fire_upload_buffer() {
 	CURL_UPLOADS=()
 }
 
-remove_file() {
+delete_file() {
 	local FILENAME="$1"
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
@@ -424,10 +425,34 @@ remove_file() {
 	fi
 }
 
-remove_dir() {
+delete_file_buffered() {
+	local FILENAME="$1"
+	CURL_DELETE+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
+}
+
+fire_delete_buffer() {
+	if [ -z "$CURL_DELETE" ]; then
+		return 0
+	fi
+	print_info "Deleting ..."
+	set_default_curl_options
+	CURL_ARGS+=("${CURL_DELETE[@]}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
+		curl "${CURL_ARGS[@]}"
+	else
+		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+	fi
+	if [ $? -ne 0 ]; then
+		write_error_log "Some files and/or folders could not be deleted."
+	fi
+	CURL_DELETE=()
+}
+
+delete_dir() {
 	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
-	REMOTE_DELETE_CMD="RMD "
-	remove_file $1
+	REMOTE_DELETE_CMD="-*RMD "
+	delete_file_buffered $1
 	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
 }
 
@@ -468,7 +493,7 @@ remote_lock() {
 release_remote_lock() {
 	[ $ENABLE_REMOTE_LCK != 1 ] && return;
 	write_log "Releasing remote lock."
-	remove_file $REMOTE_LCK_FILE
+	delete_file $REMOTE_LCK_FILE
 }
 
 set_remote_host() {
@@ -634,24 +659,36 @@ handle_file_sync() {
 				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
 
 			else if [ $DRY_RUN -ne 1 ]; then
-					if is_arg_max_reached "$FILE_NAME"; then
+					if is_arg_max_reached "$FILE_NAME" "${CURL_UPLOADS[@]}"; then
 						IFS="$OIFS"
 						fire_upload_buffer
 						IFS="$NIFS"
 					fi
+
 					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
 		# Removing file
 		else
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Removing '$FILE_NAME'."
-			[ $DRY_RUN -ne 1 ] && remove_file ${FILE_NAME#$SYNCROOT} && remove_dir $(dirname ${FILE_NAME#$SYNCROOT})
+			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
+
+			if [ $DRY_RUN -ne 1 ]; then
+				if is_arg_max_reached "$FILE_NAME" "${CURL_DELETE[@]}"; then
+					IFS="$OIFS"
+					fire_delete_buffer
+					IFS="$NIFS"
+				fi
+
+				delete_file_buffered ${FILE_NAME#$SYNCROOT} && delete_dir $(dirname ${FILE_NAME#$SYNCROOT})
+			fi
 		fi
 	done
 
 	IFS="$OIFS"
 
 	fire_upload_buffer
+
+	fire_delete_buffer
 }
 
 handle_submodule_sync() {
