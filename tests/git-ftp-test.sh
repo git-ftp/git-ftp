@@ -57,7 +57,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 0.9.0"  "$version"
+	assertEquals = "git-ftp version 1.0.0-rc.1"  "$version"
 }
 
 test_inits_and_pushes() {
