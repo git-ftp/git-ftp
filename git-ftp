@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
-# Copyright 2010-2013 René Moser
-# http://github.com/resmo/git-ftp
+# Copyright 2010-2014 René Moser
+# http://github.com/git-ftp/git-ftp
 #
 # Git-ftp is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
