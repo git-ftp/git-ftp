@@ -1,3 +1,20 @@
+Version 1.0.0-rc.1
+==================
+
+Moz Morris:
+* Delete files using a single connection.
+
+m4grio:
+* Added --disable-epsv option.
+
+Martin Hradil:
+* Support for .git-ftp-including files without any git dependencies.
+
+René Moser:
+* Updated docs.
+* Fixed git init fails when using .git-ftp-include as SHA1_DEPLOYED is defined.
+* Code cleanup.
+
 Version 0.9.0
 =============
 
