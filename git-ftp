@@ -700,6 +700,7 @@ handle_submodule_sync() {
 	# Do not ask any questions for submodules
 	args+=(--force)
 
+	[ $ACTIVE_MODE -eq 1 ] && args+=(--active)
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
