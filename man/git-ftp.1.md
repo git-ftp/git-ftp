@@ -140,7 +140,7 @@ Don't repeat yourself. Setting defaults for git-ftp in .git/config
 
 	$ git config git-ftp.<(url|user|password|syncroot|cacert)> <value>
 
-Everyone likes examples
+Everyone likes examples:
 
 	$ git config git-ftp.user john
 	$ git config git-ftp.url ftp.example.com
@@ -229,6 +229,14 @@ If you have multiple source files being combined into a single untracked file, y
 	css/style.css:scss/style.scss
 	css/style.css:scss/mixins.scss
 
+# NETRC
+
+In the backend, Git-ftp uses curl. This means `~/.netrc`could be used beside the other options of Git-ftp to authenticate.
+
+	$ editor ~/.netrc
+	machine ftp.example.com
+	login john
+	password SECRET
 
 # EXIT CODES
 
