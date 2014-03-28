@@ -700,7 +700,14 @@ handle_submodule_sync() {
 	# Do not ask any questions for submodules
 	args+=(--force)
 
-	[ $ACTIVE_MODE -eq 1 ] && args+=(--active)
+	if [ $ACTIVE_MODE -eq 1 ]; then
+		args+=(--active)
+	else
+		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
+			args+=(--disable-epsv)
+		fi
+	fi
+
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
