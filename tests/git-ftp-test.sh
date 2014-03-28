@@ -253,6 +253,23 @@ test_hidden_file_only() {
 	assertTrue 'test failed: .htaccess not uploaded' "[ -f '$FTP_PROJECT_PATH/.htaccess' ]"
 }
 
+
+test_file_with_nonchar() {
+	cd $GIT_PROJECT_PATH
+	echo "test" > ./#4253-Release Contest.md
+	git add . > /dev/null 2>&1
+	git commit -a -m "init" > /dev/null 2>&1
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue 'test failed: #4253-Release Contest.md not uploaded' "[ -f '$FTP_PROJECT_PATH/#4253-Release Contest.md' ]"
+
+	git rm './#4253-Release Contest.md' > /dev/null 2>&1
+	git commit -a -m "delete" > /dev/null 2>&1
+
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertFalse 'test failed: #4253-Release Contest.md still exists' "[ -r '$FTP_PROJECT_PATH/#4253-Release Contest.md' ]"
+}
+
 test_syncroot() {
 	cd $GIT_PROJECT_PATH
 	mkdir foobar && echo "test" > foobar/syncroot.txt
