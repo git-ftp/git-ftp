@@ -647,16 +647,16 @@ handle_file_sync() {
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
-		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
-		FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
-		FILE_NAME=${FILE_NAME/#\"/}
-		FILE_NAME=${FILE_NAME/%\"/}
+		FILE_MODE="$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')"
+		FILE_NAME="$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')"
+		FILE_NAME="${FILE_NAME/#\"/}"
+		FILE_NAME="${FILE_NAME/%\"/}"
 
 		if [ "$FILE_MODE" != "D" ]; then
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
 
-			if is_submodule $FILE_NAME; then
-				handle_submodule_sync ${FILE_NAME#$SYNCROOT}
+			if is_submodule "$FILE_NAME"; then
+				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 
 			else if [ $DRY_RUN -ne 1 ]; then
 					if is_arg_max_reached "$FILE_NAME" "${CURL_UPLOADS[@]}"; then
@@ -679,7 +679,7 @@ handle_file_sync() {
 					IFS="$NIFS"
 				fi
 
-				delete_file_buffered ${FILE_NAME#$SYNCROOT} && delete_dir $(dirname ${FILE_NAME#$SYNCROOT})
+				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir $(dirname "${FILE_NAME#$SYNCROOT}")
 			fi
 		fi
 	done
@@ -760,7 +760,7 @@ handle_remote_protocol_options() {
 	fi
 
 	# Require users' explicit consent for insecure connections
-    [ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
+	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
 handle_action() {
@@ -814,8 +814,8 @@ set_syncroot() {
 }
 
 set_sftp_config() {
-	[ -z $CURL_PRIVATE_KEY ] && CURL_PRIVATE_KEY="$(get_config key)"
-	[ -z $CURL_PUBLIC_KEY ] && CURL_PUBLIC_KEY="$(get_config pubkey)"
+	[ -z "$CURL_PRIVATE_KEY" ] && CURL_PRIVATE_KEY="$(get_config key)"
+	[ -z "$CURL_PUBLIC_KEY" ] && CURL_PUBLIC_KEY="$(get_config pubkey)"
 }
 
 set_remotes() {
@@ -851,7 +851,7 @@ set_remotes() {
 }
 
 set_curl_insecure() {
-    [ -z $CURL_INSECURE ] && CURL_INSECURE="$(get_config insecure)"
+	[ -z "$CURL_INSECURE" ] && CURL_INSECURE="$(get_config insecure)"
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
