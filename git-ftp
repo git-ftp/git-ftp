@@ -627,6 +627,8 @@ set_changed_files() {
 		fi
 	elif [ -n "$FILES_CHANGED" ]; then
 		write_log "Having changed files.";
+	elif [ "$LOCAL_SHA1" != "$DEPLOYED_SHA1" ]; then
+		write_log "No changed files, but different commit ID. Probably amended.";
 	else
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
 		exit 0
