@@ -1,6 +1,15 @@
 README of git-ftp
 =================
 
+Warning
+-------
+
+This is an unstable version. The new features are not well tested.
+The `fetch` action works only in special cases.
+
+General
+-------
+
 * This application is licenced under [GNU General Public License, Version 3.0]
 * Follow this project on twitter [@gitftp](https://twitter.com/gitftp)
 
