@@ -66,6 +66,7 @@ declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i ARG_MAX=4096
 declare -a GIT_SUBMODULES
+declare -i CHECK_FOR_REMOTE_CHANGES=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -109,6 +110,9 @@ ACTIONS
 
 	. push
 		Uploads git-tracked files which have changed since last upload.
+
+	. status
+		Check remote files for changes.
 
 	. show
 		Downloads last uploaded SHA1 from log and hooks \`git show\`.
@@ -168,6 +172,7 @@ OPTIONS
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
+	--remote-changes	Check for changes on remote server before uploading
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
@@ -377,16 +382,24 @@ set_default_curl_options() {
 	fi
 }
 
-upload_file() {
-	local SRC_FILE="$1"
-	local DEST_FILE="$2"
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$SRC_FILE
-	fi
+upload_get_dest_file() {
+	local DEST_FILE="$1"
 
 	if [ -n "$SYNCROOT" ]; then
 		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
 	fi
+
+	echo $DEST_FILE
+}
+
+upload_file() {
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
+
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
+	fi
+
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
@@ -395,17 +408,79 @@ upload_file() {
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
 }
 
+grep_quote() {
+    sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
+}
+
+# @returns int Whether to upload this file (0) or skip it (1)
+check_for_remote_changes() {
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
+	local ANSWER="$3"
+
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
+	fi
+
+	[ $FORCE -eq 1 ] && return 0
+	[ $CHECK_FOR_REMOTE_CHANGES -eq 0 ] && return 0
+	[ $DEPLOYED_SHA1_LAST_MODIFIED -eq 0 ] && return 0
+
+	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
+	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+
+		get_file_content "$DEST_FILE" > "$SRC_FILE"
+
+		if [ $(git status -uno --porcelain | grep -F "$SRC_FILE" | wc -l) -ne 0 ]; then
+			
+			if [ -z $ANSWER ]; then
+				echo -n "$SRC_FILE has remote changes that have not been committed yet. (O)verwrite, (D)ownload to working copy or (N)ever upload this file? "
+				read ANSWER
+			fi
+
+			local SKIP_FILE=0
+			local RESET_FILE=0
+
+			if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
+				SKIP_FILE=1
+				RESET_FILE=1
+
+				echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
+				print_info "Added $SRC_FILE to .git-ftp-ignore."
+			elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
+				RESET_FILE=1
+
+				print_info "Overwriting $SRC_FILE..."
+			elif [ "$ANSWER" != 'D' ] && [ "$ANSWER" != 'd' ]; then
+				SKIP_FILE=1
+				RESET_FILE=1
+			fi
+
+			if [ $RESET_FILE -eq 1 ]; then
+				git checkout -- "$SRC_FILE"
+			fi
+
+			if [ $SKIP_FILE -eq 1 ]; then
+				print_info "Upload of $SRC_FILE aborted."
+				return 1
+			fi
+		else
+			write_log "No remote changes found."
+		fi
+	fi
+
+	return 0
+}
+
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
 
 	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$SRC_FILE
+		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
 	fi
 
-	if [ -n "$SYNCROOT" ]; then
-		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
-	fi
 	CURL_UPLOADS+=(-T "./$SRC_FILE")
 	CURL_UPLOADS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 }
@@ -474,6 +549,25 @@ get_file_content() {
 	set_default_curl_options
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
 	curl "${CURL_ARGS[@]}"
+}
+
+get_file_lastmodified()
+{
+	local SRC_FILE="$1"
+	set_default_curl_options
+	CURL_ARGS+=("--head")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+
+	local GMT_TIME=$(curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:" | cut -d ' ' -f 2-)
+	date --date="$GMT_TIME" +"%s"
+}
+
+format_date()
+{
+	local UNIX_TIME="$1"
+
+	# Format according to local timezone settings
+	date --date="@$UNIX_TIME"
 }
 
 set_local_sha1() {
@@ -548,7 +642,15 @@ set_deployed_sha1() {
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
-	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+
+	DEPLOYED_SHA1_LAST_MODIFIED="$(get_file_lastmodified $DEPLOYED_SHA1_FILE)"
+	if [ "$DEPLOYED_SHA1_LAST_MODIFIED" -lt 100 ]; then
+		write_log "Last modified date of $DEPLOYED_SHA1_FILE could not be determined, switching remote change detection off."
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+	else
+		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $(format_date $DEPLOYED_SHA1_LAST_MODIFIED) (server time)."
+	fi
+
 }
 
 set_changed_files() {
@@ -673,14 +775,13 @@ handle_file_sync() {
 			if is_submodule "$FILE_NAME"; then
 				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 
-			else if [ $DRY_RUN -ne 1 ]; then
+			else if check_for_remote_changes "$FILE_NAME" &&  [ $DRY_RUN -ne 1 ]; then
 					if is_arg_max_reached "$FILE_NAME" "${CURL_UPLOADS[@]}"; then
 						IFS="$OIFS"
 						fire_upload_buffer
 						IFS="$NIFS"
 					fi
-
-					upload_file_buffered "$FILE_NAME"
+					upload_file_buffered "$FILE_NAME" "$DEST_FILE"
 				fi
 			fi
 		# Removing file
@@ -704,6 +805,41 @@ handle_file_sync() {
 	fire_upload_buffer
 
 	fire_delete_buffer
+}
+
+handle_remote_changes() {
+	# Calculate total file count
+	local DONE_ITEMS=0
+	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
+	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
+	print_info "Checking for remote changes in $TOTAL_ITEMS files..."
+
+	# Changing internal field separator, file names could have spaces
+	OIFS="$IFS"
+	NIFS=$'\n'
+	IFS="$NIFS"
+
+	for FILE_ITERATOR in $FILES_CHANGED; do
+		(( DONE_ITEMS++ ))
+		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
+		FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
+		FILE_NAME=${FILE_NAME/#\"/}
+		FILE_NAME=${FILE_NAME/%\"/}
+
+		check_for_remote_changes "$FILE_NAME" '' 'D'
+	done
+
+	IFS="$OIFS"
+}
+
+clone_into_temp_repo()
+{
+	local TEMP_REPO=$(mktemp -d -t git-ftp-XXXX)
+	cp -R .git* * "$TEMP_REPO"
+	cd "$TEMP_REPO"
+	print_info "Creating $TEMP_REPO for changed files..."
+	# Delete temp dir if no changes
+	# Delete temp dirs older than a month?
 }
 
 handle_submodule_sync() {
@@ -1367,6 +1503,10 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode."
+			;;
+		--remote-changes)
+			CHECK_FOR_REMOTE_CHANGES=1
+			write_log "Check for remote changes."
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then
