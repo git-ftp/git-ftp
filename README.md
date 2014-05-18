@@ -26,7 +26,7 @@ I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
 web hosting companies do not provide SSH or git support, but only FTP.
 
 That is why I needed an easy way to deploy my git tracked projects. Instead of
-transfering the whole project, I thought, why not only transfer the files
+transferring the whole project, I thought, why not only transfer the files
 that changed since the last time, git can tell me those files.
 
 Even if you are playing with different branches, git-ftp knows which files
