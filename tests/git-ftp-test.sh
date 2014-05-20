@@ -6,9 +6,9 @@ oneTimeSetUp() {
 	#BASE_PATH=$TESTDIR/../
 
 	GIT_FTP_CMD="${BASE_PATH}git-ftp"
-	GIT_FTP_USER="test"
-	GIT_FTP_PASSWD="test"
-	GIT_FTP_ROOT="localhost/"
+	: ${GIT_FTP_USER=ftp}
+	: ${GIT_FTP_PASSWD=}
+	: ${GIT_FTP_ROOT=localhost/}
 
 	START=$(date +%s)
 }
