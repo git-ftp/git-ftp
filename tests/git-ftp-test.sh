@@ -1,19 +1,17 @@
 #!/bin/sh
 
 oneTimeSetUp() {
-	GIT_PROJECT_NAME="git-ftp-test"
+	BASE_PATH=$(readlink -f $TESTDIR/..)/
+	# Maybe this is more robust?
+	#BASE_PATH=$TESTDIR/../
 
-	GIT_PROJECT_PATH="/tmp/git-ftp-test"
-	FTP_PROJECT_PATH="/opt/lampp/htdocs/$GIT_PROJECT_NAME"
-
-	BASE_PATH="$(pwd)/../"
 	GIT_FTP_CMD="${BASE_PATH}git-ftp"
-	GIT_FTP_USER="nobody"
-	GIT_FTP_PASSWD="lampp"
-	GIT_FTP_URL="localhost/$GIT_PROJECT_NAME"
+	GIT_FTP_USER="test"
+	GIT_FTP_PASSWD="test"
+	GIT_FTP_ROOT="localhost/"
 
-	echo Starting FTP Server
-	sudo /opt/lampp/lampp start > /dev/null 2>&1
+	#echo Starting FTP Server
+	#sudo /opt/lampp/lampp start > /dev/null 2>&1
 	START=$(date +%s)
 }
 
@@ -21,13 +19,18 @@ oneTimeTearDown() {
 	END=$(date +%s)
 	DIFF=$(( $END - $START ))
 	echo "It took $DIFF seconds"
-	echo Stopping FTP Server
-	sudo /opt/lampp/lampp stop > /dev/null 2>&1
+	#echo Stopping FTP Server
+	#sudo /opt/lampp/lampp stop > /dev/null 2>&1
 }
 
 setUp() {
-	sudo rm -rf $FTP_PROJECT_PATH
-	mkdir -p $GIT_PROJECT_PATH
+	GIT_PROJECT_PATH=$(mktemp -d -t git-ftp-XXXX)
+	GIT_PROJECT_NAME=$(basename $GIT_PROJECT_PATH)
+
+	GIT_FTP_URL="$GIT_FTP_ROOT$GIT_PROJECT_NAME"
+
+	CURL_URL="ftp://$GIT_FTP_USER:$GIT_FTP_PASSWD@$GIT_FTP_URL"
+
 	cd $GIT_PROJECT_PATH
 
 	# make some content
@@ -45,9 +48,12 @@ setUp() {
 }
 
 tearDown() {
-	cd ${BASE_PATH}/tests
+	cd ${TESTDIR}
 	rm -rf $GIT_PROJECT_PATH
-	sudo rm -rf $FTP_PROJECT_PATH
+	command -v lftp >/dev/null 2>&1 && {
+		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.git-ftp.log'; exit" > /dev/null 2> /dev/null
+		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
+	}
 }
 
 test_displays_usage() {
@@ -114,7 +120,6 @@ test_defaults_uses_url_by_cli() {
 	assertEquals 0 $rtrn
 }
 
-
 test_defaults_uses_user_by_cli() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user johndoe
@@ -162,7 +167,6 @@ test_scopes_using_branchname_as_scope() {
 	assertEquals 0 $rtrn
 }
 
-
 test_overwrite_defaults_by_scopes_emtpy_string() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
@@ -194,23 +198,23 @@ test_delete() {
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertTrue 'test failed: file does not exist' "[ -r '$FTP_PROJECT_PATH/test 1.txt' ]"
+	assertTrue 'test failed: file does not exist' "remote_file_exists 'test 1.txt'"
 
 	git rm "test 1.txt" > /dev/null 2>&1
 	git commit -a -m "delete file" > /dev/null 2>&1
 
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: file still exists' "[ -r '$FTP_PROJECT_PATH/test 1.txt' ]"
-	assertTrue 'test failed: file does not exist' "[ -r '$FTP_PROJECT_PATH/dir 1/test 1.txt' ]"
+	assertFalse 'test failed: file still exists' "remote_file_exists 'test 1.txt'"
+	assertTrue 'test failed: file does not exist' "remote_file_exists 'dir 1/test 1.txt'"
 
 	git rm -r "dir 1" > /dev/null 2>&1
 	git commit -a -m "delete dir" > /dev/null 2>&1
 
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: dir and file still exists' "[ -r '$FTP_PROJECT_PATH/dir 1/test 1.txt' ]"
-	assertFalse 'test failed: dir still exists' "[ -d '$FTP_PROJECT_PATH/dir 1' ]"
+	assertFalse 'test failed: dir and file still exists' "remote_file_exists 'dir 1/test 1.txt'"
+	assertFalse 'test failed: dir still exists' "remote_file_exists 'dir 1/'"
 }
 
 test_ignore_single_file() {
@@ -219,7 +223,7 @@ test_ignore_single_file() {
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: file was not ignored' "[ -f '$FTP_PROJECT_PATH/test 1.txt' ]"
+	assertFalse 'test failed: file was not ignored' "remote_file_exists 'test 1.txt' ]"
 }
 
 test_ignore_dir() {
@@ -228,8 +232,8 @@ test_ignore_dir() {
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 
-	assertFalse 'test failed: dir was not ignored' "[ -f '$FTP_PROJECT_PATH/dir 1/test 1.txt' ]"
-	assertTrue 'test failed: wrong dir was ignored' "[ -f '$FTP_PROJECT_PATH/dir 2/test 2.txt' ]"
+	assertFalse 'test failed: dir was not ignored' "remote_file_exists 'dir 1/test 1.txt'"
+	assertTrue 'test failed: wrong dir was ignored' "remote_file_exists 'dir 2/test 2.txt'"
 }
 
 test_ignore_wildcard_files() {
@@ -240,7 +244,7 @@ test_ignore_wildcard_files() {
 
 	for i in 1 2 3 4 5
 	do
-		assertFalse 'test failed: was not ignored' "[ -f '$FTP_PROJECT_PATH/test $i.txt' ]"
+		assertFalse 'test failed: was not ignored' "remote_file_exists 'test $i.txt'"
 	done;
 }
 
@@ -250,7 +254,7 @@ test_hidden_file_only() {
 	git add . > /dev/null 2>&1
 	git commit -a -m "init" > /dev/null 2>&1
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-	assertTrue 'test failed: .htaccess not uploaded' "[ -f '$FTP_PROJECT_PATH/.htaccess' ]"
+	assertTrue 'test failed: .htaccess not uploaded' "remote_file_exists '.htaccess'"
 }
 
 
@@ -261,13 +265,13 @@ test_file_with_nonchar() {
 	git commit -a -m "init" > /dev/null 2>&1
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-	assertTrue 'test failed: #4253-Release Contest.md not uploaded' "[ -f '$FTP_PROJECT_PATH/#4253-Release Contest.md' ]"
+	assertTrue 'test failed: #4253-Release Contest.md not uploaded' "remote_file_exists '#4253-Release Contest.md'"
 
 	git rm './#4253-Release Contest.md' > /dev/null 2>&1
 	git commit -a -m "delete" > /dev/null 2>&1
 
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-	assertFalse 'test failed: #4253-Release Contest.md still exists' "[ -r '$FTP_PROJECT_PATH/#4253-Release Contest.md' ]"
+	assertFalse 'test failed: #4253-Release Contest.md still exists in '$CURL_URL "remote_file_exists '\#4253-Release Contest.md'"
 }
 
 test_syncroot() {
@@ -276,7 +280,7 @@ test_syncroot() {
 	git add . > /dev/null 2>&1
 	git commit -a -m "syncroot test" > /dev/null 2>&1
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
-	assertTrue 'test failed: syncroot.txt not there as expected' "[ -f '$FTP_PROJECT_PATH/syncroot.txt' ]"
+	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 
 disabled_test_file_named_dash() {
@@ -289,5 +293,12 @@ disabled_test_file_named_dash() {
 	rtrn=$?
 	assertEquals 0 $rtrn
 }
+
+remote_file_exists() {
+	head=$(curl "$CURL_URL/$1" --head)
+	return $?
+}
+
 # load and run shUnit2
-. ./shunit2-2.1.6/src/shunit2
+TESTDIR=$(dirname $0)
+. $TESTDIR/shunit2-2.1.6/src/shunit2
