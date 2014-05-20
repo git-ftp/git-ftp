@@ -6,12 +6,10 @@ oneTimeSetUp() {
 	#BASE_PATH=$TESTDIR/../
 
 	GIT_FTP_CMD="${BASE_PATH}git-ftp"
-	GIT_FTP_USER="test"
-	GIT_FTP_PASSWD="test"
-	GIT_FTP_ROOT="localhost/"
+	: ${GIT_FTP_USER=ftp}
+	: ${GIT_FTP_PASSWD=}
+	: ${GIT_FTP_ROOT=localhost/}
 
-	#echo Starting FTP Server
-	#sudo /opt/lampp/lampp start > /dev/null 2>&1
 	START=$(date +%s)
 }
 
@@ -19,8 +17,6 @@ oneTimeTearDown() {
 	END=$(date +%s)
 	DIFF=$(( $END - $START ))
 	echo "It took $DIFF seconds"
-	#echo Stopping FTP Server
-	#sudo /opt/lampp/lampp stop > /dev/null 2>&1
 }
 
 setUp() {
@@ -52,6 +48,7 @@ tearDown() {
 	rm -rf $GIT_PROJECT_PATH
 	command -v lftp >/dev/null 2>&1 && {
 		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.git-ftp.log'; exit" > /dev/null 2> /dev/null
+		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.htaccess'; exit" > /dev/null 2> /dev/null
 		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
 	}
 }

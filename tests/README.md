@@ -1,10 +1,23 @@
 Testing Environment
 ===================
 
-The testing environment expects to have [Xampp] installed in `/opt/lampp` with default user `nobody` and password `lampp` settings. 
-It uses root permissions to start and stop the FTP server. 
+The tests require access to an FTP server.
+They need full access to create, read and delete directories and files.
+You can provide the account data via environment variables.
 
-To run the unit tests, you have to run `make` in this directory.
-    
+    $ GIT_FTP_USER=kate
+    $ GIT_FTP_PASSWD=s3cret
+    $ GIT_FTP_ROOT=localhost/test_dir/   # trailing slash!
+    $ export GIT_FTP_USER
+    $ export GIT_FTP_PASSWD
+    $ export GIT_FTP_ROOT
 
-[Xampp]: http://www.apachefriends.org/en/xampp.html
+Run the unit tests by executing `make`.
+
+    $ make
+
+If you don't have [lftp] installed, the test will leave a bunch of test directories on the server.
+They are all named like git-ftp-XXXX.
+You should delete them.
+
+[lftp]: http://lftp.yar.ru/
