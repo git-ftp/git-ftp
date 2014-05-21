@@ -47,9 +47,7 @@ tearDown() {
 	cd ${TESTDIR}
 	rm -rf $GIT_PROJECT_PATH
 	command -v lftp >/dev/null 2>&1 && {
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.git-ftp.log'; exit" > /dev/null 2> /dev/null
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.htaccess'; exit" > /dev/null 2> /dev/null
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
+		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2>&1
 	}
 }
 
