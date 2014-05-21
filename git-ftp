@@ -451,7 +451,12 @@ fire_delete_buffer() {
 
 delete_dir() {
 	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
-	REMOTE_DELETE_CMD="-*RMD "
+	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
+		# SFTP uses a different remove command and uses absolute paths
+		REMOTE_DELETE_CMD="rmdir /"
+	else
+		REMOTE_DELETE_CMD="-*RMD "
+	fi
 	delete_file_buffered $1
 	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
 }
