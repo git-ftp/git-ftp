@@ -47,9 +47,7 @@ tearDown() {
 	cd ${TESTDIR}
 	rm -rf $GIT_PROJECT_PATH
 	command -v lftp >/dev/null 2>&1 && {
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.git-ftp.log'; exit" > /dev/null 2> /dev/null
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -f '$GIT_PROJECT_NAME/.htaccess'; exit" > /dev/null 2> /dev/null
-		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
+		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
 	}
 }
 
@@ -278,6 +276,36 @@ test_syncroot() {
 	git commit -a -m "syncroot test" > /dev/null 2>&1
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
+}
+
+test_fetch() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rtrn=$?
+	assertEquals 0 $rtrn
+	rm external.txt
+	$GIT_FTP_CMD fetch -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_fetch_syncroot() {
+	cd $GIT_PROJECT_PATH
+	mkdir foobar && echo "test" > foobar/syncroot.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	$GIT_FTP_CMD fetch -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar/ $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertFalse ' external file downloaded to git root' "[ -r 'external.txt' ]"
+	assertTrue ' external file not downloaded to syncroot' "[ -r 'foobar/external.txt' ]"
 }
 
 disabled_test_file_named_dash() {
