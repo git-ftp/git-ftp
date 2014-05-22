@@ -44,7 +44,6 @@ setUp() {
 }
 
 tearDown() {
-	cd ${TESTDIR}
 	rm -rf $GIT_PROJECT_PATH
 	command -v lftp >/dev/null 2>&1 && {
 		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2> /dev/null
@@ -306,6 +305,43 @@ test_fetch_syncroot() {
 	assertEquals 0 $rtrn
 	assertFalse ' external file downloaded to git root' "[ -r 'external.txt' ]"
 	assertTrue ' external file not downloaded to syncroot' "[ -r 'foobar/external.txt' ]"
+}
+
+test_pull() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_pull_branch() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	git checkout -b deploy-branch
+	echo '1' > version.txt
+	git add -A .
+	git commit -m 'branch modification' > /dev/null 2>&1
+	#$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertTrue ' version.txt of deploy-branch not found' "[ -r 'version.txt' ]"
+	assertEquals '## deploy-branch' "$(git status -sb)"
 }
 
 disabled_test_file_named_dash() {
