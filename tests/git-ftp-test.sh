@@ -198,6 +198,8 @@ test_delete() {
 	git commit -a -m "delete file" > /dev/null 2>&1
 
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	rtrn=$?
+	assertEquals 0 $rtrn
 
 	assertFalse 'test failed: file still exists' "remote_file_exists 'test 1.txt'"
 	assertTrue 'test failed: file does not exist' "remote_file_exists 'dir 1/test 1.txt'"
@@ -331,12 +333,11 @@ test_pull_branch() {
 	echo 'own content' > internal.txt
 	git add . > /dev/null 2>&1
 	git commit -a -m "local modification" > /dev/null 2>&1
-	git checkout -b deploy-branch
+	git checkout -b deploy-branch > /dev/null 2>&1
 	echo '1' > version.txt
 	git add -A .
 	git commit -m 'branch modification' > /dev/null 2>&1
-	#$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
-	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
 	rtrn=$?
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
