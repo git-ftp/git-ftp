@@ -79,6 +79,8 @@ readonly ERROR_DOWNLOAD=5
 readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
+readonly ERROR_DEPENDENCY=9
+readonly ERROR_SYNC=10
 
 # ------------------------------------------------------------
 # Functions
@@ -102,6 +104,7 @@ DESCRIPTION
 	It keeps track of the deployed state by uploading the SHA1 of the last
 	deployed commit in a log file.
 
+	It downloads remote changes and merges them into your working copy.
 
 ACTIONS
 	. init
@@ -112,8 +115,9 @@ ACTIONS
 	. push
 		Uploads git-tracked files which have changed since last upload.
 
-	. status
-		Check remote files for changes.
+	. pull
+		Downloads changes from the remote server into a separate commit
+		and merges them into your current branch.
 
 	. show
 		Downloads last uploaded SHA1 from log and hooks \`git show\`.
@@ -131,12 +135,11 @@ ACTIONS
 		Creates a new git repository populated with the contents of
 		a remote tree.
 
-	. fetch
+	. download
 		Downloads changes from the remote host into your working tree.
 
-		This is useful in situations where others make updates directly
-		through FTP.
-
+		But probably you want to use pull.
+	
 	. add-scope
 		Add a scope (e.g. dev, production, testing).
 
@@ -414,6 +417,25 @@ grep_quote() {
     sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
 }
 
+# @returns int Whether remote file has new date (1) or not (0)
+check_remote_file_modified() {
+	local SRC_FILE="$1"
+	local DEST_FILE="$2"
+
+	if [ -z $DEST_FILE ]; then
+		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
+	fi
+
+	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
+	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+		return 1
+	fi
+
+	write_log "Remote file $DEST_FILE not touched."
+	return 0
+}
+
 # @returns int Whether to upload this file (0) or skip it (1)
 check_for_remote_changes() {
 	local SRC_FILE="$1"
@@ -429,43 +451,33 @@ check_for_remote_changes() {
 	[ $CHECK_FOR_REMOTE_CHANGES -eq 0 ] && return 0
 	[ $DEPLOYED_SHA1_LAST_MODIFIED -eq 0 ] && return 0
 
-	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
-	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
-		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
+	check_remote_file_modified "$SRC_FILE"
+	local changed=$?
+	if [ $changed -eq 1 ] ; then
+		if [ -z $ANSWER ]; then
+			echo -n "\n$SRC_FILE has remote changes that have not been committed yet.\n (O)verwrite, (D)ownload to working copy, (S)kip this time or (N)ever upload this file?"
+			read ANSWER
+		fi
 
-		get_file_content "$DEST_FILE" | diff "$SRC_FILE" - > /dev/null
-		local changed=$?
+		local SKIP_FILE=0
 
-		if [ $changed ]; then
-			
-			if [ -z $ANSWER ]; then
-				echo -n "$SRC_FILE has remote changes that have not been committed yet. (O)verwrite, (D)ownload to working copy or (N)ever upload this file?"
-				read ANSWER
-			fi
-
-			local SKIP_FILE=0
-
-			if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
-				SKIP_FILE=1
-
-				echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
-				print_info "Added $SRC_FILE to .git-ftp-ignore."
-			elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
-				print_info "Overwriting $SRC_FILE..."
-			elif [ "$ANSWER" == 'D' ] || [ "$ANSWER" == 'd' ]; then 
-				print_info "Downloading $SRC_FILE..."
-				get_file_content "$DEST_FILE" > "$SRC_FILE"
-				# TODO: File is downloaded earlier. Should go to a temp dir.
-			else
-				SKIP_FILE=1
-			fi
-
-			if [ $SKIP_FILE -eq 1 ]; then
-				print_info "Upload of $SRC_FILE aborted."
-				return 1
-			fi
+		if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
+			SKIP_FILE=1
+			echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
+			print_info "Added $SRC_FILE to .git-ftp-ignore."
+		elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
+			print_info "Overwriting $SRC_FILE..."
+		elif [ "$ANSWER" == 'D' ] || [ "$ANSWER" == 'd' ]; then 
+			SKIP_FILE=1
+			print_info "Downloading $SRC_FILE..."
+			get_file_content "$DEST_FILE" > "$SRC_FILE"
 		else
-			write_log "No remote changes found."
+			SKIP_FILE=1
+		fi
+
+		if [ $SKIP_FILE -eq 1 ]; then
+			print_info "Upload of $SRC_FILE aborted."
+			return 1
 		fi
 	fi
 
@@ -766,13 +778,13 @@ handle_file_sync() {
 			FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
 			FILE_NAME=${FILE_NAME/#\"/}
 			FILE_NAME=${FILE_NAME/%\"/}
-			check_for_remote_changes "$FILE_NAME" '' 'S'
-			local skip_file=$?
-			if [ $skip_file -eq 1 ] ; then
+			check_remote_file_modified "$FILE_NAME"
+			local changed=$?
+			if [ $changed -eq 1 ] ; then
 			    print_info ' ! [aborted]  Untracked remoted changes were found.'
 			    print_info "Merge the remote changes (e.g. 'git-ftp pull') before pushing again."
 			    print_info "You can disable this check with the parameter --ignore-remote-changes."
-			    return 1
+			    return $ERROR_SYNC
 			    # TODO: handle interactive mode here
 			fi
 		done
@@ -822,42 +834,6 @@ handle_file_sync() {
 	fire_upload_buffer
 
 	fire_delete_buffer
-}
-
-# TODO: show action missing, this method is an orphan
-handle_remote_changes() {
-	# Calculate total file count
-	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
-	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	print_info "Checking for remote changes in $TOTAL_ITEMS files..."
-
-	# Changing internal field separator, file names could have spaces
-	OIFS="$IFS"
-	NIFS=$'\n'
-	IFS="$NIFS"
-
-	for FILE_ITERATOR in $FILES_CHANGED; do
-		(( DONE_ITEMS++ ))
-		FILE_MODE=$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')
-		FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
-		FILE_NAME=${FILE_NAME/#\"/}
-		FILE_NAME=${FILE_NAME/%\"/}
-
-		check_for_remote_changes "$FILE_NAME" '' 'D'
-	done
-
-	IFS="$OIFS"
-}
-
-clone_into_temp_repo()
-{
-	local TEMP_REPO=$(mktemp -d -t git-ftp-XXXX)
-	cp -R .git* * "$TEMP_REPO"
-	cd "$TEMP_REPO"
-	print_info "Creating $TEMP_REPO for changed files..."
-	# Delete temp dir if no changes
-	# Delete temp dirs older than a month?
 }
 
 handle_submodule_sync() {
@@ -959,8 +935,8 @@ handle_action() {
 		log)
 			action_log
 			;;
-		fetch)
-			action_fetch
+		download)
+			action_download
 			;;
 		pull)
 			action_pull
@@ -993,7 +969,7 @@ set_remote_password() {
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	if [ "$SYNCROOT" ]; then
-		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
+		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_DEPENDENCY
 		SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
 	fi
 }
@@ -1251,9 +1227,10 @@ action_log() {
 	git log "$DEPLOYED_SHA1"
 }
 
-action_fetch() {
+action_download() {
 	check_is_git_project
 	check_is_dirty_repository
+	check_lftp_available
 	set_remotes
 	remote_lock
 	download_remote_updates
@@ -1263,6 +1240,7 @@ action_fetch() {
 action_pull() {
 	check_is_git_project
 	check_is_dirty_repository
+	check_lftp_available
 	set_current_branch
 	set_remotes
 	set_deployed_sha1
@@ -1325,6 +1303,10 @@ check_is_dirty_repository() {
 	[ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
+check_lftp_available() {
+	command -v lftp > /dev/null || print_error_and_die "lftp not found. This operation requires lftp installed." $ERROR_GIT
+}
+
 # ------------------------------------------------------------
 # Main
 # ------------------------------------------------------------
@@ -1343,7 +1325,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|bootstrap|push|catchup|show|fetch|pull|add-scope|remove-scope|log)
+		init|bootstrap|push|catchup|show|download|pull|add-scope|remove-scope|log)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1598,7 +1580,7 @@ do
 			shift
 			;;
 		*)
-			# Pass thru anything that may be meant for fetch.
+			# Pass thru anything that may be meant for download
 			if [ "$ACTION" = "bootstrap" ] && [ -n "$URL" ]; then
 				[ -n "$1" ] && NEW_REPO=$1
 			else
