@@ -155,6 +155,22 @@ test_pushes_and_fails() {
 	assertEquals 5 $rtrn
 }
 
+test_push_nothing() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push --dry-run -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	oneline=$(echo $push)
+	assertEquals "There are 1 files to sync: [1 of 1] Buffered for upload 'test 1.txt'." "$oneline"
+	echo 'test 1.txt' >> .git-ftp-ignore
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertEquals 'There are no files to sync.' "$push"
+}
+
 test_defaults() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
