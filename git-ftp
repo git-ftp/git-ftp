@@ -50,6 +50,7 @@ KEYCHAIN_HOST=""
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
+COMMIT_ARGS=" --no-edit"
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
@@ -176,6 +177,7 @@ OPTIONS
 	--syncroot		Specifies a directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
+	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--interactive		Asks what to do if untracked changes on the remote server are found.
 	--ignore-remote-changes	Disable check for changes on the remote server before uploading.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
@@ -1245,7 +1247,7 @@ action_pull() {
 	set_remotes
 	set_deployed_sha1
 	handle_fetch
-	git merge --no-edit $LOCAL_SHA1
+	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
 action_add_scope() {
@@ -1547,6 +1549,10 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode."
+			;;
+		--no-commit)
+			MERGE_ARGS="$MERGE_ARGS --no-commit"
+			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
 			;;
 		--interactive)
 			INTERACTIVE=1

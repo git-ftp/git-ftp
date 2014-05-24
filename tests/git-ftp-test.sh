@@ -345,6 +345,23 @@ test_pull_branch() {
 	assertEquals '## deploy-branch' "$(git status -sb)"
 }
 
+test_pull_no_commit() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+	$GIT_FTP_CMD pull --no-commit -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
+}
+
 test_push_pull_push() {
 	cd $GIT_PROJECT_PATH
 	echo "1\n2\n3" > numbers.txt

@@ -113,6 +113,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--cacert <file>`
 :	Use <file> as CA certificate store. Useful when a server has got a self-signed certificate. 
 
+`--no-commit`
+:	Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+
 `--interactive`
 :	Asks what to do if untracked changes on the remote server are found.
 
@@ -211,6 +214,7 @@ The individual steps are:
 * merge
 
 You can then review the changes and push the merged version to the remote server.
+Add --no-commit to prevent a commit of the final merge.
 
 If you are not interested in merging remote changes, you can just download all changed remote files into your current working tree:
 
