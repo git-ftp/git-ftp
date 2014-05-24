@@ -152,7 +152,7 @@ OPTIONS
 	-n, --silent		Silent mode.
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
-	--syncroot		Specifies a directory to sync from as if it were the git project root path.
+	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
