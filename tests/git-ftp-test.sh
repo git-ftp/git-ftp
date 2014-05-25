@@ -108,6 +108,37 @@ test_push_nothing() {
 	assertEquals 'There are no files to sync.' "$push"
 }
 
+test_push_unknown_sha1() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	# change remote SHA1
+	echo '000000000' | curl -T - $CURL_URL/.git-ftp.log 2> /dev/null
+	push=$(echo 'N' | $GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
+	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
+	assertEquals 1 $?
+}
+
+test_push_unknown_sha1_Y() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	# change remote SHA1
+	echo '000000000' | curl -T - $CURL_URL/.git-ftp.log 2> /dev/null
+	push=$(echo 'Y' | $GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
+	assertEquals 0 $?
+	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
+	assertEquals 0 $?
+}
+
 test_defaults() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER

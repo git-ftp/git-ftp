@@ -672,6 +672,7 @@ set_changed_files() {
 		git ls-files -t $SYNCROOT > '.git-ftp-tmp'
 	else
 		git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT 2>/dev/null > '.git-ftp-tmp'
+		local git_diff_status=$?
 	fi
 
 	# Add files from include file
@@ -737,7 +738,7 @@ set_changed_files() {
 		return
 	fi
 
-	if [ $? -ne 0 ]; then
+	if [ $git_diff_status -ne 0 ]; then
 		if [ $FORCE -ne 1 ]; then
 			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
 			echo -n "Do you want to ignore and upload all files again? [y/N]: "
