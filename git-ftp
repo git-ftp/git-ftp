@@ -419,71 +419,49 @@ grep_quote() {
     sed 's/[]\.|$(){}?+*^]/\\&/g' <<< "$*"
 }
 
-# @returns int Whether remote file has new date (1) or not (0)
-check_remote_file_modified() {
+# @returns int Whether remote file has newer date (0) or not (1)
+remote_file_modified() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
-	fi
-
 	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
 	if [ -n "$DEST_FILE_LAST_MODIFIED" ] && [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
 		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
-		return 1
+		return 0
 	fi
-
 	write_log "Remote file $DEST_FILE not touched."
-	return 0
+	return 1
 }
 
-# @returns int Whether to upload this file (0) or skip it (1)
-check_for_remote_changes() {
+ask_whether_skip_file() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-	local ANSWER="$3"
-
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
-	fi
-
-	[ $FORCE -eq 1 ] && return 0
-	[ $INTERACTIVE -eq 0 ] && return 0
-	[ $CHECK_FOR_REMOTE_CHANGES -eq 0 ] && return 0
-	[ $DEPLOYED_SHA1_LAST_MODIFIED -eq 0 ] && return 0
-
-	check_remote_file_modified "$SRC_FILE"
-	local changed=$?
-	if [ $changed -eq 1 ] ; then
-		if [ -z $ANSWER ]; then
-			echo -n "\n$SRC_FILE has remote changes that have not been committed yet.\n (O)verwrite, (D)ownload to working copy, (S)kip this time or (N)ever upload this file?"
-			read ANSWER
-		fi
-
-		local SKIP_FILE=0
-
+	local SKIP_FILE=0
+	local VALID_ANSWER=0
+	while [ $VALID_ANSWER -eq 0 ]; do
+		echo -e -n "$SRC_FILE has remote changes that have not been committed yet.\n (O)verwrite, (D)ownload to working copy, (S)kip this time or (N)ever upload this file? "
+		read ANSWER
 		if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
 			SKIP_FILE=1
 			echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
 			print_info "Added $SRC_FILE to .git-ftp-ignore."
+			VALID_ANSWER=1
 		elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
 			print_info "Overwriting $SRC_FILE..."
+			VALID_ANSWER=1
 		elif [ "$ANSWER" == 'D' ] || [ "$ANSWER" == 'd' ]; then 
 			SKIP_FILE=1
 			print_info "Downloading $SRC_FILE..."
 			get_file_content "$DEST_FILE" > "$SRC_FILE"
-		else
+			VALID_ANSWER=1
+		elif [ "$ANSWER" == 'S' ] || [ "$ANSWER" == 's' ]; then 
 			SKIP_FILE=1
+			VALID_ANSWER=1
 		fi
-
 		if [ $SKIP_FILE -eq 1 ]; then
+			FILES_CHANGED=$(echo "$FILES_CHANGED" | grep -v "^.\s$SRC_FILE$")
 			print_info "Upload of $SRC_FILE aborted."
-			return 1
 		fi
-	fi
-
-	return 0
+	done
 }
 
 upload_file_buffered() {
@@ -783,19 +761,21 @@ handle_file_sync() {
 	NIFS=$'\n'
 	IFS="$NIFS"
 
-	if [ $FORCE -eq 0 ] && [ $CHECK_FOR_REMOTE_CHANGES -eq 1 ] && [ $DEPLOYED_SHA1_LAST_MODIFIED ] && [ $INTERACTIVE -eq 0 ]; then
+	if [ $FORCE -eq 0 ] && [ $CHECK_FOR_REMOTE_CHANGES -eq 1 ] && [ $DEPLOYED_SHA1_LAST_MODIFIED ]; then
 		for FILE_ITERATOR in $FILES_CHANGED; do
 			FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
 			FILE_NAME=${FILE_NAME/#\"/}
 			FILE_NAME=${FILE_NAME/%\"/}
-			check_remote_file_modified "$FILE_NAME"
-			local changed=$?
-			if [ $changed -eq 1 ] ; then
-			    print_info ' ! [aborted]  Untracked remoted changes were found.'
-			    print_info "Merge the remote changes (e.g. 'git-ftp pull') before pushing again."
-			    print_info "You can disable this check with the parameter --ignore-remote-changes."
-			    return $ERROR_SYNC
-			    # TODO: handle interactive mode here
+			DEST_FILE=$(upload_get_dest_file $FILE_NAME)
+			if remote_file_modified "$FILE_NAME" "$DEST_FILE" ; then
+				if [ $INTERACTIVE -eq 0 ] ; then
+					print_info ' ! [aborted]  Untracked remoted changes were found.'
+					print_info "Merge the remote changes (e.g. 'git-ftp pull') before pushing again."
+					print_info "You can disable this check with the parameter --ignore-remote-changes."
+					return $ERROR_SYNC
+				else
+					ask_whether_skip_file "$FILE_NAME" "$DEST_FILE"
+				fi
 			fi
 		done
 	fi
@@ -814,7 +794,7 @@ handle_file_sync() {
 				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 
 			else
-				if check_for_remote_changes "$FILE_NAME" && [ $DRY_RUN -ne 1 ]; then
+				if [ $DRY_RUN -ne 1 ]; then
 					if is_arg_max_reached "$FILE_NAME" "${CURL_UPLOADS[@]}"; then
 						IFS="$OIFS"
 						fire_upload_buffer

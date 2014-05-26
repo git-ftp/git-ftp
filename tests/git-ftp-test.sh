@@ -412,22 +412,22 @@ test_pull_no_commit() {
 test_push_pull_push() {
 	cd $GIT_PROJECT_PATH
 	echo "1\n2\n3" > numbers.txt
-        git add .
-        git commit -m 'three line file' > /dev/null
+	git add .
+	git commit -m 'three line file' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1\n1.5\n2\n3" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "1\n2\n2.5\n3" > numbers.txt
-        git commit -a -m 'added 2.5' > /dev/null
-        # push should fail: out of sync
+	git commit -a -m 'added 2.5' > /dev/null
+	# push should fail: out of sync
 	$GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
 	assertEquals 10 $?
-        # pull should merge changes
+	# pull should merge changes
 	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
-        echo "1\n1.5\n2\n2.5\n3" | diff numbers.txt -
+	echo "1\n1.5\n2\n2.5\n3" | diff numbers.txt -
 	assertEquals 0 $?
-        # now push should pass
+	# now push should pass
 	$GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
 	assertEquals 0 $?
 }
@@ -435,109 +435,108 @@ test_push_pull_push() {
 test_push_ignore_remote_changes() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
+	git commit -a -m 'added zero' > /dev/null
 	$GIT_FTP_CMD push --ignore-remote-changes -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
 	assertEquals 0 $?
-        assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 test_push_ignore_remote_changes_force() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
+	git commit -a -m 'added zero' > /dev/null
 	$GIT_FTP_CMD push -f -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
 	assertEquals 0 $?
-        assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 test_push_interactive_skip() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
-        # push should ask when interactive
-        push=$(echo 'S' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-        echo $push | grep 'numbers.txt has remote changes' > /dev/null
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'S' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertEquals 0 $?
-        assertEquals "0123" "$(cat numbers.txt)"
-        assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 test_push_interactive_overwrite() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
-        # push should ask when interactive
-        push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-        assertEquals "0123" "$(cat numbers.txt)"
-        assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 test_push_interactive_download() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
-        # push should ask when interactive
-        push=$(echo 'D' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-        assertEquals "1234" "$(cat numbers.txt)"
-        assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'D' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "1234" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 test_push_interactive_never() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
-        git add .
-        git commit -m 'three numbers' > /dev/null
+	git add .
+	git commit -m 'three numbers' > /dev/null
 	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
-        sleep 1 # otherwise the timestamp will be the same
+	sleep 1 # otherwise the timestamp will be the same
 	echo "1234" > numbers.txt
 	curl -T numbers.txt $CURL_URL/ 2> /dev/null
 	echo "0123" > numbers.txt
-        git commit -a -m 'added zero' > /dev/null
-        # push should ask when interactive
-        push=$(echo 'N' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-        assertEquals "0123" "$(cat numbers.txt)"
-        assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
-        # change again and verify it doesn't get uploaded
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'N' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	# change again and verify it doesn't get uploaded
 	echo "01234" > numbers.txt
-        git commit -a -m 'added four' > /dev/null
-        push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
-        assertEquals "01234" "$(cat numbers.txt)"
-        assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	git commit -a -m 'added four' > /dev/null
+	push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "01234" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
 disabled_test_file_named_dash() {
