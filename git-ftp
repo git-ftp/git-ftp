@@ -428,8 +428,8 @@ check_remote_file_modified() {
 		DEST_FILE=$(upload_get_dest_file $SRC_FILE)
 	fi
 
-	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE") # TODO Check if not found!
-	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
+	if [ -n "$DEST_FILE_LAST_MODIFIED" ] && [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
 		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
 		return 1
 	fi
@@ -564,14 +564,17 @@ get_file_content() {
 	curl "${CURL_ARGS[@]}"
 }
 
-get_file_lastmodified()
-{
+get_file_lastmodified() {
 	local SRC_FILE="$1"
 	set_default_curl_options
 	CURL_ARGS+=("--head")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
 
-	local GMT_TIME=$(curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:" | cut -d ' ' -f 2-)
+	local LAST_MODIFIED=$(curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:")
+	if [ $? -ne 0 ]; then
+		return
+	fi
+	local GMT_TIME=$(echo "$LAST_MODIFIED" | cut -d ' ' -f 2-)
 	date --date="$GMT_TIME" +"%s"
 }
 
