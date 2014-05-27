@@ -119,8 +119,7 @@ test_push_unknown_sha1() {
 	push=$(echo 'N' | $GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertEquals 0 $?
 	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
-	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
-	assertEquals 1 $?
+	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
 test_push_unknown_sha1_Y() {
@@ -135,8 +134,7 @@ test_push_unknown_sha1_Y() {
 	assertEquals 0 $?
 	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
 	assertEquals 0 $?
-	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
-	assertEquals 0 $?
+	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
 test_defaults() {
@@ -603,8 +601,11 @@ disabled_test_file_named_dash() {
 }
 
 remote_file_exists() {
-	head=$(curl "$CURL_URL/$1" --head)
-	return $?
+	curl "$CURL_URL/$1" --head > /dev/null
+}
+
+remote_file_equals() {
+	curl -s "$CURL_URL/$1" | diff - "$1" > /dev/null
 }
 
 # load and run shUnit2

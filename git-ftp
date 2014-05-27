@@ -800,7 +800,7 @@ handle_file_sync() {
 						fire_upload_buffer
 						IFS="$NIFS"
 					fi
-					upload_file_buffered "$FILE_NAME" "$DEST_FILE"
+					upload_file_buffered "$FILE_NAME" ""
 				fi
 			fi
 		# Removing file
