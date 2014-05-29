@@ -174,7 +174,7 @@ OPTIONS
 	-n, --silent		Silent mode.
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
-	--syncroot		Specifies a directory to sync from as if it were the git project root path.
+	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
