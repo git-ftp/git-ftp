@@ -273,7 +273,6 @@ test_include_init() {
 	echo 'unversioned' > unversioned.txt
 	echo 'unversioned.txt' >> .gitignore
 	echo 'unversioned.txt:test 1.txt' > .git-ftp-include
-	cat .git-ftp-include
 	echo 'new content' >> 'test 1.txt'
 	git add .
 	git commit -m 'unversioned file unversioned.txt should be uploaded with test 1.txt' > /dev/null
