@@ -550,14 +550,14 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		for LINE in $(grep '^!' '.git-ftp-include-tmp')
+		grep '^!' '.git-ftp-include-tmp' | while read LINE
 		do
 			FILE_STATUS='M'
 			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
 			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
 		done
 
-		for LINE in $(grep ':' '.git-ftp-include-tmp')
+		grep ':' '.git-ftp-include-tmp' | while read LINE
 		do
 			OIFS="$IFS"
 			IFS=":"
