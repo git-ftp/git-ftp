@@ -254,6 +254,17 @@ test_include_init() {
 	assertTrue 'unversioned.txt was not uploaded' "remote_file_exists 'unversioned.txt'"
 }
 
+test_include_whitespace_init() {
+	cd $GIT_PROJECT_PATH
+	echo 'unversioned' > unversioned.txt
+	echo 'unversioned.txt' >> .gitignore
+	echo 'unversioned.txt:test X.txt' > .git-ftp-include
+	git add .
+	git commit -m 'unversioned file unversioned.txt should not be uploaded. test X.txt does not exist.' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertFalse 'unversioned.txt was uploaded' "remote_file_exists 'unversioned.txt'"
+}
+
 test_include_push() {
 	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
