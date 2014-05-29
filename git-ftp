@@ -563,7 +563,8 @@ set_changed_files() {
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			if [[ $(grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp') && ! $(grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp') ]]; then
+			cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
+			if [[ $(grep -Fx "${FILE_PAIR[1]}" '.git-ftp-tmp-files') && ! $(grep -Fx "${FILE_PAIR[0]}" '.git-ftp-tmp-files') ]]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
@@ -601,6 +602,7 @@ set_changed_files() {
 	fi
 
 	rm -f '.git-ftp-tmp'
+	rm -f '.git-ftp-tmp-files'
 	rm -f '.git-ftp-include-tmp'
 	rm -f '.git-ftp-ignore-tmp'
 
