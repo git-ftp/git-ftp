@@ -584,6 +584,27 @@ test_push_interactive_skip() {
 	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
+tofix_test_push_interactive_skip_similar() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	echo "456" > numbers_txt
+	git add .
+	git commit -m 'six numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	echo "4567" > numbers_txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'S' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	assertEquals "4567" "$(curl -s $CURL_URL/numbers_txt)"
+}
+
 test_push_interactive_overwrite() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
