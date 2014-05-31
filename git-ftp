@@ -53,6 +53,7 @@ CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
 CURL_DELETE=()
 CURL_DISABLE_EPSV=0
+CURL_BINARY=/usr/bin/curl
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -378,7 +379,7 @@ upload_file() {
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	curl "${CURL_ARGS[@]}"
+	${CURL_BINARY} "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
 }
 
@@ -404,9 +405,11 @@ fire_upload_buffer() {
 	print_info "Uploading ..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("${CURL_UPLOADS[@]}")
-	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload files." $ERROR_UPLOAD
+	n=${#CURL_UPLOADS[@]}
+	for ((i=0; i< n; i+=3)) {
+	    ${CURL_BINARY} "${CURL_ARGS[@]}" "${CURL_UPLOADS[@]:i:i+3}"	    
+	    check_exit_status "Could not upload files." $ERROR_UPLOAD
+	}
 	CURL_UPLOADS=()
 }
 
@@ -416,9 +419,9 @@ delete_file() {
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		${CURL_BINARY} "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		${CURL_BINARY} "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
@@ -439,9 +442,9 @@ fire_delete_buffer() {
 	CURL_ARGS+=("${CURL_DELETE[@]}")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		${CURL_BINARY} "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		${CURL_BINARY} "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_error_log "Some files and/or folders could not be deleted."
@@ -460,7 +463,7 @@ get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
-	curl "${CURL_ARGS[@]}"
+	${CURL_BINARY} "${CURL_ARGS[@]}"
 }
 
 set_local_sha1() {
