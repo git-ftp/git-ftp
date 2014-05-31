@@ -178,7 +178,7 @@ SET DEFAULTS
 	. git config git-ftp.insecure 1
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -402,13 +402,12 @@ fire_upload_buffer() {
 	if [ -z "$CURL_UPLOADS" ]; then
 		return 0
 	fi
-	print_info "Uploading ..."
+	n=${#CURL_UPLOADS[@]}
+	print_info "Uploading $n files..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	n=${#CURL_UPLOADS[@]}
 	for ((i=0; i< n; i+=3)) {
-	    ${CURL_BINARY} "${CURL_ARGS[@]}" "${CURL_UPLOADS[@]:i:i+3}"	    
-	    check_exit_status "Could not upload files." $ERROR_UPLOAD
+	    ${CURL_BINARY} "${CURL_ARGS[@]}" "${CURL_UPLOADS[i]}" "${CURL_UPLOADS[i+1]}" "${CURL_UPLOADS[i+2]}"
 	}
 	CURL_UPLOADS=()
 }
@@ -744,7 +743,7 @@ handle_submodule_sync() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
+
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
 			if [ -z "$CURL_PUBLIC_KEY" ]; then
@@ -754,7 +753,7 @@ handle_remote_protocol_options() {
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
-		
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -842,7 +841,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	set_remote_protocol
 	# Add trailing slash if missing
@@ -857,7 +856,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
