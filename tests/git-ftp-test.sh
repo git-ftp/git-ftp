@@ -584,7 +584,7 @@ test_push_interactive_skip() {
 	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
 }
 
-tofix_test_push_interactive_skip_similar() {
+test_push_interactive_skip_similar() {
 	cd $GIT_PROJECT_PATH
 	echo "123" > numbers.txt
 	echo "456" > numbers_txt

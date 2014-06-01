@@ -432,34 +432,27 @@ remote_file_modified() {
 	return 1
 }
 
-ask_whether_skip_file() {
+# @returns int Whether handling this file (0) or not (1)
+shall_overwrite_file() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-	local SKIP_FILE=0
-	local VALID_ANSWER=0
-	while [ $VALID_ANSWER -eq 0 ]; do
+	while :; do
 		echo -e -n "$SRC_FILE has remote changes that have not been committed yet.\n (O)verwrite, (D)ownload to working copy, (S)kip this time or (N)ever upload this file? "
 		read ANSWER
-		if [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
-			SKIP_FILE=1
-			echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
-			print_info "Added $SRC_FILE to .git-ftp-ignore."
-			VALID_ANSWER=1
-		elif [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
+		if [ "$ANSWER" == 'O' ] || [ "$ANSWER" == 'o' ]; then 
 			print_info "Overwriting $SRC_FILE..."
-			VALID_ANSWER=1
+			return 0
 		elif [ "$ANSWER" == 'D' ] || [ "$ANSWER" == 'd' ]; then 
-			SKIP_FILE=1
 			print_info "Downloading $SRC_FILE..."
 			get_file_content "$DEST_FILE" > "$SRC_FILE"
-			VALID_ANSWER=1
+			return 1
 		elif [ "$ANSWER" == 'S' ] || [ "$ANSWER" == 's' ]; then 
-			SKIP_FILE=1
-			VALID_ANSWER=1
-		fi
-		if [ $SKIP_FILE -eq 1 ]; then
-			FILES_CHANGED=$(echo "$FILES_CHANGED" | grep -v "^.\s$SRC_FILE$")
-			print_info "Upload of $SRC_FILE aborted."
+			print_info "Skipping $SRC_FILE..."
+			return 1
+		elif [ "$ANSWER" == 'N' ] || [ "$ANSWER" == 'n' ]; then
+			echo $(grep_quote $SRC_FILE) >> .git-ftp-ignore
+			print_info "Added $SRC_FILE to .git-ftp-ignore."
+			return 1
 		fi
 	done
 }
@@ -764,6 +757,7 @@ handle_file_sync() {
 	IFS="$NIFS"
 
 	if [ $FORCE -eq 0 ] && [ $CHECK_FOR_REMOTE_CHANGES -eq 1 ] && [ $DEPLOYED_SHA1_LAST_MODIFIED ]; then
+		local FILES_CHANGED_FILTERED
 		for FILE_ITERATOR in $FILES_CHANGED; do
 			FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
 			FILE_NAME=${FILE_NAME/#\"/}
@@ -776,10 +770,15 @@ handle_file_sync() {
 					print_info "You can disable this check with the parameter --ignore-remote-changes."
 					return $ERROR_SYNC
 				else
-					ask_whether_skip_file "$FILE_NAME" "$DEST_FILE"
+					if shall_overwrite_file "$FILE_NAME" "$DEST_FILE"; then
+						FILES_CHANGED_FILTERED="$FILES_CHANGED_FILTERED$FILE_ITERATOR$IFS"
+					fi
 				fi
+			else
+				FILES_CHANGED_FILTERED="$FILES_CHANGED_FILTERED$FILE_ITERATOR$IFS"
 			fi
 		done
+		FILES_CHANGED="$FILES_CHANGED_FILTERED"
 	fi
 
 	for FILE_ITERATOR in $FILES_CHANGED; do
