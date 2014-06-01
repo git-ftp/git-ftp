@@ -403,7 +403,8 @@ fire_upload_buffer() {
 		return 0
 	fi
 	n=${#CURL_UPLOADS[@]}
-	print_info "Uploading $n files..."
+	let nfiles=n/3
+	print_info "Uploading $nfiles files..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	for ((i=0; i< n; i+=3)) {
