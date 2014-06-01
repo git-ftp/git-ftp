@@ -84,6 +84,20 @@ test_inits_and_pushes() {
 	assertEquals 0 $rtrn
 }
 
+# this test takes a couple of minutes (revealing a performance issue)
+disabled_test_init_heaps() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a large number of files which fails to upload on some systems
+	touch `seq 3955`
+	git add .
+	git commit -m 'A lot of files.' > /dev/null
+
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	assertEquals 0 $?
+	assertTrue 'file does not exist' "remote_file_exists '3955'"
+}
+
 test_pushes_and_fails() {
 	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
