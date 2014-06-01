@@ -84,6 +84,23 @@ test_inits_and_pushes() {
 	assertEquals 0 $rtrn
 }
 
+test_init_more() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a number of files exceeding the upload buffer
+	touch `seq 100`
+	git add .
+	git commit -m 'Some more files.' > /dev/null
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertTrue 'file does not exist' "remote_file_exists '99'"
+
+	# Counting the number of uploads to estimate correct buffering
+	upload_count=$(echo "$init" | grep -Fx 'Uploading ...' | wc -l)
+	assertEquals 2 "$upload_count"
+}
+
 # this test takes a couple of minutes (revealing a performance issue)
 disabled_test_init_heaps() {
 	cd $GIT_PROJECT_PATH
