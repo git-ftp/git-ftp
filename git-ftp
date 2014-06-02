@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.0.0-rc.1'
+readonly VERSION='1.0.0-rc.2'
 
 # ------------------------------------------------------------
 # Defaults
