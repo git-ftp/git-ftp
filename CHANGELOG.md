@@ -1,3 +1,18 @@
+Version 1.0.0-rc.2
+==================
+
+mkllnk:
+* Added more tests, tests clean up and improvements. See README.md in /tests.
+* Improved docs.
+
+Jason Woof, mkllnk:
+* Fixed .git-ftp-include split lines on whitespace.
+* Fixed .git-ftp-include will not upload files that are a substr of another path being uploaded.
+
+René Moser:
+* Added netrc in docs.
+* Fixed sha1 not updated if amended.
+
 Version 1.0.0-rc.1
 ==================
 

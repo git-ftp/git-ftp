@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.0.0-rc.1'
+readonly VERSION='1.0.0-rc.2'
 
 # ------------------------------------------------------------
 # Defaults
@@ -152,7 +152,7 @@ OPTIONS
 	-n, --silent		Silent mode.
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
-	--syncroot		Specifies a directory to sync from as if it were the git project root path.
+	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
@@ -550,20 +550,21 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		for LINE in $(grep '^!' '.git-ftp-include-tmp')
+		grep '^!' '.git-ftp-include-tmp' | while read LINE
 		do
 			FILE_STATUS='M'
 			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
 			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
 		done
 
-		for LINE in $(grep ':' '.git-ftp-include-tmp')
+		grep ':' '.git-ftp-include-tmp' | while read LINE
 		do
 			OIFS="$IFS"
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			if [[ $(grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp') && ! $(grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp') ]]; then
+			cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
+			if [[ $(grep -Fx "${FILE_PAIR[1]}" '.git-ftp-tmp-files') && ! $(grep -Fx "${FILE_PAIR[0]}" '.git-ftp-tmp-files') ]]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
@@ -601,6 +602,7 @@ set_changed_files() {
 	fi
 
 	rm -f '.git-ftp-tmp'
+	rm -f '.git-ftp-tmp-files'
 	rm -f '.git-ftp-include-tmp'
 	rm -f '.git-ftp-ignore-tmp'
 
