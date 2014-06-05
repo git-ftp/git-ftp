@@ -329,6 +329,33 @@ test_include_ignore_push() {
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
 }
 
+test_include_ftp_ignore_init() {
+	cd $GIT_PROJECT_PATH
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+test_include_ftp_ignore_push() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
 # addresses issue #41
 test_include_similar() {
 	cd $GIT_PROJECT_PATH
