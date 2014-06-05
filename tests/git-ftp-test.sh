@@ -1,11 +1,9 @@
 #!/bin/sh
 
 oneTimeSetUp() {
-	BASE_PATH=$(readlink -f $TESTDIR/..)/
-	# Maybe this is more robust?
-	#BASE_PATH=$TESTDIR/../
+	cd "$TESTDIR/../"
 
-	GIT_FTP_CMD="${BASE_PATH}git-ftp"
+	GIT_FTP_CMD="$(pwd)/git-ftp"
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
 	: ${GIT_FTP_ROOT=localhost/}
