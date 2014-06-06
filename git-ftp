@@ -391,7 +391,6 @@ upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
 	local ADD_ARGS=()
-	local ARG_STR=''
 
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
@@ -448,7 +447,6 @@ set_delete_curl_arguments() {
 delete_file_buffered() {
 	local FILENAME="$1"
 	local ADD_ARGS=()
-	local ARG_STR=''
 	ADD_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	set_delete_curl_arguments
 	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
