@@ -99,6 +99,35 @@ test_init_more() {
 	assertEquals 2 "$upload_count"
 }
 
+test_delete_more() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a number of files exceeding the upload buffer
+	long_prefix='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+	long_file_list=''
+	for i in `seq 50`; do
+		long_file_list="$long_file_list $long_prefix$i"
+	done
+	touch $long_file_list
+	git add .
+	git commit -m 'Some more files.' > /dev/null
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+
+	# Delete a number of files exceeding the upload buffer
+	git rm $long_file_list > /dev/null
+	git commit -m 'Deleting some more files.' > /dev/null
+
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+
+	# Counting the number of deletes to estimate correct buffering
+	delete_count=$(echo "$push" | grep -Fx 'Deleting ...' | wc -l)
+	assertTrue "[ $delete_count -gt 1 ]"
+	assertFalse 'file does exist' "remote_file_exists '${long_prefix}50'"
+}
+
 # this test takes a couple of minutes (revealing a performance issue)
 disabled_test_init_heaps() {
 	cd $GIT_PROJECT_PATH

@@ -442,7 +442,19 @@ delete_file() {
 
 delete_file_buffered() {
 	local FILENAME="$1"
-	CURL_DELETE+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
+	local ADD_ARGS=()
+	local ARG_STR=''
+	ADD_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
+	set_default_curl_options
+	CURL_ARGS+=("${CURL_DELETE[@]}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	ARG_STR=$(echo ${CURL_ARGS[@]})
+	if is_arg_max_reached "$ARG_STR"; then
+		IFS="$OIFS"
+		fire_delete_buffer
+		IFS="$NIFS"
+	fi
+	CURL_DELETE+=("${ADD_ARGS[@]}")
 }
 
 fire_delete_buffer() {
@@ -686,12 +698,6 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 
 			if [ $DRY_RUN -ne 1 ]; then
-				if is_arg_max_reached "$FILE_NAME" "${CURL_DELETE[@]}"; then
-					IFS="$OIFS"
-					fire_delete_buffer
-					IFS="$NIFS"
-				fi
-
 				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir $(dirname "${FILE_NAME#$SYNCROOT}")
 			fi
 		fi
