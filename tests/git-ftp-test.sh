@@ -86,17 +86,22 @@ test_init_more() {
 	cd $GIT_PROJECT_PATH
 
 	# Generate a number of files exceeding the upload buffer
-	touch `seq 100`
+	long_prefix='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+	long_file_list=''
+	for i in `seq 50`; do
+		long_file_list="$long_file_list $long_prefix$i"
+	done
+	touch $long_file_list
 	git add .
 	git commit -m 'Some more files.' > /dev/null
 
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertEquals 0 $?
-	assertTrue 'file does not exist' "remote_file_exists '99'"
+	assertTrue 'file does not exist' "remote_file_exists '${long_prefix}50'"
 
 	# Counting the number of uploads to estimate correct buffering
 	upload_count=$(echo "$init" | grep -Fx 'Uploading ...' | wc -l)
-	assertEquals 2 "$upload_count"
+	assertTrue "[ $upload_count -gt 1 ]"
 }
 
 test_delete_more() {

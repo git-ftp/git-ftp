@@ -211,10 +211,9 @@ is_submodule() {
 }
 
 is_arg_max_reached() {
-	local ARGS_TO_ADD=$1
-	local ARGS_STRING=$2
-
-	CURRENT_LENGTH=$(( ${#ARGS_STRING} + ${#ARGS_TO_ADD} ))
+	local ARGS=("$@")
+	ARGS_STRING=$(echo ${ARGS[@]})
+	CURRENT_LENGTH=$(( ${#ARGS_STRING} ))
 	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
 		return 1
 	fi
@@ -382,6 +381,12 @@ upload_file() {
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
 }
 
+set_upload_curl_arguments() {
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=("${CURL_UPLOADS[@]}")
+}
+
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
@@ -398,12 +403,8 @@ upload_file_buffered() {
 
 	ADD_ARGS+=(-T "./$SRC_FILE")
 	ADD_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	set_default_curl_options
-	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("${CURL_UPLOADS[@]}")
-	CURL_ARGS+=("${ADD_ARGS[@]}")
-	ARG_STR=$(echo ${CURL_ARGS[@]})
-	if is_arg_max_reached "$ARG_STR"; then
+	set_upload_curl_arguments
+	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
 		IFS="$OIFS"
 		fire_upload_buffer
 		IFS="$NIFS"
@@ -417,9 +418,7 @@ fire_upload_buffer() {
 		return 0
 	fi
 	print_info "Uploading ..."
-	set_default_curl_options
-	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("${CURL_UPLOADS[@]}")
+	set_upload_curl_arguments
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." $ERROR_UPLOAD
 	CURL_UPLOADS=()
@@ -440,16 +439,19 @@ delete_file() {
 	fi
 }
 
+set_delete_curl_arguments() {
+	set_default_curl_options
+	CURL_ARGS+=("${CURL_DELETE[@]}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+}
+
 delete_file_buffered() {
 	local FILENAME="$1"
 	local ADD_ARGS=()
 	local ARG_STR=''
 	ADD_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	set_default_curl_options
-	CURL_ARGS+=("${CURL_DELETE[@]}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
-	ARG_STR=$(echo ${CURL_ARGS[@]})
-	if is_arg_max_reached "$ARG_STR"; then
+	set_delete_curl_arguments
+	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
 		IFS="$OIFS"
 		fire_delete_buffer
 		IFS="$NIFS"
@@ -462,9 +464,7 @@ fire_delete_buffer() {
 		return 0
 	fi
 	print_info "Deleting ..."
-	set_default_curl_options
-	CURL_ARGS+=("${CURL_DELETE[@]}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	set_delete_curl_arguments
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
