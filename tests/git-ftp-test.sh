@@ -1,11 +1,9 @@
 #!/bin/sh
 
 oneTimeSetUp() {
-	BASE_PATH=$(readlink -f $TESTDIR/..)/
-	# Maybe this is more robust?
-	#BASE_PATH=$TESTDIR/../
+	cd "$TESTDIR/../"
 
-	GIT_FTP_CMD="${BASE_PATH}git-ftp"
+	GIT_FTP_CMD="$(pwd)/git-ftp"
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
 	: ${GIT_FTP_ROOT=localhost/}
@@ -371,6 +369,33 @@ test_include_ignore_push() {
 	echo 'htaccess.prod' > .htaccess.prod
 	echo '.htaccess:.htaccess.prod' > .git-ftp-include
 	echo '.htaccess.prod' > .gitignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+test_include_ftp_ignore_init() {
+	cd $GIT_PROJECT_PATH
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+test_include_ftp_ignore_push() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
 	git add .
 	git commit -m 'htaccess setup' > /dev/null
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
