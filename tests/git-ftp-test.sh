@@ -99,11 +99,25 @@ test_push_nothing() {
 	push=$($GIT_FTP_CMD push --dry-run -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertEquals 0 $?
 	oneline=$(echo $push)
-	assertEquals "There are 1 files to sync: [1 of 1] Buffered for upload 'test 1.txt'." "$oneline"
+	assertTrue "$push" "echo \"$push\" | grep 'There are 1 files to sync:'"
 	echo 'test 1.txt' >> .git-ftp-ignore
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertEquals 0 $?
-	assertEquals 'There are no files to sync.' "$push"
+	firstline=$(echo "$push" | head -n 1)
+	assertEquals 'There are no files to sync.' "$firstline"
+}
+
+test_push_twice() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "First push: $push"
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "Second push: $push"
+	assertTrue "$push" "echo \"$push\" | grep 'Everything up-to-date.'"
 }
 
 test_push_unknown_sha1() {

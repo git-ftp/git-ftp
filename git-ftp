@@ -1193,9 +1193,14 @@ action_push() {
 	remote_lock
 	handle_file_sync
 	local rtrn=$?
-	[ $rtrn ] || upload_local_sha1
+	if [ $rtrn -eq 0 ]; then
+		upload_local_sha1
+	fi
 	release_remote_lock
-	if [ $rtrn ]; then exit $rtrn; fi
+	if [ $rtrn -ne 0 ]; then
+		exit $rtrn
+		upload_local_sha1
+	fi
 }
 
 action_catchup() {
