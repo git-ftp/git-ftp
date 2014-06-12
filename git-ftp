@@ -44,6 +44,7 @@ ERROR_LOG=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
+DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
@@ -293,7 +294,9 @@ get_config() {
 	echo $OUT
 }
 
-readonly DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
+set_deployed_sha1_file() {
+	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
+}
 
 # Simple log func
 write_log() {
@@ -1089,6 +1092,7 @@ do
 					fi
 					;;
 			esac
+			set_deployed_sha1_file
 			write_log "Using scope $SCOPE if available"
 			;;
 		--syncroot*)
