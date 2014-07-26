@@ -541,11 +541,12 @@ get_file_lastmodified() {
 	CURL_ARGS+=("--head")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
 
-	local LAST_MODIFIED=$(curl "${CURL_ARGS[@]}" | grep -e "Last-Modified:")
+	local HEAD=''
+	HEAD=$(curl "${CURL_ARGS[@]}")
 	if [ $? -ne 0 ]; then
 		return
 	fi
-	local GMT_TIME=$(echo "$LAST_MODIFIED" | cut -d ' ' -f 2-)
+	local GMT_TIME=$(echo "$HEAD" | grep -e "Last-Modified:" | cut -d ' ' -f 2-)
 	date --date="$GMT_TIME" +"%s"
 }
 
