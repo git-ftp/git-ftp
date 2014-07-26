@@ -107,6 +107,19 @@ test_push_nothing() {
 	assertEquals 'There are no files to sync.' "$firstline"
 }
 
+test_push_added() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# add a file
+	file='newfile.txt'
+	echo "1" > "./$file"
+	git add $file
+	git commit -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "Push: $push"
+	assertEquals "1" "$(curl -s $CURL_URL/$file)"
+}
+
 test_push_twice() {
 	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
