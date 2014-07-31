@@ -46,6 +46,11 @@ Adding PPA on Ubuntu
 Note: Usually updated after every release (tag).
 
 
+ArchLinux (AUR: unofficial)
+---------------------------
+See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go 
+
+
 Mac OS X
 --------
 Using homebrew:
