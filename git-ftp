@@ -31,6 +31,7 @@ readonly VERSION='1.0.0-rc.2'
 # ------------------------------------------------------------
 URL=""
 REMOTE_PROTOCOL=""
+REMOTE_LOGIN=""
 REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
@@ -351,9 +352,7 @@ set_default_curl_options() {
 	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
-	if [ ! -z $REMOTE_USER ]; then
-		CURL_ARGS+=(--user "$REMOTE_USER":"$REMOTE_PASSWD")
-	else
+	if [ -z $REMOTE_USER ]; then
 		CURL_ARGS+=(--netrc)
 	fi
 	CURL_ARGS+=(-#)
@@ -379,7 +378,7 @@ upload_file() {
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
 }
@@ -404,7 +403,7 @@ upload_file_buffered() {
 	fi
 
 	ADD_ARGS+=(-T "./$SRC_FILE")
-	ADD_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+	ADD_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 	set_upload_curl_arguments
 	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
 		IFS="$OIFS"
@@ -430,7 +429,7 @@ delete_file() {
 	local FILENAME="$1"
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
@@ -444,7 +443,7 @@ delete_file() {
 set_delete_curl_arguments() {
 	set_default_curl_options
 	CURL_ARGS+=("${CURL_DELETE[@]}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST")
 }
 
 delete_file_buffered() {
@@ -487,7 +486,7 @@ delete_dir() {
 get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
 	curl "${CURL_ARGS[@]}"
 }
 
@@ -858,6 +857,10 @@ set_remotes() {
 	else
 		write_log "Password is set."
 	fi 
+
+	if [ ! -z $REMOTE_USER ]; then
+		REMOTE_LOGIN="$REMOTE_USER":"$REMOTE_PASSWD"@
+	fi
 
 	set_remote_protocol
 	# Add trailing slash if missing
