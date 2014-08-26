@@ -1,11 +1,9 @@
 #!/bin/sh
 
 oneTimeSetUp() {
-	BASE_PATH=$(readlink -f $TESTDIR/..)/
-	# Maybe this is more robust?
-	#BASE_PATH=$TESTDIR/../
+	cd "$TESTDIR/../"
 
-	GIT_FTP_CMD="${BASE_PATH}git-ftp"
+	GIT_FTP_CMD="$(pwd)/git-ftp"
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
 	: ${GIT_FTP_ROOT=localhost/}
@@ -57,7 +55,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 1.0.0-rc.1"  "$version"
+	assertEquals = "git-ftp version 1.0.0-rc.2"  "$version"
 }
 
 test_inits_and_pushes() {
@@ -82,6 +80,71 @@ test_inits_and_pushes() {
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	rtrn=$?
 	assertEquals 0 $rtrn
+}
+
+test_init_more() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a number of files exceeding the upload buffer
+	long_prefix='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+	long_file_list=''
+	for i in `seq 50`; do
+		long_file_list="$long_file_list $long_prefix$i"
+	done
+	touch $long_file_list
+	git add .
+	git commit -m 'Some more files.' > /dev/null
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertTrue 'file does not exist' "remote_file_exists '${long_prefix}50'"
+
+	# Counting the number of uploads to estimate correct buffering
+	upload_count=$(echo "$init" | grep -Fx 'Uploading ...' | wc -l)
+	assertTrue "[ $upload_count -gt 1 ]"
+}
+
+test_delete_more() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a number of files exceeding the upload buffer
+	long_prefix='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+	long_file_list=''
+	for i in `seq 50`; do
+		long_file_list="$long_file_list $long_prefix$i"
+	done
+	touch $long_file_list
+	git add .
+	git commit -m 'Some more files.' > /dev/null
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+
+	# Delete a number of files exceeding the upload buffer
+	git rm $long_file_list > /dev/null
+	git commit -m 'Deleting some more files.' > /dev/null
+
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+
+	# Counting the number of deletes to estimate correct buffering
+	delete_count=$(echo "$push" | grep -Fx 'Deleting ...' | wc -l)
+	assertTrue "[ $delete_count -gt 1 ]"
+	assertFalse 'file does exist' "remote_file_exists '${long_prefix}50'"
+}
+
+# this test takes a couple of minutes (revealing a performance issue)
+disabled_test_init_heaps() {
+	cd $GIT_PROJECT_PATH
+
+	# Generate a large number of files which fails to upload on some systems
+	touch `seq 3955`
+	git add .
+	git commit -m 'A lot of files.' > /dev/null
+
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	assertEquals 0 $?
+	assertTrue 'file does not exist' "remote_file_exists '3955'"
 }
 
 test_pushes_and_fails() {
@@ -230,6 +293,32 @@ test_ignore_dir() {
 	assertTrue 'test failed: wrong dir was ignored' "remote_file_exists 'dir 2/test 2.txt'"
 }
 
+test_ignore_pattern() {
+	cd $GIT_PROJECT_PATH
+	echo "test" > .git-ftp-ignore
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+
+	for i in 1 2 3 4 5
+	do
+		assertFalse 'test failed: was not ignored' "remote_file_exists 'test $i.txt'"
+	done;
+}
+
+test_ignore_pattern_single() {
+	cd $GIT_PROJECT_PATH
+	echo 'test' > 'test'
+	echo "^test$" > .git-ftp-ignore
+
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+
+	assertFalse 'test failed: was not ignored' "remote_file_exists 'test'"
+	for i in 1 2 3 4 5
+	do
+		assertTrue 'test failed: was ignored' "remote_file_exists 'test $i.txt'"
+	done;
+}
+
 test_ignore_wildcard_files() {
 	cd $GIT_PROJECT_PATH
 	echo "test.*\.txt" > .git-ftp-ignore
@@ -252,6 +341,17 @@ test_include_init() {
 	git commit -m 'unversioned file unversioned.txt should be uploaded with test 1.txt' > /dev/null
 	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertTrue 'unversioned.txt was not uploaded' "remote_file_exists 'unversioned.txt'"
+}
+
+test_include_whitespace_init() {
+	cd $GIT_PROJECT_PATH
+	echo 'unversioned' > unversioned.txt
+	echo 'unversioned.txt' >> .gitignore
+	echo 'unversioned.txt:test X.txt' > .git-ftp-include
+	git add .
+	git commit -m 'unversioned file unversioned.txt should not be uploaded. test X.txt does not exist.' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertFalse 'unversioned.txt was uploaded' "remote_file_exists 'unversioned.txt'"
 }
 
 test_include_push() {
@@ -292,6 +392,48 @@ test_include_ignore_push() {
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
 	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+test_include_ftp_ignore_init() {
+	cd $GIT_PROJECT_PATH
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+test_include_ftp_ignore_push() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	echo 'htaccess' > .htaccess
+	echo 'htaccess.prod' > .htaccess.prod
+	echo '.htaccess:.htaccess.prod' > .git-ftp-include
+	echo '.htaccess.prod' > .git-ftp-ignore
+	git add .
+	git commit -m 'htaccess setup' > /dev/null
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue ' .htaccess was ignored' "remote_file_exists '.htaccess'"
+	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
+}
+
+# addresses issue #41
+test_include_similar() {
+	cd $GIT_PROJECT_PATH
+	echo 'unversioned' > foo.html
+	echo '/foo.html' >> .gitignore
+	echo 'foo.html:templates/foo.html' > .git-ftp-include
+	mkdir templates
+	echo 'new content' >> 'templates/foo.html'
+	git add .
+	git commit -m 'unversioned file foo.html should be uploaded with templates/foo.html' > /dev/null
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertTrue 'foo.html was not uploaded' "remote_file_exists 'foo.html'"
+	assertTrue 'templates/foo.html was not uploaded' "remote_file_exists 'templates/foo.html'"
 }
 
 test_hidden_file_only() {
