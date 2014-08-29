@@ -38,6 +38,8 @@ REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
 REMOTE_CMD_OPTIONS="-s"
+REMOTE_PROXY_SERVER=""
+REMOTE_PROXY_USER=""
 ACTION=""
 LOG_CACHE=""
 ERROR_LOG=""
@@ -157,6 +159,8 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+	--proxy-server	Specify a <host:port> to use as a proxy
+	--proxy-user	Specify a <username:password> to connect to proxy
 	--version		Prints version.
 
 
@@ -176,6 +180,8 @@ SET DEFAULTS
 	. git config git-ftp.cacert path/cacert
 	. git config git-ftp.deployedsha1file mySHA1File
 	. git config git-ftp.insecure 1
+	. git config git-ftp.proxy-server host:port
+	. git config git-ftp.proxy-user username:password
 
 
 SET SCOPE DEFAULTS 
@@ -364,6 +370,14 @@ set_default_curl_options() {
 			CURL_ARGS+=(--disable-epsv)
 		fi
 	fi
+	if [ ! -z $REMOTE_PROXY_SERVER ]; then
+		CURL_ARGS+=(--proxytunnel)
+		CURL_ARGS+=(--proxy "$REMOTE_PROXY_SERVER")
+	fi
+	if [ ! -z $REMOTE_PROXY_USER ]; then
+		CURL_ARGS+=(--proxy-user "$REMOTE_PROXY_USER")
+	fi
+
 }
 
 upload_file() {
@@ -832,6 +846,11 @@ set_remote_password() {
 	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
 }
 
+set_remote_proxy() {
+	[ -z "$REMOTE_PROXY_SERVER" ] && REMOTE_PROXY_SERVER="$(get_config proxy-server .git-ftp.log)"
+	[ -z "$REMOTE_PROXY_USER" ] && REMOTE_PROXY_USER="$(get_config proxy-user .git-ftp.log)"
+}
+
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	if [ "$SYNCROOT" ]; then
@@ -875,6 +894,12 @@ set_remotes() {
 	
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
+
+	set_remote_proxy
+	if [ ! -z "$REMOTE_PASSWD" ]; then
+		write_log "Proxy is '$REMOTE_PROXY_SERVER'."
+		write_log "Proxy User is '$REMOTE_PROXY_USER'."
+	fi
 }
 
 set_curl_insecure() {
@@ -1288,6 +1313,46 @@ do
 				write_log "Disabling EPSV."
 			fi
 			;;
+		--proxy-server*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_PROXY_SERVER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --proxy-server." $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						REMOTE_PROXY_SERVER="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --proxy-server." $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			write_log "Using proxy server $REMOTE_PROXY_SERVER ."
+			;;
+
+		--proxy-user*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_PROXY_USER=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --proxy-user." $ERROR_MISSING_ARGUMENTS
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						REMOTE_PROXY_USER="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --proxy-user." $ERROR_MISSING_ARGUMENTS
+					fi
+					;;
+			esac
+			write_log "Using proxy user $REMOTE_PROXY_USER ."
+			;;
+
 		*)
 			# Pass thru anything that may be meant for fetch.
 			[ -n "$1" ] && URL=$1
