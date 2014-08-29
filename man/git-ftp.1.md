@@ -107,6 +107,12 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--disable-epsv`
 :	Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 
+`--proxy-server <host:port>`
+:	will use this proxy server to connect to ftp
+
+`--proxy-user <username:password>`
+:	will use this credetials to connect through the proxy
+
 `--version`
 :	Prints version.
 
@@ -150,6 +156,8 @@ Everyone likes examples:
 	$ git config git-ftp.deployedsha1file mySHA1File
 	$ git config git-ftp.insecure 1
 	$ git config git-ftp.sftp-key ~/.ssh/id_rsa
+	$ git config git-ftp.proxy-server hostname.com:3128
+	$ git config git-ftp.proxy-user username:password
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
