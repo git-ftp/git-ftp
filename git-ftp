@@ -19,7 +19,7 @@
 # ------------------------------------------------------------
 # Setup Environment
 # ------------------------------------------------------------
-
+#PATH="/usr/local/opt/curl/bin:$PATH"
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
@@ -847,8 +847,8 @@ set_remote_password() {
 }
 
 set_remote_proxy() {
-	[ -z "$REMOTE_PROXY_SERVER" ] && REMOTE_PROXY_SERVER="$(get_config proxy-server)"
-	[ -z "$REMOTE_PROXY_USER" ] && REMOTE_PROXY_USER="$(get_config proxy-user)"
+	[ -z "$REMOTE_PROXY_SERVER" ] && REMOTE_PROXY_SERVER="$(get_config proxy-server .git-ftp.log)"
+	[ -z "$REMOTE_PROXY_USER" ] && REMOTE_PROXY_USER="$(get_config proxy-user .git-ftp.log)"
 }
 
 set_syncroot() {
