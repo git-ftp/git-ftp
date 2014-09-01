@@ -371,7 +371,7 @@ set_default_curl_options() {
 		fi
 	fi
 	if [ ! -z $REMOTE_PROXY_SERVER ]; then
-		CURL_ARGS+=(--proxytunnel)
+		#CURL_ARGS+=(--proxytunnel)
 		CURL_ARGS+=(--proxy "$REMOTE_PROXY_SERVER")
 	fi
 	if [ ! -z $REMOTE_PROXY_USER ]; then
