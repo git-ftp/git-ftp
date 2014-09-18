@@ -34,6 +34,7 @@ REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
+REMOTE_ROOT=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
@@ -153,6 +154,7 @@ OPTIONS
 	-n, --silent		Silent mode.
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
+	--remote-root		Specifies remote root directory
 	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
@@ -172,6 +174,7 @@ SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
+	. git config git-ftp.remote-root "~/www/"
 	. git config git-ftp.syncroot path/dir
 	. git config git-ftp.cacert path/cacert
 	. git config git-ftp.deployedsha1file mySHA1File
@@ -554,6 +557,21 @@ set_remote_protocol() {
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'." $ERROR_UNKNOWN_PROTOCOL
 }
 
+set_remote_path() {
+	# Check remote root directory
+	[ -z $REMOTE_ROOT ] && REMOTE_ROOT="$(get_config remote-root)"
+	if [ ! -z $REMOTE_ROOT ]; then
+		! echo "$REMOTE_ROOT" | egrep -q "/$" && REMOTE_ROOT="$REMOTE_ROOT/"
+		REMOTE_PATH="$REMOTE_ROOT$REMOTE_PATH"
+	fi
+
+	# Add trailing slash if missing
+	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
+		write_log "Added missing trailing / in path."
+		REMOTE_PATH="$REMOTE_PATH/"
+	fi
+}
+
 set_deployed_sha1() {
 	# Return if commit is set by user interaction using --commit
 	if [ -n "$DEPLOYED_SHA1" ]; then
@@ -860,11 +878,7 @@ set_remotes() {
 	fi 
 
 	set_remote_protocol
-	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
-		write_log "Added missing trailing / in path."
-		REMOTE_PATH="$REMOTE_PATH/"
-	fi
+	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
 
 	set_syncroot
@@ -1287,6 +1301,10 @@ do
 				CURL_DISABLE_EPSV=1
 				write_log "Disabling EPSV."
 			fi
+			;;
+		--remote-root)
+			REMOTE_ROOT="$2"
+			shift
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
