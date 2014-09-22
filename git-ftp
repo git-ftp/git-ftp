@@ -36,6 +36,7 @@ REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
+REMOTE_ROOT=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
@@ -175,6 +176,7 @@ OPTIONS
 	-n, --silent		Silent mode.
 	-v, --verbose		Verbose mode.
 	-vv			Very verbose or debug mode.
+	--remote-root		Specifies remote root directory
 	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
@@ -197,6 +199,7 @@ SET DEFAULTS
 	. git config git-ftp.user john
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
+	. git config git-ftp.remote-root "~/www/"
 	. git config git-ftp.syncroot path/dir
 	. git config git-ftp.cacert path/cacert
 	. git config git-ftp.deployedsha1file mySHA1File
@@ -652,6 +655,21 @@ set_remote_protocol() {
 	print_error_and_die "Protocol unknown '$UNKNOWN_PROTOCOL'." $ERROR_UNKNOWN_PROTOCOL
 }
 
+set_remote_path() {
+	# Check remote root directory
+	[ -z $REMOTE_ROOT ] && REMOTE_ROOT="$(get_config remote-root)"
+	if [ ! -z $REMOTE_ROOT ]; then
+		! echo "$REMOTE_ROOT" | egrep -q "/$" && REMOTE_ROOT="$REMOTE_ROOT/"
+		REMOTE_PATH="$REMOTE_ROOT$REMOTE_PATH"
+	fi
+
+	# Add trailing slash if missing
+	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
+		write_log "Added missing trailing / in path."
+		REMOTE_PATH="$REMOTE_PATH/"
+	fi
+}
+
 set_deployed_sha1() {
 	# Return if commit is set by user interaction using --commit
 	if [ -n "$DEPLOYED_SHA1" ]; then
@@ -660,7 +678,7 @@ set_deployed_sha1() {
 	# Get the last commit (SHA) we deployed if not ignored or not found
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
-	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push." $ERROR_DOWNLOAD
+	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." $ERROR_DOWNLOAD
 
 	DEPLOYED_SHA1_LAST_MODIFIED="$(get_file_lastmodified $DEPLOYED_SHA1_FILE)"
 	if [ "$DEPLOYED_SHA1_LAST_MODIFIED" -lt 100 ]; then
@@ -669,7 +687,6 @@ set_deployed_sha1() {
 	else
 		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $(format_date $DEPLOYED_SHA1_LAST_MODIFIED) (server time)."
 	fi
-
 }
 
 set_changed_files() {
@@ -1011,11 +1028,7 @@ set_remotes() {
 	fi 
 
 	set_remote_protocol
-	# Add trailing slash if missing
-	if [ ! -z $REMOTE_PATH ] && ! echo "$REMOTE_PATH" | egrep -q "/$"; then
-		write_log "Added missing trailing / in path."
-		REMOTE_PATH="$REMOTE_PATH/"
-	fi
+	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
 
 	set_syncroot
@@ -1606,6 +1619,10 @@ do
 			;;
 		--connections)
 			number_of_connections=$2
+			shift
+			;;
+		--remote-root)
+			REMOTE_ROOT="$2"
 			shift
 			;;
 		*)

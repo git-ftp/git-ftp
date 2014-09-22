@@ -151,7 +151,7 @@ test_pushes_and_fails() {
 	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
 	rtrn=$?
-	assertEquals "fatal: Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push., exiting..." "$push"
+	assertEquals "fatal: Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push., exiting..." "$push"
 	assertEquals 5 $rtrn
 }
 
