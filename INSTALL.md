@@ -63,12 +63,17 @@ Windows
 -------
 There are at least two ways to install git-ftp on Windows.
 
- * Using cygwin only
- * Using cygwin and msysgit (recommended)
+ * Using cygwin
+ * Using msysgit (recommended)
 
-First install cygwin and install the package 'curl'.
-If you like to use cygwin only, install package 'git',
-otherwise install msysgit.
+### cygwin
+
+Install cygwin and install the package 'curl'.
+
+### msysgit
+
+Install msysgit. It comes with 'curl' installed by default, however it doesn't support SFTP by default.
+In order to use SFTP, download curl for Windows with SFTP support on the [curl website]( http://curl.haxx.se/download.html). Win32 2000/XP MSI or Win64 2000/XP x86_64 MSI is recommended. Then in your msysgit installation folder, remove bin/curl.exe. This will allow for all calls to curl to fall back from Git's curl to the one you just installed that also supports SFTP.
 
 After this, open git bash (or cygwin bash for cygwin only):
 
