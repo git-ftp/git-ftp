@@ -628,6 +628,14 @@ test_pull_no_commit() {
 	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
 }
 
+test_init_with_remote_changes() {
+	cd $GIT_PROJECT_PATH
+	curl --ftp-create-dirs -T 'test 1.txt' $CURL_URL/ 2> /dev/null
+	# init should fail: out of sync
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	assertEquals 10 $?
+}
+
 test_push_pull_push() {
 	cd $GIT_PROJECT_PATH
 	echo "1\n2\n3" > numbers.txt

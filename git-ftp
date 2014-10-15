@@ -429,7 +429,15 @@ remote_file_modified() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
 	local DEST_FILE_LAST_MODIFIED=$(get_file_lastmodified "$DEST_FILE")
-	if [ -n "$DEST_FILE_LAST_MODIFIED" ] && [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+	if [ -z "$DEST_FILE_LAST_MODIFIED" ]; then
+		write_log "No date for remote file $DEST_FILE found."
+		return 1
+	fi
+	if [ -z "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
+		write_log "No date of previous commit found. Remote file $DEST_FILE is newer than null."
+		return 0
+	fi
+	if [ "$DEST_FILE_LAST_MODIFIED" -gt "$DEPLOYED_SHA1_LAST_MODIFIED" ]; then
 		write_log "Remote file $DEST_FILE has newer modification date (at $(format_date $DEST_FILE_LAST_MODIFIED)), maybe it was changed outside git?"
 		return 0
 	fi
@@ -581,6 +589,9 @@ get_file_lastmodified() {
 		return
 	fi
 	local GMT_TIME=$(echo "$HEAD" | grep -e "Last-Modified:" | cut -d ' ' -f 2-)
+	if [ -z "$GMT_TIME" ]; then
+		return
+	fi
 	date --date="$GMT_TIME" +"%s"
 }
 
@@ -679,13 +690,13 @@ set_deployed_sha1() {
 	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." $ERROR_DOWNLOAD
+	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
 
 	DEPLOYED_SHA1_LAST_MODIFIED="$(get_file_lastmodified $DEPLOYED_SHA1_FILE)"
-	if [ "$DEPLOYED_SHA1_LAST_MODIFIED" -lt 100 ]; then
-		write_log "Last modified date of $DEPLOYED_SHA1_FILE could not be determined, switching remote change detection off."
-		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+	if [ -z "$DEPLOYED_SHA1_LAST_MODIFIED" ] || [ "$DEPLOYED_SHA1_LAST_MODIFIED" -lt 100 ]; then
+		write_log "Last modified date of $DEPLOYED_SHA1_FILE could not be determined."
 	else
-		write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1, at $(format_date $DEPLOYED_SHA1_LAST_MODIFIED) (server time)."
+		write_log "$DEPLOYED_SHA1 last modified at $(format_date $DEPLOYED_SHA1_LAST_MODIFIED) (server time)."
 	fi
 }
 
@@ -805,7 +816,7 @@ handle_file_sync() {
 	NIFS=$'\n'
 	IFS="$NIFS"
 
-	if [ $FORCE -eq 0 ] && [ $CHECK_FOR_REMOTE_CHANGES -eq 1 ] && [ $DEPLOYED_SHA1_LAST_MODIFIED ]; then
+	if [ $FORCE -eq 0 ] && [ $CHECK_FOR_REMOTE_CHANGES -eq 1 ]; then
 		local FILES_CHANGED_FILTERED
 		for FILE_ITERATOR in $FILES_CHANGED; do
 			FILE_NAME=$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')
@@ -815,9 +826,14 @@ handle_file_sync() {
 			if remote_file_modified "$FILE_NAME" "$DEST_FILE" ; then
 				if [ $INTERACTIVE -eq 0 ] ; then
 					print_info ' ! [aborted]  Untracked remoted changes were found.'
-					print_info "Merge the remote changes (e.g. 'git-ftp pull') before pushing again."
+					if [ "$ACTION" = 'init' ]; then
+						print_info "Use 'git-ftp catchup' if your files are on the server already."
+					else
+						print_info "Merge the remote changes (e.g. 'git-ftp pull') before pushing again."
+					fi
 					print_info "You can disable this check with the parameter --ignore-remote-changes."
-					return $ERROR_SYNC
+					release_remote_lock
+					exit $ERROR_SYNC
 				else
 					if shall_overwrite_file "$FILE_NAME" "$DEST_FILE"; then
 						FILES_CHANGED_FILTERED="$FILES_CHANGED_FILTERED$FILE_ITERATOR$IFS"
@@ -1231,15 +1247,7 @@ action_push() {
 	set_changed_files
 	remote_lock
 	handle_file_sync
-	local rtrn=$?
-	if [ $rtrn -eq 0 ]; then
-		upload_local_sha1
-	fi
-	release_remote_lock
-	if [ $rtrn -ne 0 ]; then
-		exit $rtrn
-		upload_local_sha1
-	fi
+	upload_local_sha1
 }
 
 action_catchup() {
