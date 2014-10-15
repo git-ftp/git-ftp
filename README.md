@@ -39,16 +39,22 @@ See [INSTALL](INSTALL.md) file.
 Usage
 -----
 
-	$ cd my_git_tracked_project
-	$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+``` sh
+$ cd my_git_tracked_project
+$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+```
 
 For interactive password prompt use:
 
-	$ git ftp push -u <user> -p - ftp://host.example.com/public_html
+``` sh
+$ git ftp push -u <user> -p - ftp://host.example.com/public_html
+```
 
 Pushing for the first time:
 
-	$ git ftp init -u <user> -p - ftp://host.example.com/public_html
+``` sh
+$ git ftp init -u <user> -p - ftp://host.example.com/public_html
+```
 
 See [man page](man/git-ftp.1.md) for more options, features and examples!
 
