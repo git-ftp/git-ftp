@@ -55,7 +55,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 1.0.0-rc.2"  "$version"
+	assertEquals = "git-ftp version 1.1.0-develop"  "$version"
 }
 
 test_inits_and_pushes() {
@@ -151,8 +151,80 @@ test_pushes_and_fails() {
 	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
 	rtrn=$?
-	assertEquals "fatal: Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the inital push., exiting..." "$push"
+	assertEquals "fatal: Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push., exiting..." "$push"
 	assertEquals 5 $rtrn
+}
+
+test_push_nothing() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push --dry-run -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	oneline=$(echo $push)
+	assertTrue "$push" "echo \"$push\" | grep 'There are 1 files to sync:'"
+	echo 'test 1.txt' >> .git-ftp-ignore
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	firstline=$(echo "$push" | head -n 1)
+	assertEquals 'There are no files to sync.' "$firstline"
+}
+
+test_push_added() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# add a file
+	file='newfile.txt'
+	echo "1" > "./$file"
+	git add $file
+	git commit -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "Push: $push"
+	assertEquals "1" "$(curl -s $CURL_URL/$file)"
+}
+
+test_push_twice() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "First push: $push"
+	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $? || echo "Second push: $push"
+	assertTrue "$push" "echo \"$push\" | grep 'Everything up-to-date.'"
+}
+
+test_push_unknown_sha1() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	# change remote SHA1
+	echo '000000000' | curl -T - $CURL_URL/.git-ftp.log 2> /dev/null
+	push=$(echo 'N' | $GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
+	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
+}
+
+test_push_unknown_sha1_Y() {
+	cd $GIT_PROJECT_PATH
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+	# change remote SHA1
+	echo '000000000' | curl -T - $CURL_URL/.git-ftp.log 2> /dev/null
+	push=$(echo 'Y' | $GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
+	assertEquals 0 $?
+	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
 test_defaults() {
@@ -261,6 +333,8 @@ test_delete() {
 	git commit -a -m "delete file" > /dev/null 2>&1
 
 	push=$($GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	rtrn=$?
+	assertEquals 0 $rtrn
 
 	assertFalse 'test failed: file still exists' "remote_file_exists 'test 1.txt'"
 	assertTrue 'test failed: file does not exist' "remote_file_exists 'dir 1/test 1.txt'"
@@ -471,6 +545,248 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 
+test_download() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rtrn=$?
+	assertEquals 0 $rtrn
+	rm external.txt
+	$GIT_FTP_CMD download -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_download_syncroot() {
+	cd $GIT_PROJECT_PATH
+	mkdir foobar && echo "test" > foobar/syncroot.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	init=$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar $GIT_FTP_URL)
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	$GIT_FTP_CMD download -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --syncroot foobar/ $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertFalse ' external file downloaded to git root' "[ -r 'external.txt' ]"
+	assertTrue ' external file not downloaded to syncroot' "[ -r 'foobar/external.txt' ]"
+}
+
+test_pull() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_pull_branch() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	git checkout -b deploy-branch > /dev/null 2>&1
+	echo '1' > version.txt
+	git add -A .
+	git commit -m 'branch modification' > /dev/null 2>&1
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertTrue ' version.txt of deploy-branch not found' "[ -r 'version.txt' ]"
+	assertEquals '## deploy-branch' "$(git status -sb)"
+}
+
+test_pull_no_commit() {
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+	$GIT_FTP_CMD pull --no-commit -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
+}
+
+test_init_with_remote_changes() {
+	cd $GIT_PROJECT_PATH
+	curl --ftp-create-dirs -T 'test 1.txt' $CURL_URL/ 2> /dev/null
+	# init should fail: out of sync
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	assertEquals 10 $?
+}
+
+test_push_pull_push() {
+	cd $GIT_PROJECT_PATH
+	echo "1\n2\n3" > numbers.txt
+	git add .
+	git commit -m 'three line file' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1\n1.5\n2\n3" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "1\n2\n2.5\n3" > numbers.txt
+	git commit -a -m 'added 2.5' > /dev/null
+	# push should fail: out of sync
+	$GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	assertEquals 10 $?
+	# pull should merge changes
+	$GIT_FTP_CMD pull -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	echo "1\n1.5\n2\n2.5\n3" | diff numbers.txt -
+	assertEquals 0 $?
+	# now push should pass
+	$GIT_FTP_CMD push -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	assertEquals 0 $?
+}
+
+test_push_ignore_remote_changes() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	$GIT_FTP_CMD push --ignore-remote-changes -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	assertEquals 0 $?
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
+test_push_ignore_remote_changes_force() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	$GIT_FTP_CMD push -f -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null 2>&1
+	assertEquals 0 $?
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
+test_push_interactive_skip() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'S' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
+test_push_interactive_skip_similar() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	echo "456" > numbers_txt
+	git add .
+	git commit -m 'six numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	echo "4567" > numbers_txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'S' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals 0 $?
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	assertEquals "4567" "$(curl -s $CURL_URL/numbers_txt)"
+}
+
+test_push_interactive_overwrite() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "0123" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
+test_push_interactive_download() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'D' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "1234" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
+test_push_interactive_never() {
+	cd $GIT_PROJECT_PATH
+	echo "123" > numbers.txt
+	git add .
+	git commit -m 'three numbers' > /dev/null
+	$GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL > /dev/null
+	sleep 1 # otherwise the timestamp will be the same
+	echo "1234" > numbers.txt
+	curl -T numbers.txt $CURL_URL/ 2> /dev/null
+	echo "0123" > numbers.txt
+	git commit -a -m 'added zero' > /dev/null
+	# push should ask when interactive
+	push=$(echo 'N' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "0123" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+	# change again and verify it doesn't get uploaded
+	echo "01234" > numbers.txt
+	git commit -a -m 'added four' > /dev/null
+	push=$(echo 'O' | $GIT_FTP_CMD push --interactive -u $GIT_FTP_USER -p $GIT_FTP_PASSWD $GIT_FTP_URL)
+	assertEquals "01234" "$(cat numbers.txt)"
+	assertEquals "1234" "$(curl -s $CURL_URL/numbers.txt)"
+}
+
 disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
@@ -483,8 +799,11 @@ disabled_test_file_named_dash() {
 }
 
 remote_file_exists() {
-	head=$(curl "$CURL_URL/$1" --head)
-	return $?
+	curl "$CURL_URL/$1" --head > /dev/null
+}
+
+remote_file_equals() {
+	curl -s "$CURL_URL/$1" | diff - "$1" > /dev/null
 }
 
 # load and run shUnit2

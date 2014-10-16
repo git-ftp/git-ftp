@@ -1,6 +1,6 @@
 % GIT-FTP(1) git-ftp User Manual
-% Rene Moser <mail@renemoser.net>
-% 2013-12-01
+% Rene Moser <mail@renemoser.net>, Maikel Linke <mkllnk@web.de>, Tasos Latsas, Jonathan Patt <jonathanpatt@gmail.com>
+% 2014-05-23
 
 # NAME
 
@@ -14,7 +14,7 @@ git-ftp [actions] [options] [url]...
 
 This manual page documents briefly the git-ftp program.
 
-Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host.
+Git-ftp is an FTP client using Git to determine which local files to upload or which files should be deleted on the remote host.
 
 It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file. There is no need for [Git] to be installed on the remote host.
 
@@ -30,6 +30,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `push`
 :	Uploads files which have changed since last upload.
 
+`pull`
+:	Downloads changes from the remote server into a separate commit and merges them into your current branch.
+
 `catchup` 
 :	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different program and want to remember its state by uploading the .git-ftp.log file.
 
@@ -39,6 +42,12 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `log`
 :	Downloads last uploaded SHA1 from log and hooks \`git log\`.
 
+`bootstrap`
+:	Creates a new git repository populated with the contents of a remote tree.
+
+`download`
+:	Downloads changes from the remote host into your working tree.
+	
 `add-scope <scope>`
 :	Creates a new scope (e.g. dev, production, testing, foobar). This is a wrapper action over git-config. See **SCOPES** section for more information.
 
@@ -104,6 +113,15 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `--cacert <file>`
 :	Use <file> as CA certificate store. Useful when a server has got a self-signed certificate. 
 
+`--no-commit`
+:	Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+
+`--interactive`
+:	Asks what to do if untracked changes on the remote server are found.
+
+`--ignore-remote-changes`
+:	Disable check for changes on the remote server before uploading.
+
 `--disable-epsv`
 :	Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 
@@ -154,6 +172,57 @@ Everyone likes examples:
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 	$ git ftp push
+
+It checks for the timestamp of each file before uploading.
+If the remote file has changed since the last push, the action is cancelled.
+See **Tracking Remote Changes** for how to proceed in this case.
+You can disable this check with the option --ignore-remote-changes.
+
+# Bootstrapping
+
+If you have an existing project on an FTP server that you would like
+to use with git-ftp, and you have lftp (<http://lftp.yar.ru/>) installed:
+
+	$ git ftp bootstrap -u <user> -p <password> -m 'initial version' ftp://host.example.com/public_html myprojectname
+	$ cd myprojectname
+
+"git ftp bootstrap" does the following:
+
+* Creates a new git repository using either the name you specified on the command line, or the last path component of the URL (similar to "git clone")
+* Pulls down the entire file tree (using lftp's "mirror" command)
+* Commits all files using the message you specify (through "-m" or by calling your $EDITOR, as in "git commit")
+* Sets git-ftp defaults for user, password, and url
+* Sets this initial commit as the "deployed" version
+
+# Tracking Remote Changes
+
+If others are making changes directly through FTP instead of through
+git-ftp, and you have lftp installed, you can pull updates:
+
+	$ git ftp pull -u <user> -p <password> ftp://host.example.com/public_html
+
+It downloads remote changes and commits them onto the last uploaded version.
+The new SHA1 hash is uploaded to mark the remote changes as tracked.
+The now tracked remote version is then merged into your current branch.
+The individual steps are:
+
+* checkout last-deployed
+* download all changes since last-deployed
+* commit all
+* upload new SHA1
+* checkout your-branch
+* merge
+
+You can then review the changes and push the merged version to the remote server.
+Add --no-commit to prevent a commit of the final merge.
+
+If you are not interested in merging remote changes, you can just download all changed remote files into your current working tree:
+
+	$ git ftp download -u <user> -p <password> ftp://host.example.com/public_html
+
+This will not update the SHA1 file on the server. So you can't push as long you pull, catchup or push with --force.
+
+If you add the option --dry-run then you see the files which would be downloaded because they changed remotely.
 
 # SCOPES
 
@@ -266,7 +335,15 @@ There are a bunch of different error codes and their corresponding error message
 `8`
 :	Not a Git project
 
+`9`
+:	A dependency is missing
+
+`10`
+:	The remote server is out of sync
+
 # KNOWN ISSUES & BUGS
+
+The detection of remote changes works on timestamps in seconds. If remote files get changed less than one second after you pushed, these changes can't be detected. Also if remote files change while you are pushing, the result can be a mix of your changes and remote changes. This can only be prevented if only Git-ftp is used to change remote files.
 
 The upstream BTS can be found at <https://github.com/git-ftp/git-ftp/issues>.
 
