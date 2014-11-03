@@ -255,11 +255,11 @@ get_keychain_password () {
 			print_error_and_die "Password not found in keychain for account '$KEYCHAIN_USER @ $KEYCHAIN_HOST'." $ERROR_MISSING_ARGUMENTS
 		fi
 	else
-		write_log "Ingoring -k on non-Darwin systems."
+		write_log "Ignoring -k on non-Darwin systems."
 	fi
 }
 
-# Checks if last comand was successful
+# Checks if last command was successful
 check_exit_status() {
 	if [ $? -ne 0 ]; then
 		print_error_and_die "$1, exiting..." $2
@@ -915,7 +915,7 @@ set_scope() {
 
 	# strip protocol
 	local credentials=${URL#${protocol}}
-	# cut at last '@' occurence
+	# cut at last '@' occurrence
 	local credentials=${credentials%${URL##*@}}
 	# strip trailing '@'
 	local credentials=${credentials%?}
@@ -1027,7 +1027,7 @@ check_git_version() {
 	local MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
 	local MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
 	if [ $MAJOR -lt 2 ] && [ $MINOR -lt 7 ]; then
-		print_error_and_die "Git is too old, 1.7.0 or higher suported only." $ERROR_GIT
+		print_error_and_die "Git is too old, 1.7.0 or higher supported only." $ERROR_GIT
 	fi
 }
 

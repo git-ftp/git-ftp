@@ -116,7 +116,7 @@ The scheme of an URL is what you would expect
 
 	protocol://host.domain.tld:port/path
 
-Below a full featured URL to *host.exmaple.com* on port *2121* to path *mypath* using protocol *ftp*:
+Below a full featured URL to *host.example.com* on port *2121* to path *mypath* using protocol *ftp*:
 
 	ftp://host.example.com:2121/mypath
 
@@ -214,7 +214,7 @@ Ignoring all files having extension `.txt` in `./` :
 
 This ignores `a.txt` and `b.txt` but not `dir/c.txt`
 
-Ingnoring a single file called `foobar.txt`:
+Ignoring a single file called `foobar.txt`:
 
 	foobar\.txt
 
