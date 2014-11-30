@@ -165,11 +165,11 @@ test_overwrite_defaults_by_scopes_emtpy_string() {
 	git config git-ftp.password $GIT_FTP_PASSWD
 	git config git-ftp.url $GIT_FTP_URL
 
-	git config git-ftp.testing.password ''
+	git config git-ftp.testing.url ''
 
 	init=$($GIT_FTP_CMD init -s testing 2>/dev/null)
 	rtrn=$?
-	assertEquals 4 $rtrn
+	assertEquals 3 $rtrn
 }
 
 test_scopes_uses_password_by_cli() {
