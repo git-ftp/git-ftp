@@ -440,7 +440,7 @@ delete_file() {
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
-		write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
+		write_log "WARNING: Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 	fi
 }
 
@@ -475,7 +475,7 @@ fire_delete_buffer() {
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
-		write_error_log "Some files and/or folders could not be deleted."
+		write_log "WARNING: Some files and/or folders could not be deleted."
 	fi
 	CURL_DELETE=()
 }
