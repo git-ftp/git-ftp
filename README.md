@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/git-ftp/git-ftp.svg?branch=develop)](https://travis-ci.org/git-ftp/git-ftp)
+
 README of git-ftp
 =================
 
