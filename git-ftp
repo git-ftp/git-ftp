@@ -1176,10 +1176,10 @@ do
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						REMOTE_PASSWD="$2"
-						shift
 					else
 						ask_for_passwd
 					fi
+					shift
 					;;
 			esac
 			;;
