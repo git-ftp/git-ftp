@@ -1083,6 +1083,10 @@ do
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
 				SCOPE="$2"
+				pattern="[^a-zA-Z0-9_]"
+				if [[ $SCOPE =~ $pattern ]]; then
+					print_error_and_die "Invalid scope name." $ERROR_USAGE
+				fi
 				shift
 			fi
 			;;
@@ -1124,6 +1128,10 @@ do
 					fi
 					;;
 			esac
+			pattern="[^a-zA-Z0-9_]"
+			if [[ $SCOPE =~ $pattern ]]; then
+				print_error_and_die "Invalid scope name." $ERROR_USAGE
+			fi
 			set_deployed_sha1_file
 			write_log "Using scope $SCOPE if available"
 			;;
