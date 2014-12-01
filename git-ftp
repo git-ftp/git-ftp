@@ -904,8 +904,8 @@ get_protocol_of_url() {
 }
 
 set_scope() {
-	[ -z $SCOPE ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
-	[ -z $URL ] && print_error_and_die "Missing URL." $ERROR_MISSING_ARGUMENTS
+	[ -z "$SCOPE" ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
+	[ -z "$URL" ] && print_error_and_die "Missing URL." $ERROR_MISSING_ARGUMENTS
 
 	# URI without credentials
 	if ! echo "$URL" | grep -q '@'; then
@@ -915,7 +915,7 @@ set_scope() {
 
 	# set url
 	local protocol=$(get_protocol_of_url "$URL")
-	local path=${URL##*@}
+	local path="${URL##*@}"
 	$(git config git-ftp.$SCOPE.url ${protocol}${path})
 
 	# strip protocol
@@ -944,7 +944,7 @@ set_scope() {
 }
 
 remove_scope() {
-	[ -z $SCOPE ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
+	[ -z "$SCOPE" ] && print_error_and_die "Missing scope argument." $ERROR_MISSING_ARGUMENTS
 
 	$(git config --remove-section git-ftp.$SCOPE &>/dev/null)
 
@@ -1029,8 +1029,8 @@ check_deployed_sha1() {
 
 check_git_version() {
 	local GIT_VERSION=$(git --version | cut -d ' ' -f 3)
-	local MAJOR=$(echo $GIT_VERSION | cut -d '.' -f 1)
-	local MINOR=$(echo $GIT_VERSION | cut -d '.' -f 2)
+	local MAJOR="$(echo $GIT_VERSION | cut -d '.' -f 1)"
+	local MINOR="$(echo $GIT_VERSION | cut -d '.' -f 2)"
 	if [ $MAJOR -lt 2 ] && [ $MINOR -lt 7 ]; then
 		print_error_and_die "Git is too old, 1.7.0 or higher supported only." $ERROR_GIT
 	fi
