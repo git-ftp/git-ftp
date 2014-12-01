@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.0.0-rc.2'
+readonly VERSION='1.0.0-rc.1'
 
 # ------------------------------------------------------------
 # Defaults
@@ -45,7 +45,6 @@ ERROR_LOG=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
-DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
@@ -55,6 +54,7 @@ CURL_PRIVATE_KEY=""
 CURL_UPLOADS=()
 CURL_DELETE=()
 CURL_DISABLE_EPSV=0
+CURL_BINARY=/usr/bin/curl
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -181,7 +181,7 @@ SET DEFAULTS
 	. git config git-ftp.insecure 1
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -215,9 +215,10 @@ is_submodule() {
 }
 
 is_arg_max_reached() {
-	local ARGS=("$@")
-	ARGS_STRING=$(echo ${ARGS[@]})
-	CURRENT_LENGTH=$(( ${#ARGS_STRING} ))
+	local ARGS_TO_ADD=$1
+	local ARGS_STRING=$2
+
+	CURRENT_LENGTH=$(( ${#ARGS_STRING} + ${#ARGS_TO_ADD} ))
 	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
 		return 1
 	fi
@@ -296,9 +297,7 @@ get_config() {
 	echo $OUT
 }
 
-set_deployed_sha1_file() {
-	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
-}
+readonly DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
 
 # Simple log func
 write_log() {
@@ -383,20 +382,13 @@ upload_file() {
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	curl "${CURL_ARGS[@]}"
+	${CURL_BINARY} "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." $ERROR_UPLOAD
-}
-
-set_upload_curl_arguments() {
-	set_default_curl_options
-	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("${CURL_UPLOADS[@]}")
 }
 
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-	local ADD_ARGS=()
 
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=$SRC_FILE
@@ -405,27 +397,22 @@ upload_file_buffered() {
 	if [ -n "$SYNCROOT" ]; then
 		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
 	fi
-
-	ADD_ARGS+=(-T "./$SRC_FILE")
-	ADD_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	set_upload_curl_arguments
-	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
-		IFS="$OIFS"
-		fire_upload_buffer
-		IFS="$NIFS"
-	fi
-
-	CURL_UPLOADS+=("${ADD_ARGS[@]}")
+	CURL_UPLOADS+=(-T "./$SRC_FILE")
+	CURL_UPLOADS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
 }
 
 fire_upload_buffer() {
 	if [ -z "$CURL_UPLOADS" ]; then
 		return 0
 	fi
-	print_info "Uploading ..."
-	set_upload_curl_arguments
-	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload files." $ERROR_UPLOAD
+	n=${#CURL_UPLOADS[@]}
+	let nfiles=n/3
+	print_info "Uploading $nfiles files..."
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	for ((i=0; i< n; i+=3)) {
+	    ${CURL_BINARY} "${CURL_ARGS[@]}" "${CURL_UPLOADS[i]}" "${CURL_UPLOADS[i+1]}" "${CURL_UPLOADS[i+2]}"
+	}
 	CURL_UPLOADS=()
 }
 
@@ -435,32 +422,18 @@ delete_file() {
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		${CURL_BINARY} "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		${CURL_BINARY} "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_error_log "Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
 	fi
 }
 
-set_delete_curl_arguments() {
-	set_default_curl_options
-	CURL_ARGS+=("${CURL_DELETE[@]}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
-}
-
 delete_file_buffered() {
 	local FILENAME="$1"
-	local ADD_ARGS=()
-	ADD_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	set_delete_curl_arguments
-	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
-		IFS="$OIFS"
-		fire_delete_buffer
-		IFS="$NIFS"
-	fi
-	CURL_DELETE+=("${ADD_ARGS[@]}")
+	CURL_DELETE+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 }
 
 fire_delete_buffer() {
@@ -468,11 +441,13 @@ fire_delete_buffer() {
 		return 0
 	fi
 	print_info "Deleting ..."
-	set_delete_curl_arguments
+	set_default_curl_options
+	CURL_ARGS+=("${CURL_DELETE[@]}")
+	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		${CURL_BINARY} "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		${CURL_BINARY} "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_error_log "Some files and/or folders could not be deleted."
@@ -491,7 +466,7 @@ get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
 	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
-	curl "${CURL_ARGS[@]}"
+	${CURL_BINARY} "${CURL_ARGS[@]}"
 }
 
 set_local_sha1() {
@@ -596,21 +571,20 @@ set_changed_files() {
 	if [ -f '.git-ftp-include' ]; then
 		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
 
-		grep '^!' '.git-ftp-include-tmp' | while read LINE
+		for LINE in $(grep '^!' '.git-ftp-include-tmp')
 		do
 			FILE_STATUS='M'
 			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
 			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
 		done
 
-		grep ':' '.git-ftp-include-tmp' | while read LINE
+		for LINE in $(grep ':' '.git-ftp-include-tmp')
 		do
 			OIFS="$IFS"
 			IFS=":"
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
-			cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
-			if [[ $(grep -Fx "${FILE_PAIR[1]}" '.git-ftp-tmp-files') && ! $(grep -Fx "${FILE_PAIR[0]}" '.git-ftp-tmp-files') ]]; then
+			if [[ $(grep -F "${FILE_PAIR[1]}" '.git-ftp-tmp') && ! $(grep -F "${FILE_PAIR[0]}" '.git-ftp-tmp') ]]; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
@@ -648,7 +622,6 @@ set_changed_files() {
 	fi
 
 	rm -f '.git-ftp-tmp'
-	rm -f '.git-ftp-tmp-files'
 	rm -f '.git-ftp-include-tmp'
 	rm -f '.git-ftp-ignore-tmp'
 
@@ -709,6 +682,12 @@ handle_file_sync() {
 				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 
 			else if [ $DRY_RUN -ne 1 ]; then
+					if is_arg_max_reached "$FILE_NAME" "${CURL_UPLOADS[@]}"; then
+						IFS="$OIFS"
+						fire_upload_buffer
+						IFS="$NIFS"
+					fi
+
 					upload_file_buffered "$FILE_NAME"
 				fi
 			fi
@@ -717,6 +696,12 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 
 			if [ $DRY_RUN -ne 1 ]; then
+				if is_arg_max_reached "$FILE_NAME" "${CURL_DELETE[@]}"; then
+					IFS="$OIFS"
+					fire_delete_buffer
+					IFS="$NIFS"
+				fi
+
 				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir $(dirname "${FILE_NAME#$SYNCROOT}")
 			fi
 		fi
@@ -777,7 +762,7 @@ handle_submodule_sync() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
+
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
 			if [ -z "$CURL_PUBLIC_KEY" ]; then
@@ -787,7 +772,7 @@ handle_remote_protocol_options() {
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
-		
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -875,7 +860,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	set_remote_protocol
 	set_remote_path
@@ -886,7 +871,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
@@ -1119,7 +1104,6 @@ do
 					fi
 					;;
 			esac
-			set_deployed_sha1_file
 			write_log "Using scope $SCOPE if available"
 			;;
 		--syncroot*)
