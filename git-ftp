@@ -681,7 +681,7 @@ set_changed_files() {
 	elif [ -n "$FILES_CHANGED" ]; then
 		write_log "Having changed files.";
 	elif [ "$LOCAL_SHA1" != "$DEPLOYED_SHA1" ]; then
-		write_log "No changed files, but different commit ID. Probably amended.";
+		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
 	else
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
 		exit 0
@@ -689,6 +689,10 @@ set_changed_files() {
 }
 
 handle_file_sync() {
+        if [ -z "$FILES_CHANGED" ]; then
+		print_info "There are no files to sync."
+		return
+        fi
 	# Calculate total file count
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
@@ -979,7 +983,8 @@ action_push() {
 	set_changed_files
 	remote_lock
 	handle_file_sync
-	upload_local_sha1
+        local rtrn=$?
+        [ $rtrn ] || upload_local_sha1
 	release_remote_lock
 }
 
