@@ -13,7 +13,7 @@ before_script:
   - sudo mkdir -p /var/ftp/pub
   - sudo chmod a+rwx /var/ftp/pub
   - sudo service vsftpd restart
-  - export GIT_FTP_ROOT=localhost/pub/
+  - export GIT_FTP_ROOT=localhost/pub
   - export GIT_FTP_USER=ftp
   - export GIT_FTP_PASSWD=ftp
 

@@ -6,7 +6,7 @@ oneTimeSetUp() {
 	GIT_FTP_CMD="$(pwd)/git-ftp"
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
-	: ${GIT_FTP_ROOT=localhost/}
+	: ${GIT_FTP_ROOT=localhost}
 
 	START=$(date +%s)
 }
@@ -21,7 +21,7 @@ setUp() {
 	GIT_PROJECT_PATH=$(mktemp -d -t git-ftp-XXXX)
 	GIT_PROJECT_NAME=$(basename $GIT_PROJECT_PATH)
 
-	GIT_FTP_URL="$GIT_FTP_ROOT$GIT_PROJECT_NAME"
+	GIT_FTP_URL="$GIT_FTP_ROOT/$GIT_PROJECT_NAME"
 
 	CURL_URL="ftp://$GIT_FTP_USER:$GIT_FTP_PASSWD@$GIT_FTP_URL"
 
