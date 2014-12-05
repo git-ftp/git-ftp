@@ -212,8 +212,7 @@ test_push_unknown_sha1() {
 	push=$(echo 'N' | $GIT_FTP push)
 	assertEquals 0 $?
 	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
-	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
-	assertEquals 1 $?
+	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
 test_push_unknown_sha1_Y() {
@@ -228,8 +227,7 @@ test_push_unknown_sha1_Y() {
 	assertEquals 0 $?
 	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
 	assertEquals 0 $?
-	curl -s "$CURL_URL/test 1.txt" | diff - 'test 1.txt' > /dev/null
-	assertEquals 0 $?
+	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
 test_defaults() {
@@ -340,6 +338,8 @@ test_delete() {
 	git commit -a -m "delete file" > /dev/null 2>&1
 
 	push=$($GIT_FTP push)
+	rtrn=$?
+	assertEquals 0 $rtrn
 
 	assertFalse 'test failed: file still exists' "remote_file_exists 'test 1.txt'"
 	assertTrue 'test failed: file does not exist' "remote_file_exists 'dir 1/test 1.txt'"
@@ -562,8 +562,11 @@ disabled_test_file_named_dash() {
 }
 
 remote_file_exists() {
-	head=$(curl "$CURL_URL/$1" --head)
-	return $?
+	curl "$CURL_URL/$1" --head > /dev/null
+}
+
+remote_file_equals() {
+	curl -s "$CURL_URL/$1" | diff - "$1" > /dev/null
 }
 
 # load and run shUnit2
