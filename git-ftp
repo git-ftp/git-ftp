@@ -984,8 +984,7 @@ action_push() {
 	set_changed_files
 	remote_lock
 	handle_file_sync
-        local rtrn=$?
-        [ $rtrn ] || upload_local_sha1
+	upload_local_sha1
 	release_remote_lock
 }
 
