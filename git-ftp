@@ -373,12 +373,9 @@ upload_file() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
 	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$SRC_FILE
+		DEST_FILE=${SRC_FILE#$SYNCROOT}
 	fi
 
-	if [ -n "$SYNCROOT" ]; then
-		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
-	fi
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
@@ -399,11 +396,7 @@ upload_file_buffered() {
 	local ADD_ARGS=()
 
 	if [ -z $DEST_FILE ]; then
-		DEST_FILE=$SRC_FILE
-	fi
-
-	if [ -n "$SYNCROOT" ]; then
-		DEST_FILE=${DEST_FILE/$SYNCROOT/$REPLACE}
+		DEST_FILE=${SRC_FILE#$SYNCROOT}
 	fi
 
 	ADD_ARGS+=(-T "./$SRC_FILE")
