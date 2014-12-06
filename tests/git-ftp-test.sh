@@ -605,6 +605,114 @@ test_download_dry_run() {
 	assertTrue ' external file downloaded' "[ ! -e 'external.txt' ]"
 }
 
+test_pull() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	$GIT_FTP pull > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_pull_nothing() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	$GIT_FTP pull > /dev/null 2>&1
+	assertEquals 0 $?
+}
+
+test_pull_branch() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	git checkout -b deploy-branch > /dev/null 2>&1
+	echo '1' > version.txt
+	git add -A .
+	git commit -m 'branch modification' > /dev/null 2>&1
+	$GIT_FTP pull > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertTrue ' version.txt of deploy-branch not found' "[ -r 'version.txt' ]"
+	assertEquals '## deploy-branch' "$(git status -sb)"
+}
+
+test_pull_no_commit() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+	$GIT_FTP pull --no-commit > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
+}
+
+test_pull_dry_run() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	pull=$($GIT_FTP pull --dry-run 2> /dev/null)
+	assertEquals 0 $?
+	assertTrue ' external file downloaded' "[ ! -e 'external.txt' ]"
+	assertFalse "$pull" "echo \"$pull\" | grep 'Last deployment changed to '"
+	# TODO: idea: really download files and show `git diff` and `git diff --stat`, then reset
+}
+
+test_pull_untracked() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	echo 'own content' > internal.txt
+	echo 'internal.txt' >> .gitignore
+	git add . > /dev/null 2>&1
+	git commit -a -m "ignore some file" > /dev/null 2>&1
+	pull=$($GIT_FTP pull 2> /dev/null)
+	assertEquals 0 $?
+	assertTrue 'internal.txt is missing' "[ -f internal.txt ]"
+	assertEquals '' "$(git log -- 'internal.txt')"
+}
+
+test_pull_stash() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	echo 'own content' > internal.txt
+	git stash -u -q
+	pull=$($GIT_FTP pull 2> /dev/null)
+	assertEquals 0 $?
+	assertEquals 1 "$(git stash list | wc -l)"
+	assertFalse 'internal.txt appeared' "[ -f internal.txt ]"
+	assertEquals '' "$(git log -- 'internal.txt')"
+}
+
 disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -

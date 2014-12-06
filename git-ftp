@@ -100,7 +100,7 @@ DESCRIPTION
 	It keeps track of the deployed state by uploading the SHA1 of the last
 	deployed commit in a log file.
 
-	It downloads remote changes into your working copy.
+	It downloads remote changes and merges them into your working copy.
 
 ACTIONS
 	. init
@@ -110,6 +110,10 @@ ACTIONS
 
 	. push
 		Uploads git-tracked files which have changed since last upload.
+
+	. pull
+		Downloads changes from the remote server into a separate commit
+		and merges them into your current branch.
 
 	. show
 		Downloads last uploaded SHA1 from log and hooks \`git show\`.
@@ -163,6 +167,7 @@ OPTIONS
 	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
+	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
@@ -399,7 +404,6 @@ upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
 	local ADD_ARGS=()
-
 	if [ -z $DEST_FILE ]; then
 		DEST_FILE=${SRC_FILE#$SYNCROOT}
 	fi
@@ -836,6 +840,9 @@ handle_action() {
 		download)
 			action_download
 			;;
+		pull)
+			action_pull
+			;;
 		add-scope)
 			action_add_scope
 			;;
@@ -976,6 +983,42 @@ remove_scope() {
 	print_info "Successfully removed scope $SCOPE."
 }
 
+set_current_branch() {
+	local current=$(( git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null ) | sed "s#^refs/heads/##")
+	if [ "$?" -ne "0" ]; then
+		set_local_sha1
+		current=$LOCAL_SHA1
+	fi
+	write_log "currently on branch $current"
+	CURRENT_BRANCH=$current
+}
+
+fetch_remote() {
+	download_remote_updates
+	[ $DRY_RUN -ne 1 ] || return
+	git add --all
+	git commit -m '[git-ftp] remotely untracked modifications'
+	set_local_sha1
+	upload_local_sha1
+}
+
+handle_fetch() {
+	local old_sha1=$DEPLOYED_SHA1
+	git checkout $DEPLOYED_SHA1 2> /dev/null
+	# If .gitignore changes between commits, untracked file can remain.
+	# These files are preserved in a stash record.
+	local stash=$(git stash -u)
+	remote_lock
+	fetch_remote
+	release_remote_lock
+	[ "$stash" != 'No local changes to save' ] && git stash pop
+	git checkout $CURRENT_BRANCH 2> /dev/null
+	if [ $DRY_RUN -ne 1 ]; then
+		print_info "From $REMOTE_HOST/$REMOTE_PATH"
+		print_info "   $old_sha1..$LOCAL_SHA1"
+	fi
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -1038,6 +1081,17 @@ action_download() {
 	remote_lock
 	download_remote_updates
 	release_remote_lock
+}
+
+action_pull() {
+	check_lftp_available
+	check_is_git_project
+	check_is_dirty_repository
+	set_current_branch
+	set_remotes
+	set_deployed_sha1
+	handle_fetch
+	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
 action_add_scope() {
@@ -1121,7 +1175,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|add-scope|remove-scope|log)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1352,6 +1406,10 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode."
+			;;
+		--no-commit)
+			MERGE_ARGS="$MERGE_ARGS --no-commit"
+			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then
