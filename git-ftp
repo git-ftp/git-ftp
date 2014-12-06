@@ -39,6 +39,7 @@ REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
 REMOTE_CMD_OPTIONS="-s"
+LFTP_OPTIONS=""
 ACTION=""
 LOG_CACHE=""
 ERROR_LOG=""
@@ -99,6 +100,7 @@ DESCRIPTION
 	It keeps track of the deployed state by uploading the SHA1 of the last
 	deployed commit in a log file.
 
+	It downloads remote changes into your working copy.
 
 ACTIONS
 	. init
@@ -120,6 +122,9 @@ ACTIONS
 
 		This is useful if you used another FTP client to upload the
 		files and now want to remember the SHA1.
+
+	. download
+		Downloads changes from the remote host into your working tree.
 
 	. add-scope
 		Add a scope (e.g. dev, production, testing).
@@ -828,6 +833,9 @@ handle_action() {
 		log)
 			action_log
 			;;
+		download)
+			action_download
+			;;
 		add-scope)
 			action_add_scope
 			;;
@@ -899,6 +907,24 @@ set_curl_insecure() {
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
+}
+
+download_remote_updates () {
+	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} $1"
+	local mirror_options=''
+	if [ "$DRY_RUN" = 1 ]; then
+		mirror_options="$mirror_options --dry-run"
+	fi
+	if [ "$VERBOSE" -gt 0 ]; then
+		mirror_options="$mirror_options -v"
+	fi
+
+	ignore=""
+	if [ -f '.git-ftp-ignore' ]; then
+		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/--exclude /'`
+		ignore=`echo $ignore | tr -d '\r'`
+	fi
+	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 set_scope() {
@@ -1003,6 +1029,16 @@ action_log() {
 	git log "$DEPLOYED_SHA1"
 }
 
+action_download() {
+	check_is_git_project
+	check_is_dirty_repository
+	check_lftp_available
+	set_remotes
+	remote_lock
+	download_remote_updates
+	release_remote_lock
+}
+
 action_add_scope() {
 	check_is_git_project
 	set_scope
@@ -1058,6 +1094,10 @@ check_is_dirty_repository() {
 	[ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
 }
 
+check_lftp_available() {
+	command -v lftp > /dev/null || print_error_and_die "lftp not found. This operation requires lftp installed." $ERROR_GIT
+}
+
 # ------------------------------------------------------------
 # Main
 # ------------------------------------------------------------
@@ -1076,7 +1116,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|add-scope|remove-scope|log)
+		init|push|catchup|show|download|add-scope|remove-scope|log)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1236,6 +1276,7 @@ do
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e $LOG_CACHE
 			REMOTE_CMD_OPTIONS="-v"
+			LFTP_OPTIONS="-d"
 			;;
 		-f|--force)
 			FORCE=1
