@@ -566,6 +566,18 @@ test_download() {
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
 }
 
+test_download_untracked() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	touch 'untracked.file'
+	$GIT_FTP download > /dev/null 2>&1
+	assertEquals 8 $?
+	assertFalse ' external file downloaded' "[ -f 'external.txt' ]"
+	assertTrue ' untracked file deleted' "[ -r 'untracked.file' ]"
+}
+
 test_download_syncroot() {
 	skip_without lftp
 	cd $GIT_PROJECT_PATH

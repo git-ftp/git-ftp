@@ -910,7 +910,7 @@ get_protocol_of_url() {
 }
 
 download_remote_updates () {
-	write_log "Copying from ${REMOTE_HOST}/${REMOTE_PATH} $1"
+	write_log "Mirroring ${REMOTE_HOST}/${REMOTE_PATH}"
 	local mirror_options=''
 	if [ "$DRY_RUN" = 1 ]; then
 		mirror_options="$mirror_options --dry-run"
@@ -1030,9 +1030,10 @@ action_log() {
 }
 
 action_download() {
+	check_lftp_available
 	check_is_git_project
 	check_is_dirty_repository
-	check_lftp_available
+	check_for_untracked_files
 	set_remotes
 	remote_lock
 	download_remote_updates
@@ -1092,6 +1093,10 @@ check_is_git_project() {
 
 check_is_dirty_repository() {
 	[ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." $ERROR_GIT
+}
+
+check_for_untracked_files() {
+	[ $(git status --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having untracked files. Exiting..." $ERROR_GIT
 }
 
 check_lftp_available() {
