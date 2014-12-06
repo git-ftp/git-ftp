@@ -997,7 +997,7 @@ fetch_remote() {
 	download_remote_updates
 	[ $DRY_RUN -ne 1 ] || return
 	git add --all
-	git commit -m '[git-ftp] remotely untracked modifications'
+	git commit -m '[git-ftp] remotely untracked modifications' | grep -v '^#'
 	set_local_sha1
 	upload_local_sha1
 }
@@ -1013,7 +1013,7 @@ handle_fetch() {
 	release_remote_lock
 	[ "$stash" != 'No local changes to save' ] && git stash pop
 	git checkout $CURRENT_BRANCH 2> /dev/null
-	if [ $DRY_RUN -ne 1 ]; then
+	if [ $DRY_RUN -ne 1 ] && [ $old_sha1 != $LOCAL_SHA1 ]; then
 		print_info "From $REMOTE_HOST/$REMOTE_PATH"
 		print_info "   $old_sha1..$LOCAL_SHA1"
 	fi
