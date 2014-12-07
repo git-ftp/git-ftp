@@ -683,10 +683,10 @@ set_changed_files() {
 }
 
 handle_file_sync() {
-        if [ -z "$FILES_CHANGED" ]; then
+	if [ -z "$FILES_CHANGED" ]; then
 		print_info "There are no files to sync."
 		return
-        fi
+	fi
 	# Calculate total file count
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
