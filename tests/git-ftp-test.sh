@@ -62,6 +62,20 @@ test_prints_version() {
 	assertEquals = "git-ftp version 1.0.0"  "$version"
 }
 
+test_inits() {
+	init=$($GIT_FTP init)
+	assertEquals 0 $?
+	assertTrue 'file does not exist' "remote_file_exists 'test 1.txt'"
+	assertTrue 'file differs' "remote_file_equals 'test 1.txt'"
+}
+
+test_init_fails() {
+	init=$($GIT_FTP_CMD -v -u wrong_user -p wrong_passwd $GIT_FTP_URL init 2>&1)
+	assertEquals 5 $?
+	error_count=$(echo "$init" | grep -F 'Access denied' | wc -l)
+	assertEquals 1 $error_count
+}
+
 test_inits_and_pushes() {
 	cd $GIT_PROJECT_PATH
 

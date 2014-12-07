@@ -958,6 +958,7 @@ action_init() {
 	check_is_git_project
 	check_is_dirty_repository
 	set_remotes
+	check_remote_access
 	check_deployed_sha1
 	set_local_sha1
 	set_changed_files
@@ -1015,6 +1016,16 @@ action_remove_scope() {
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
+check_remote_access() {
+	local url="$REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
+	write_log "Check if $url is accessible."
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=("$url")
+	curl "${CURL_ARGS[@]}" > /dev/null
+	check_exit_status "Can't access remote '$url'." $ERROR_DOWNLOAD
+}
+
 check_deployed_sha1() {
 	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean."
 	DEPLOYED_SHA1="$(get_file_content $DEPLOYED_SHA1_FILE)"
