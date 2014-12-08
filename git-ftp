@@ -701,7 +701,7 @@ handle_file_sync() {
 	for FILE_ITERATOR in $FILES_CHANGED; do
 		(( DONE_ITEMS++ ))
 		FILE_MODE="$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')"
-		FILE_NAME="$(printf "%s" "FILE_ITERATOR" | cut -f2- -d ' ')"
+		FILE_NAME="$(printf "%s" "$FILE_ITERATOR" | cut -f2- -d ' ')"
 		FILE_NAME="${FILE_NAME/#\"/}"
 		FILE_NAME="${FILE_NAME/%\"/}"
 
@@ -807,7 +807,7 @@ handle_remote_protocol_options() {
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
+	[ "$CURL_INSECURE" == "1" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
 handle_action() {
