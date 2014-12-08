@@ -1,7 +1,45 @@
+Version 1.0.0
+=============
+
+Maikel Linke (mkllnk):
+* Added test to ignore single file in root directory.
+* Added Travis support.
+* Added tests for git-ftp-include with git-ftp-ignore.
+* Added test uploading heaps.
+* Improved and extended testing.
+* Improved checking remote access before initial upload.
+* Fixed upload_sha1 at end of push action.
+* Fixed not recognizing different SHA1 object.
+* Fixed upload local sha1 only if files where pushed.
+* Fixed delete buffer. Fire before ARG_MAX reached.
+* Fixed counting bug in handle_file_sync().
+* Fixed upload buffer length check.
+* Removed duplicate code of setting curl args.
+
+Andrew Minion, Szerémi Attila, Max Horn, Ryan Ponce, Rob Upcraft, Pablo Alejandro Fiumara:
+* Documentation updates.
+
+René Moser:
+* Fixed scope may not contain spaces
+* Fixed error level of failing delete action.
+* Several improvements.
+
+Sudaraka Wijesinghe:
+* Fix for url from git config not being identified correctly.
+
+Matteo Manchi:
+* Fixed DEPLOYED_SHA1_FILE now cares about scope.
+
+iKasty:
+* Added support for different remote root directory, option --remote-root.
+
+Brad Jones:
+* Fixed delete for SFTP.
+
 Version 1.0.0-rc.2
 ==================
 
-mkllnk:
+Maikel Linke (mkllnk):
 * Added more tests, tests clean up and improvements. See README.md in /tests.
 * Improved docs.
 
