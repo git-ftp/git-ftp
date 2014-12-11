@@ -196,6 +196,15 @@ test_pushes_and_fails() {
 	assertEquals 5 $rtrn
 }
 
+test_push_unknown_commit() {
+	$GIT_FTP init > /dev/null
+	echo '000000000' | curl -s -T - $CURL_URL/.git-ftp.log
+	push="$($GIT_FTP push 0>&- 2>&1)"
+	assertEquals 0 $?
+	assertContains 'Unknown SHA1 object' "$push"
+	assertContains 'Do you want to ignore' "$push"
+}
+
 test_push_nothing() {
 	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
@@ -634,6 +643,10 @@ remote_file_exists() {
 
 remote_file_equals() {
 	curl -s "$CURL_URL/$1" | diff - "$1" > /dev/null
+}
+
+assertContains() {
+	assertTrue "Could not find expression: $1\nTested: $2" "echo \"$2\" | grep '$1'"
 }
 
 # load and run shUnit2
