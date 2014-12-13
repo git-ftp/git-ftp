@@ -408,6 +408,18 @@ test_ignore_single_file() {
 	assertFalse 'test failed: file was not ignored' "remote_file_exists 'test 1.txt'"
 }
 
+test_ignore_single_file_force_unknown_commit() {
+	init=$($GIT_FTP init)
+	local file='ignored.txt'
+	touch $file
+	echo $file > .git-ftp-ignore
+	git add .
+	git commit -m 'added new file that should be ignored' -q
+	echo '000000000' | curl -s -T - $CURL_URL/.git-ftp.log
+	push=$($GIT_FTP push -f)
+	assertFalse 'test failed: file was not ignored' "remote_file_exists '$file'"
+}
+
 test_ignore_dir() {
 	cd $GIT_PROJECT_PATH
 	echo "dir 1/.*" > .git-ftp-ignore

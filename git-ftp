@@ -585,10 +585,35 @@ set_deployed_sha1() {
 set_changed_files() {
 	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
+		write_log "Taking all files.";
 		git ls-files -t $SYNCROOT > '.git-ftp-tmp'
 	else
 		git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT 2>/dev/null > '.git-ftp-tmp'
 		local git_diff_status=$?
+		local changed_file_count=$(cat '.git-ftp-tmp' | wc -l)
+		if [ "$git_diff_status" -ne 0 ]; then
+			if [ $FORCE -ne 1 ]; then
+				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+				echo -n "Do you want to ignore and upload all files again? [y/N]: "
+				read ANSWER_STATE
+				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
+					print_info "Aborting..."
+					exit 0
+				else
+					write_log "Taking all files.";
+					git ls-files -t $SYNCROOT > '.git-ftp-tmp'
+				fi
+			else
+				print_info "Unknown SHA1 object, could not determine changed filed, taking all files."
+				git ls-files -t $SYNCROOT > '.git-ftp-tmp'
+			fi
+		elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
+			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+			exit 0
+		elif [ "$changed_file_count" -eq 0 ]; then
+			write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
+			return
+		fi
 	fi
 
 	# Add files from include file
@@ -660,34 +685,10 @@ set_changed_files() {
 	rm -f '.git-ftp-include-tmp'
 	rm -f '.git-ftp-ignore-tmp'
 
-	if [ $IGNORE_DEPLOYED -ne 0 ]; then
-		write_log "Sync all files."
-		return
-	fi
-
-	if [ $git_diff_status -ne 0 ]; then
-		if [ $FORCE -ne 1 ]; then
-			print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-			echo -n "Do you want to ignore and upload all files again? [y/N]: "
-			read ANSWER_STATE
-			if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-				print_info "Aborting..."
-				exit 0
-			else
-				write_log "Taking all files.";
-				FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
-			fi
-		else
-			print_info "Unknown SHA1 object, could not determine changed filed, taking all files."
-			FILES_CHANGED="$(git ls-files -t $SYNCROOT)"
-		fi
-	elif [ -n "$FILES_CHANGED" ]; then
-		write_log "Having changed files.";
-	elif [ "$LOCAL_SHA1" != "$DEPLOYED_SHA1" ]; then
-		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
+	if [ -n "$FILES_CHANGED" ]; then
+		write_log "Having files to sync.";
 	else
-		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-		exit 0
+		write_log "No files to sync. All changed files ignored.";
 	fi
 }
 
