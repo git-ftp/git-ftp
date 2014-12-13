@@ -5,7 +5,7 @@
 # You can define environment variables to choose the FTP server to test on.
 #
 # Example:
-#     export GIT_FTP_ROOT='ftp://localhost/git-ftp-tests/'
+#     export GIT_FTP_ROOT='localhost/git-ftp-tests'
 #     export GIT_FTP_USER='git-ftp-test'
 #     export GIT_FTP_PASSWD='s3cr3t'
 #     ./git-ftp-test.sh
