@@ -1,4 +1,27 @@
 #!/bin/sh
+#
+# Usage: git-ftp-test.sh
+#
+# You can define environment variables to choose the FTP server to test on.
+#
+# Example:
+#     export GIT_FTP_ROOT='ftp://localhost/git-ftp-tests/'
+#     export GIT_FTP_USER='git-ftp-test'
+#     export GIT_FTP_PASSWD='s3cr3t'
+#     ./git-ftp-test.sh
+#
+# You can choose test cases as well:
+#     export TEST_CASES='test_displays_usage test_prints_version'
+#     ./git-ftp-test.sh
+#
+# Or you can write it in one line:
+#     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
+
+suite() {
+	for testcase in ${TEST_CASES}; do
+		suite_addTest "$testcase"
+	done
+}
 
 oneTimeSetUp() {
 	cd "$TESTDIR/../"
