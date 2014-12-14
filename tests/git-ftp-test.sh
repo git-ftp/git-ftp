@@ -69,6 +69,8 @@ setUp() {
 }
 
 tearDown() {
+	tmpfiles=$(ls .git-ftp*-tmp 2> /dev/null)
+	assertEquals '' "$tmpfiles"
 	rm -rf $GIT_PROJECT_PATH
 	command -v lftp >/dev/null 2>&1 && {
 		lftp -u $GIT_FTP_USER,$GIT_FTP_PASSWD $GIT_FTP_ROOT -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2>&1
@@ -452,26 +454,10 @@ test_ignore_pattern() {
 	done;
 }
 
-disabled_test_ignore_pattern_single() {
+test_ignore_pattern_single() {
 	cd $GIT_PROJECT_PATH
 	echo 'test' > 'test'
 	echo "^test$" > .git-ftp-ignore
-	git add .
-	git commit -m 'adding file that should not be uploaded' > /dev/null
-
-	init=$($GIT_FTP init)
-
-	assertFalse 'test failed: was not ignored' "remote_file_exists 'test'"
-	for i in 1 2 3 4 5
-	do
-		assertTrue 'test failed: was ignored' "remote_file_exists 'test $i.txt'"
-	done;
-}
-
-# TODO: make this test fail an the previous test work
-test_ignore_pattern_single_dirty() {
-	echo 'test' > 'test'
-	echo '^. test$' > .git-ftp-ignore
 	git add .
 	git commit -m 'adding file that should not be uploaded' > /dev/null
 
