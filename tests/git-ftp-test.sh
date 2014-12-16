@@ -630,11 +630,11 @@ test_file_with_nonchar() {
 
 test_syncroot() {
 	cd $GIT_PROJECT_PATH
-	syncroot='foobar'
-	mkdir foobar && echo "test" > $syncroot/syncroot.txt
+	syncroot='foo bar'
+	mkdir "$syncroot" && echo "test" > "$syncroot/syncroot.txt"
 	git add . > /dev/null 2>&1
 	git commit -a -m "syncroot test" > /dev/null 2>&1
-	init=$($GIT_FTP init --syncroot $syncroot)
+	init=$($GIT_FTP init --syncroot "$syncroot")
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 

@@ -372,8 +372,8 @@ set_default_curl_options() {
 upload_file() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=${SRC_FILE#$SYNCROOT}
+	if [ -z "$DEST_FILE" ]; then
+		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
 	set_default_curl_options
@@ -395,8 +395,8 @@ upload_file_buffered() {
 	local DEST_FILE="$2"
 	local ADD_ARGS=()
 
-	if [ -z $DEST_FILE ]; then
-		DEST_FILE=${SRC_FILE#$SYNCROOT}
+	if [ -z "$DEST_FILE" ]; then
+		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
 	ADD_ARGS+=(-T "./$SRC_FILE")
@@ -586,9 +586,9 @@ set_changed_files() {
 	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Taking all files.";
-		git ls-files -t $SYNCROOT > '.git-ftp-tmp'
+		git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
 	else
-		git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT 2>/dev/null > '.git-ftp-tmp'
+		git diff --name-status --no-renames $DEPLOYED_SHA1 -- "$SYNCROOT" 2>/dev/null > '.git-ftp-tmp'
 		local git_diff_status=$?
 		local changed_file_count=$(cat '.git-ftp-tmp' | wc -l)
 		if [ "$git_diff_status" -ne 0 ]; then
@@ -601,11 +601,11 @@ set_changed_files() {
 					exit 0
 				else
 					write_log "Taking all files.";
-					git ls-files -t $SYNCROOT > '.git-ftp-tmp'
+					git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
 				fi
 			else
 				print_info "Unknown SHA1 object, could not determine changed filed, taking all files."
-				git ls-files -t $SYNCROOT > '.git-ftp-tmp'
+				git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
 			fi
 		elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
 			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
@@ -644,7 +644,7 @@ set_changed_files() {
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
 					IFS="$OIFS"
-					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 $SYNCROOT -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames $DEPLOYED_SHA1 -- "$SYNCROOT" -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
 						let DELETE_COUNT++
 					else
 						let MODIFY_COUNT++
@@ -770,7 +770,7 @@ handle_submodule_sync() {
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
 
 	(
-		cd ${SYNCROOT}$1 && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+		cd "${SYNCROOT}$1" && $0 $ACTION ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 	)
 
 	local EXIT_CODE=$?
@@ -779,7 +779,7 @@ handle_submodule_sync() {
 	if [ $EXIT_CODE -eq $ERROR_DOWNLOAD ] && [ "$ACTION" == "push" ]; then
 		print_info "Could not push $1, trying to init..."
 		(
-			cd ${SYNCROOT}$1 && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
+			cd "${SYNCROOT}$1" && $0 init ${args[@]} $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1
 		)
 		check_exit_status "Failed to sync submodules." $ERROR_UPLOAD
 	elif [ $EXIT_CODE -ne 0 ]; then
@@ -867,7 +867,7 @@ set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	if [ "$SYNCROOT" ]; then
 		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." $ERROR_GIT
-		SYNCROOT=$(echo $SYNCROOT | sed 's#/*$##')/
+		SYNCROOT="$(echo "$SYNCROOT" | sed 's#/*$##')/"
 	fi
 }
 
@@ -1157,7 +1157,7 @@ do
 		--syncroot*)
 			case "$#,$1" in
 				*,*=*)
-					SYNCROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					SYNCROOT="$(expr "z$1" : 'z-[^=]*=\(.*\)')"
 					;;
 				1,*)
 					print_error_and_die "Too few arguments for option --syncroot." $ERROR_MISSING_ARGUMENTS
