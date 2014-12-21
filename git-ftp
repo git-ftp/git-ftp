@@ -677,7 +677,7 @@ set_changed_files() {
 		grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > '.git-ftp-ignore-tmp'
 		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore-tmp' '.git-ftp-tmp' | tr '\t' ' ')
 	else
-		FILES_CHANGED=$(cat '.git-ftp-tmp' | tr '\t' ' ')
+		FILES_CHANGED="$(tr '\t' ' ' < '.git-ftp-tmp')"
 	fi
 
 	rm -f '.git-ftp-tmp'
