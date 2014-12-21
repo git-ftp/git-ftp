@@ -590,7 +590,7 @@ set_changed_files() {
 	else
 		git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > '.git-ftp-tmp'
 		local git_diff_status=$?
-		local changed_file_count=$(cat '.git-ftp-tmp' | wc -l)
+		local changed_file_count="$(wc -l < '.git-ftp-tmp')"
 		if [ "$git_diff_status" -ne 0 ]; then
 			if [ $FORCE -ne 1 ]; then
 				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
