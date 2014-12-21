@@ -667,7 +667,7 @@ set_changed_files() {
 						FILE_STATUS='M'
 					fi
 					find ${FILE_PAIR[0]} -type f | xargs -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
-                fi
+				fi
 			fi
 		done
 	fi
