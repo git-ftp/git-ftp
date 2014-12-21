@@ -235,7 +235,7 @@ ask_for_passwd() {
 get_keychain_password () {
 	if [ "$SYSTEM" = "Darwin" ]; then
 		# Split user and host if necessary
-		if [ $(echo "$KEYCHAIN_USER" | grep '@') ]; then
+		if echo "$KEYCHAIN_USER" | grep -q '@'; then
 			KEYCHAIN_HOST=$(echo "$KEYCHAIN_USER" | cut -d '@' -f2)
 			KEYCHAIN_USER=$(echo "$KEYCHAIN_USER" | cut -d '@' -f1)
 		else
@@ -634,7 +634,7 @@ set_changed_files() {
 			FILE_PAIR=($LINE)
 			IFS="$OIFS"
 			cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
-			if [[ $(grep -Fx "${FILE_PAIR[1]}" '.git-ftp-tmp-files') && ! $(grep -Fx "${FILE_PAIR[0]}" '.git-ftp-tmp-files') ]]; then
+			if grep -Fx -q "${FILE_PAIR[1]}" '.git-ftp-tmp-files' && ! grep -Fx -q "${FILE_PAIR[0]}" '.git-ftp-tmp-files'; then
 				DELETE_COUNT=0
 				MODIFY_COUNT=0
 
@@ -644,7 +644,7 @@ set_changed_files() {
 					IFS=":"
 					SUB_FILE_PAIR=($SUB_LINE)
 					IFS="$OIFS"
-					if [ $IGNORE_DEPLOYED -eq 0 ] && [[ $(git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" -- "${SUB_FILE_PAIR[1]}" | grep '^D') ]]; then
+					if [ $IGNORE_DEPLOYED -eq 0 ] && git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" -- "${SUB_FILE_PAIR[1]}" | grep -q '^D'; then
 						let DELETE_COUNT++
 					else
 						let MODIFY_COUNT++
