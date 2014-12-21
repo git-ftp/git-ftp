@@ -729,7 +729,7 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 
 			if [ $DRY_RUN -ne 1 ]; then
-				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir $(dirname "${FILE_NAME#$SYNCROOT}")
+				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir "$(dirname "${FILE_NAME#$SYNCROOT}")"
 			fi
 		fi
 	done
@@ -1075,7 +1075,7 @@ check_is_git_project() {
 }
 
 check_is_dirty_repository() {
-	[ $(git status -uno --porcelain | wc -l) -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." "$ERROR_GIT"
+	[ "$(git status -uno --porcelain | wc -l)" -ne 0 ] && print_error_and_die "Dirty repository: Having uncommitted changes. Exiting..." "$ERROR_GIT"
 }
 
 # ------------------------------------------------------------
