@@ -923,7 +923,7 @@ set_scope() {
 	# set url
 	local protocol=$(get_protocol_of_url "$URL")
 	local path="${URL##*@}"
-	$(git config "git-ftp.$SCOPE.url" "${protocol}${path}")
+	git config "git-ftp.$SCOPE.url" "${protocol}${path}"
 
 	# strip protocol
 	local credentials=${URL#${protocol}}
