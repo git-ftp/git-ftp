@@ -1102,8 +1102,7 @@ do
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
 				SCOPE="$2"
-				pattern="[^a-zA-Z0-9_]"
-				if [[ $SCOPE =~ $pattern ]]; then
+				if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
 					print_error_and_die "Invalid scope name." $ERROR_USAGE
 				fi
 				shift
@@ -1147,8 +1146,7 @@ do
 					fi
 					;;
 			esac
-			pattern="[^a-zA-Z0-9_]"
-			if [[ $SCOPE =~ $pattern ]]; then
+			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
 				print_error_and_die "Invalid scope name." $ERROR_USAGE
 			fi
 			set_deployed_sha1_file
