@@ -1136,14 +1136,14 @@ do
 					SCOPE=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					check_is_git_project && SCOPE=$(git branch | grep '*' | awk '{print $2}')
+					check_is_git_project && SCOPE="$(git rev-parse --abbrev-ref HEAD)"
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						SCOPE="$2"
 						shift
 					else
-						check_is_git_project && SCOPE=$(git branch | grep '*' | awk '{print $2}')
+						check_is_git_project && SCOPE="$(git rev-parse --abbrev-ref HEAD)"
 					fi
 					;;
 			esac
