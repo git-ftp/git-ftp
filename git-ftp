@@ -721,9 +721,8 @@ handle_file_sync() {
 			if is_submodule "$FILE_NAME"; then
 				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 
-			else if [ $DRY_RUN -ne 1 ]; then
-					upload_file_buffered "$FILE_NAME"
-				fi
+			elif [ $DRY_RUN -ne 1 ]; then
+				upload_file_buffered "$FILE_NAME"
 			fi
 		# Removing file
 		else
