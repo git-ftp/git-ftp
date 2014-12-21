@@ -666,7 +666,7 @@ set_changed_files() {
 					else
 						FILE_STATUS='M'
 					fi
-					find ${FILE_PAIR[0]} -type f | xargs -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
+					find ${FILE_PAIR[0]} -type f -print0 | xargs -0 -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
 				fi
 			fi
 		done
