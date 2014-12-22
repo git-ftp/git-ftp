@@ -335,6 +335,16 @@ test_scopes() {
 	assertEquals 0 $rtrn
 }
 
+test_invalid_scope_name() {
+	out=$($GIT_FTP_CMD init -s invalid:scope 2>&1)
+	assertEquals 2 $?
+	assertEquals 'fatal: Invalid scope name.' "$out"
+
+	out=$($GIT_FTP_CMD add-scope invalid:scope 2>&1)
+	assertEquals 2 $?
+	assertEquals 'fatal: Invalid scope name.' "$out"
+}
+
 test_scopes_using_branchname_as_scope() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.production.user $GIT_FTP_USER
