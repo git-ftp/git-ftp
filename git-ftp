@@ -661,11 +661,7 @@ set_changed_files() {
 				fi
 
 				if [ -d "${FILE_PAIR[0]}" ]; then
-					if [ "$DELETE_COUNT" -gt 0 ] && [ "$MODIFY_COUNT" -eq 0 ]; then
-						FILE_STATUS='D'
-					else
-						FILE_STATUS='M'
-					fi
+					FILE_STATUS='M'
 					find ${FILE_PAIR[0]} -type f -print0 | xargs -0 -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
 				fi
 			fi
