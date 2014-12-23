@@ -231,7 +231,7 @@ If you have multiple source files being combined into a single untracked file, y
 
 # NETRC
 
-In the backend, Git-ftp uses curl. This means `~/.netrc`could be used beside the other options of Git-ftp to authenticate.
+In the backend, Git-ftp uses curl. This means `~/.netrc` could be used beside the other options of Git-ftp to authenticate.
 
 	$ editor ~/.netrc
 	machine ftp.example.com
