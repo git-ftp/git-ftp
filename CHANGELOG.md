@@ -14,6 +14,7 @@ Maikel Linke (mkllnk):
 * Fixed delete buffer. Fire before ARG_MAX reached.
 * Fixed counting bug in handle_file_sync().
 * Fixed upload buffer length check.
+* Fixed prevent deleting of unversioned files.
 * Removed duplicate code of setting curl args.
 
 Andrew Minion, Szerémi Attila, Max Horn, Ryan Ponce, Rob Upcraft, Pablo Alejandro Fiumara:
