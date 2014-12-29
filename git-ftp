@@ -621,11 +621,11 @@ set_changed_files() {
 		mv '.git-ftp-diff-tmp' '.git-ftp-tmp'
 	fi
 
-	add_include_files
-
 	grep '^D ' '.git-ftp-tmp' | cut -f2- -d ' ' > '.git-ftp-delete-tmp'
 	grep -v '^D ' '.git-ftp-tmp' | cut -f2- -d ' ' > '.git-ftp-upload-tmp'
 	rm -f '.git-ftp-tmp'
+
+	add_include_files
 
 	filter_ignore_files '.git-ftp-upload-tmp' '.git-ftp-delete-tmp'
 
@@ -639,55 +639,38 @@ set_changed_files() {
 add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
-
-	grep '^!' '.git-ftp-include-tmp' | while read LINE
-	do
-		FILE_STATUS='M'
-		FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
-		echo "$FILE_STATUS $FILE_PAIR" >> '.git-ftp-tmp'
-	done
-
-	grep ':' '.git-ftp-include-tmp' | while read LINE
-	do
-		OIFS="$IFS"
-		IFS=":"
-		FILE_PAIR=($LINE)
-		IFS="$OIFS"
-		cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
-		if grep -Fx -q "${FILE_PAIR[1]}" '.git-ftp-tmp-files' && ! grep -Fx -q "${FILE_PAIR[0]}" '.git-ftp-tmp-files'; then
-			DELETE_COUNT=0
-			MODIFY_COUNT=0
-
-			for SUB_LINE in $(grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp')
-			do
-				OIFS="$IFS"
-				IFS=":"
-				SUB_FILE_PAIR=($SUB_LINE)
-				IFS="$OIFS"
-				if [ $IGNORE_DEPLOYED -eq 0 ] && git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" -- "${SUB_FILE_PAIR[1]}" | grep -q '^D'; then
-					let DELETE_COUNT++
-				else
-					let MODIFY_COUNT++
-				fi
-			done
-
-			if [ -f "${FILE_PAIR[0]}" ]; then
-				if [ "$DELETE_COUNT" -gt 0 ] && [ "$MODIFY_COUNT" -eq 0 ]; then
-					FILE_STATUS='D'
-				else
-					FILE_STATUS='M'
-				fi
-				echo "$FILE_STATUS ${FILE_PAIR[0]}" >> '.git-ftp-tmp'
-			fi
-
-			if [ -d "${FILE_PAIR[0]}" ]; then
-				FILE_STATUS='M'
-				find ${FILE_PAIR[0]} -type f -print0 | xargs -0 -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
+	grep '^!' '.git-ftp-include-tmp' | sed 's/^!//' | >> '.git-ftp-upload-tmp'
+	grep ':' '.git-ftp-include-tmp' | while read LINE; do
+		local TARGET=${LINE%%:*}
+		local SOURCE=${LINE#*:}
+		if [ -d "$TARGET" ]; then
+			find "$TARGET" -type f >> '.git-ftp-include-upload-tmp'
+		elif [ -f "$TARGET" ]; then
+			if grep -Fxq "$SOURCE" '.git-ftp-upload-tmp'; then
+				echo "$TARGET" >> '.git-ftp-include-upload-tmp'
+			elif grep -Fxq "$SOURCE" '.git-ftp-delete-tmp'; then
+				echo "$TARGET" >> '.git-ftp-include-delete-tmp'
 			fi
 		fi
 	done
 	rm -f '.git-ftp-include-tmp'
-	rm -f '.git-ftp-tmp-files'
+	add_missing_files '.git-ftp-include-upload-tmp' '.git-ftp-upload-tmp' '.git-ftp-delete-tmp'
+	add_missing_files '.git-ftp-include-delete-tmp' '.git-ftp-delete-tmp' '.git-ftp-upload-tmp'
+}
+
+add_missing_files() {
+	local src="$1"
+	local dst="$2"
+	local second_filter="$3"
+	if [ ! -f "$src" ]; then
+		return
+	fi
+	sort < "$src" | uniq > '.git-ftp-include-uniq-tmp'
+	mv '.git-ftp-include-uniq-tmp' "$src"
+	filter_file "$dst" "$src"
+	filter_file "$second_filter" "$src"
+	cat "$src" >> "$dst"
+	rm -f "$src"
 }
 
 filter_ignore_files() {
