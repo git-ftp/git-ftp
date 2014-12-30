@@ -390,7 +390,8 @@ fire_upload_buffer() {
 	print_info "Uploading ..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	curl "${CURL_ARGS[@]}" -K '.git-ftp-curl-upload-tmp'
+	CURL_ARGS+=(-K '.git-ftp-curl-upload-tmp')
+	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 	rm -f '.git-ftp-curl-upload-tmp'
 }
@@ -419,12 +420,13 @@ fire_delete_buffer() {
 		return 0
 	fi
 	print_info "Deleting ..."
-	set_default_curl_options
 	echo "url = $REMOTE_PROTOCOL://$REMOTE_HOST" >> '.git-ftp-curl-delete-tmp'
+	set_default_curl_options
+	CURL_ARGS+=(-K '.git-ftp-curl-delete-tmp')
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}" -K '.git-ftp-curl-delete-tmp'
+		curl "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" -K '.git-ftp-curl-delete-tmp' > /dev/null 2>&1
+		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_log "WARNING: Some files and/or folders could not be deleted."
