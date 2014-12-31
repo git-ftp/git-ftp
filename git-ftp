@@ -888,8 +888,10 @@ set_remotes() {
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
 	if [ ! -z $REMOTE_USER ]; then
-		REMOTE_LOGIN="$REMOTE_USER":"$REMOTE_PASSWD"@
-		DISPLAY_LOGIN="$REMOTE_USER":'***'@
+		local ENC_USER="$(urlencode "$REMOTE_USER")"
+		local ENC_PASSWD="$(urlencode "$REMOTE_PASSWD")"
+		REMOTE_LOGIN="$ENC_USER":"$ENC_PASSWD"@
+		DISPLAY_LOGIN="$ENC_USER":'***'@
 	fi
 
 	set_remote_protocol
@@ -907,6 +909,22 @@ set_remotes() {
 	
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
+}
+
+# Original implementation http://stackoverflow.com/a/10660730/3377535
+urlencode() {
+	local string="${1}"
+	local strlen=${#string}
+	local encoded=""
+	for (( pos=0 ; pos<strlen ; pos++ )); do
+		c=${string:$pos:1}
+		case "$c" in
+			[-_.~a-zA-Z0-9] ) o="${c}" ;;
+			* )               printf -v o '%%%02x' "'$c"
+		esac
+		encoded+="${o}"
+	done
+	echo "${encoded}"
 }
 
 set_curl_insecure() {
@@ -1037,7 +1055,7 @@ check_remote_access() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
 	curl "${CURL_ARGS[@]}" > /dev/null
-	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'." "$ERROR_DOWNLOAD"
+	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
 }
 
 check_deployed_sha1() {
