@@ -52,8 +52,6 @@ SYNCROOT=""
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
-CURL_UPLOADS=()
-CURL_DELETE=()
 CURL_DISABLE_EPSV=0
 declare -a CURL_ARGS
 declare -i VERBOSE=0
@@ -63,7 +61,6 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
-declare -i ARG_MAX=4096
 declare -a GIT_SUBMODULES
 
 # ------------------------------------------------------------
@@ -212,16 +209,6 @@ cache_git_submodules() {
 
 is_submodule() {
 	has "$1" "${GIT_SUBMODULES[@]}"
-}
-
-is_arg_max_reached() {
-	local ARGS=("$@")
-	ARGS_STRING=$(echo ${ARGS[@]})
-	CURRENT_LENGTH=$(( ${#ARGS_STRING} ))
-	if [ $CURRENT_LENGTH -lt $ARG_MAX ]; then
-		return 1
-	fi
-	return 0
 }
 
 ask_for_passwd() {
@@ -384,42 +371,29 @@ upload_file() {
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." "$ERROR_UPLOAD"
 }
 
-set_upload_curl_arguments() {
-	set_default_curl_options
-	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("${CURL_UPLOADS[@]}")
-}
-
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="$2"
-	local ADD_ARGS=()
 
 	if [ -z "$DEST_FILE" ]; then
 		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
-	ADD_ARGS+=(-T "./$SRC_FILE")
-	ADD_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
-	set_upload_curl_arguments
-	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
-		IFS="$OIFS"
-		fire_upload_buffer
-		IFS="$NIFS"
-	fi
-
-	CURL_UPLOADS+=("${ADD_ARGS[@]}")
+	echo "-T \"./$SRC_FILE\"" >> '.git-ftp-curl-upload-tmp'
+	echo "url = \"$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
 }
 
 fire_upload_buffer() {
-	if [ -z "$CURL_UPLOADS" ]; then
+	if [ ! -f '.git-ftp-curl-upload-tmp' ]; then
 		return 0
 	fi
 	print_info "Uploading ..."
-	set_upload_curl_arguments
+	set_default_curl_options
+	CURL_ARGS+=(--ftp-create-dirs)
+	CURL_ARGS+=(-K '.git-ftp-curl-upload-tmp')
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
-	CURL_UPLOADS=()
+	rm -f '.git-ftp-curl-upload-tmp'
 }
 
 delete_file() {
@@ -437,31 +411,18 @@ delete_file() {
 	fi
 }
 
-set_delete_curl_arguments() {
-	set_default_curl_options
-	CURL_ARGS+=("${CURL_DELETE[@]}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
-}
-
 delete_file_buffered() {
-	local FILENAME="$1"
-	local ADD_ARGS=()
-	ADD_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	set_delete_curl_arguments
-	if is_arg_max_reached "${CURL_ARGS[@]}" "${ADD_ARGS[@]}"; then
-		IFS="$OIFS"
-		fire_delete_buffer
-		IFS="$NIFS"
-	fi
-	CURL_DELETE+=("${ADD_ARGS[@]}")
+	echo "-Q \"${REMOTE_DELETE_CMD}${REMOTE_PATH}${1}\"" >> '.git-ftp-curl-delete-tmp'
 }
 
 fire_delete_buffer() {
-	if [ -z "$CURL_DELETE" ]; then
+	if [ ! -f '.git-ftp-curl-delete-tmp' ]; then
 		return 0
 	fi
 	print_info "Deleting ..."
-	set_delete_curl_arguments
+	echo "url = $REMOTE_PROTOCOL://$REMOTE_HOST" >> '.git-ftp-curl-delete-tmp'
+	set_default_curl_options
+	CURL_ARGS+=(-K '.git-ftp-curl-delete-tmp')
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
@@ -470,11 +431,11 @@ fire_delete_buffer() {
 	if [ $? -ne 0 ]; then
 		write_log "WARNING: Some files and/or folders could not be deleted."
 	fi
-	CURL_DELETE=()
+	rm -f '.git-ftp-curl-delete-tmp'
 }
 
 delete_dir() {
-	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
+	ORIGIN_REMOTE_DELETE_CMD="$REMOTE_DELETE_CMD"
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rmdir /"
@@ -482,7 +443,7 @@ delete_dir() {
 		REMOTE_DELETE_CMD="-*RMD "
 	fi
 	delete_file_buffered "$1"
-	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
+	REMOTE_DELETE_CMD="$ORIGIN_REMOTE_DELETE_CMD"
 }
 
 get_file_content() {
