@@ -586,155 +586,161 @@ set_changed_files() {
 	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Taking all files.";
-		git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
+		list_all_files
 	else
-		git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > '.git-ftp-tmp'
-		local git_diff_status=$?
-		local changed_file_count="$(wc -l < '.git-ftp-tmp')"
-		if [ "$git_diff_status" -ne 0 ]; then
-			if [ $FORCE -ne 1 ]; then
-				print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
-				echo -n "Do you want to ignore and upload all files again? [y/N]: "
-				read ANSWER_STATE
-				if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
-					print_info "Aborting..."
-					exit 0
-				else
-					write_log "Taking all files.";
-					git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
-				fi
-			else
-				print_info "Unknown SHA1 object, could not determine changed filed, taking all files."
-				git ls-files -t -- "$SYNCROOT" > '.git-ftp-tmp'
-			fi
-		elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
-			print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-			exit 0
-		elif [ "$changed_file_count" -eq 0 ]; then
-			write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
-			return
-		fi
+		list_changed_files || return
 	fi
-
-	# Add files from include file
-	if [ -f '.git-ftp-include' ]; then
-		grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
-
-		grep '^!' '.git-ftp-include-tmp' | while read LINE
-		do
-			FILE_STATUS='M'
-			FILE_PAIR=$(echo "$LINE" | sed 's/^!//')
-			echo "$FILE_STATUS	$FILE_PAIR" >> '.git-ftp-tmp'
-		done
-
-		grep ':' '.git-ftp-include-tmp' | while read LINE
-		do
-			OIFS="$IFS"
-			IFS=":"
-			FILE_PAIR=($LINE)
-			IFS="$OIFS"
-			cat .git-ftp-tmp | tr '\t' ' ' | cut -f2- -d ' ' > .git-ftp-tmp-files
-			if grep -Fx -q "${FILE_PAIR[1]}" '.git-ftp-tmp-files' && ! grep -Fx -q "${FILE_PAIR[0]}" '.git-ftp-tmp-files'; then
-				DELETE_COUNT=0
-				MODIFY_COUNT=0
-
-				for SUB_LINE in $(grep -F "${FILE_PAIR[0]}" '.git-ftp-include-tmp')
-				do
-					OIFS="$IFS"
-					IFS=":"
-					SUB_FILE_PAIR=($SUB_LINE)
-					IFS="$OIFS"
-					if [ $IGNORE_DEPLOYED -eq 0 ] && git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" -- "${SUB_FILE_PAIR[1]}" | grep -q '^D'; then
-						let DELETE_COUNT++
-					else
-						let MODIFY_COUNT++
-					fi
-				done
-
-				if [ -f "${FILE_PAIR[0]}" ]; then
-					if [ "$DELETE_COUNT" -gt 0 ] && [ "$MODIFY_COUNT" -eq 0 ]; then
-						FILE_STATUS='D'
-					else
-						FILE_STATUS='M'
-					fi
-					echo "$FILE_STATUS	${FILE_PAIR[0]}" >> '.git-ftp-tmp'
-				fi
-
-				if [ -d "${FILE_PAIR[0]}" ]; then
-					FILE_STATUS='M'
-					find ${FILE_PAIR[0]} -type f -print0 | xargs -0 -I{} echo "$FILE_STATUS {}" >> '.git-ftp-tmp'
-				fi
-			fi
-		done
-	fi
-
-	# Filter against ignore file
-	if [ -f '.git-ftp-ignore' ]; then
-		grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > '.git-ftp-ignore-tmp'
-		FILES_CHANGED=$(grep --invert-match -f '.git-ftp-ignore-tmp' '.git-ftp-tmp' | tr '\t' ' ')
-	else
-		FILES_CHANGED="$(tr '\t' ' ' < '.git-ftp-tmp')"
-	fi
-
-	rm -f '.git-ftp-tmp'
-	rm -f '.git-ftp-tmp-files'
-	rm -f '.git-ftp-include-tmp'
-	rm -f '.git-ftp-ignore-tmp'
-
-	if [ -n "$FILES_CHANGED" ]; then
+	add_include_files
+	filter_ignore_files '.git-ftp-upload-tmp' '.git-ftp-delete-tmp'
+	if [ -s '.git-ftp-upload-tmp' ] || [ -s '.git-ftp-delete-tmp' ]; then
 		write_log "Having files to sync.";
 	else
 		write_log "No files to sync. All changed files ignored.";
 	fi
 }
 
+list_all_files() {
+	git ls-files -- "$SYNCROOT" > '.git-ftp-upload-tmp'
+	touch '.git-ftp-delete-tmp'
+}
+
+list_changed_files() {
+	git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > '.git-ftp-tmp'
+	local git_diff_status=$?
+	if [ "$git_diff_status" -ne 0 ]; then
+		rm -f '.git-ftp-tmp'
+		if [ $FORCE -eq 1 ]; then
+			print_info "Unknown SHA1 object, could not determine changed files, taking all files."
+			list_all_files
+			return 0
+		fi
+		print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
+		echo -n "Do you want to ignore and upload all files again? [y/N]: "
+		read ANSWER_STATE
+		if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
+			print_info "Aborting..."
+			exit 0
+		fi
+		write_log "Taking all files.";
+		list_all_files
+		return 0
+	elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
+		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
+		rm -f '.git-ftp-tmp'
+		exit 0
+	elif [ ! -s '.git-ftp-tmp' ]; then
+		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
+		rm -f '.git-ftp-tmp'
+		return 1
+	fi
+	grep '^D' '.git-ftp-tmp' | cut -f2- > '.git-ftp-delete-tmp'
+	grep -v '^D' '.git-ftp-tmp' | cut -f2- > '.git-ftp-upload-tmp'
+	rm -f '.git-ftp-tmp'
+	return 0
+}
+
+add_include_files() {
+	[ -f '.git-ftp-include' ] || return
+	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > '.git-ftp-include-tmp'
+	grep '^!' '.git-ftp-include-tmp' | sed 's/^!//' | >> '.git-ftp-upload-tmp'
+	grep ':' '.git-ftp-include-tmp' | while read LINE; do
+		local TARGET=${LINE%%:*}
+		local SOURCE=${LINE#*:}
+		if [ -d "$TARGET" ]; then
+			find "$TARGET" -type f >> '.git-ftp-include-upload-tmp'
+		elif [ -f "$TARGET" ]; then
+			if grep -Fxq "$SOURCE" '.git-ftp-upload-tmp'; then
+				echo "$TARGET" >> '.git-ftp-include-upload-tmp'
+			elif grep -Fxq "$SOURCE" '.git-ftp-delete-tmp'; then
+				echo "$TARGET" >> '.git-ftp-include-delete-tmp'
+			fi
+		fi
+	done
+	rm -f '.git-ftp-include-tmp'
+	add_missing_files '.git-ftp-include-upload-tmp' '.git-ftp-upload-tmp' '.git-ftp-delete-tmp'
+	add_missing_files '.git-ftp-include-delete-tmp' '.git-ftp-delete-tmp' '.git-ftp-upload-tmp'
+}
+
+add_missing_files() {
+	local src="$1"
+	local dst="$2"
+	local second_filter="$3"
+	if [ ! -f "$src" ]; then
+		return
+	fi
+	sort < "$src" | uniq > '.git-ftp-include-uniq-tmp'
+	mv '.git-ftp-include-uniq-tmp' "$src"
+	filter_file "$dst" "$src"
+	filter_file "$second_filter" "$src"
+	cat "$src" >> "$dst"
+	rm -f "$src"
+}
+
+filter_ignore_files() {
+	[ -f '.git-ftp-ignore' ] || return
+	local patterns='.git-ftp-ignore-tmp'
+	grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > $patterns
+	filter_file $patterns "$1"
+	filter_file $patterns "$2"
+	rm -f $patterns
+}
+
+filter_file() {
+	local patterns="$1"
+	local file="$2"
+	grep --invert-match -f $patterns $file > '.git-ftp-filtered-tmp'
+	mv '.git-ftp-filtered-tmp' $file
+}
+
 handle_file_sync() {
-	if [ -z "$FILES_CHANGED" ]; then
+	if [ ! -s '.git-ftp-upload-tmp' ] && [ ! -s '.git-ftp-delete-tmp' ]; then
 		print_info "There are no files to sync."
+		rm -f '.git-ftp-upload-tmp'
+		rm -f '.git-ftp-delete-tmp'
 		return
 	fi
 	# Calculate total file count
 	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(echo "$FILES_CHANGED" | wc -l)
+	local TOTAL_ITEMS=$(cat '.git-ftp-upload-tmp' '.git-ftp-delete-tmp' | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "There are $TOTAL_ITEMS files to sync:"
 
-	# Changing internal field separator, file names could have spaces
-	OIFS="$IFS"
-	NIFS=$'\n'
-	IFS="$NIFS"
-
-	for FILE_ITERATOR in $FILES_CHANGED; do
+	while read FILE_ITERATOR; do
 		(( DONE_ITEMS++ ))
-		FILE_MODE="$(echo "$FILE_ITERATOR" | cut -f1 -d ' ')"
-		FILE_NAME="$(printf "$FILE_ITERATOR" | cut -f2- -d ' ')"
-		FILE_NAME="${FILE_NAME/#\"/}"
-		FILE_NAME="${FILE_NAME/%\"/}"
-
-		if [ "$FILE_MODE" != "D" ]; then
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
-
-			if is_submodule "$FILE_NAME"; then
-				handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
-
-			elif [ $DRY_RUN -ne 1 ]; then
-				upload_file_buffered "$FILE_NAME"
-			fi
-		# Removing file
-		else
-			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
-
-			if [ $DRY_RUN -ne 1 ]; then
-				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir "$(dirname "${FILE_NAME#$SYNCROOT}")"
-			fi
+		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
+		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
+		if is_submodule "$FILE_NAME"; then
+			handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
+		elif [ $DRY_RUN -ne 1 ]; then
+			upload_file_buffered "$FILE_NAME"
 		fi
-	done
-
-	IFS="$OIFS"
-
+	done < '.git-ftp-upload-tmp'
+	rm -f '.git-ftp-upload-tmp'
 	fire_upload_buffer
 
+	while read FILE_ITERATOR; do
+		(( DONE_ITEMS++ ))
+		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
+		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
+		if [ $DRY_RUN -ne 1 ]; then
+			local file="${FILE_NAME#$SYNCROOT}"
+			local dir="$(dirname "$file")"
+			delete_file_buffered "$file" && delete_dir "$dir"
+		fi
+	done < '.git-ftp-delete-tmp'
+	rm -f '.git-ftp-delete-tmp'
 	fire_delete_buffer
+}
+
+# decodes UTF-8 filenames
+decode_filename() {
+	# git stores names like: forl\303\270b.xml
+	local git_name="$1"
+	# printf restores that to: forløb.xml
+	local decoded="$(printf "$git_name")"
+	decoded="${decoded/#\"/}"
+	decoded="${decoded/%\"/}"
+	echo "$decoded"
 }
 
 handle_submodule_sync() {
