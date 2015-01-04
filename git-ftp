@@ -887,7 +887,7 @@ set_remotes() {
 
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
-	if [ ! -z $REMOTE_USER ]; then
+	if [ ! -z "$REMOTE_USER" ]; then
 		local ENC_USER="$(urlencode "$REMOTE_USER")"
 		local ENC_PASSWD="$(urlencode "$REMOTE_PASSWD")"
 		REMOTE_LOGIN="$ENC_USER":"$ENC_PASSWD"@
