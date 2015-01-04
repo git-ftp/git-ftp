@@ -34,6 +34,8 @@ REMOTE_PROTOCOL=""
 REMOTE_HOST=""
 REMOTE_USER=""
 REMOTE_PASSWD=""
+REMOTE_BASE_URL=""
+REMOTE_BASE_URL_DISPLAY=""
 REMOTE_ROOT=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
@@ -341,9 +343,7 @@ set_default_curl_options() {
 	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
-	if [ ! -z "$REMOTE_USER" ]; then
-		CURL_ARGS+=(--user "$REMOTE_USER:$REMOTE_PASSWD")
-	else
+	if [ -z "$REMOTE_USER" ]; then
 		CURL_ARGS+=(--netrc)
 	fi
 	CURL_ARGS+=(-#)
@@ -366,7 +366,7 @@ upload_file() {
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." "$ERROR_UPLOAD"
 }
@@ -380,7 +380,7 @@ upload_file_buffered() {
 	fi
 
 	echo "-T \"./$SRC_FILE\"" >> '.git-ftp-curl-upload-tmp'
-	echo "url = \"$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
+	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
 }
 
 fire_upload_buffer() {
@@ -400,7 +400,7 @@ delete_file() {
 	local FILENAME="$1"
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST")
+	CURL_ARGS+=("$REMOTE_BASE_URL")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
@@ -420,7 +420,7 @@ fire_delete_buffer() {
 		return 0
 	fi
 	print_info "Deleting ..."
-	echo "url = $REMOTE_PROTOCOL://$REMOTE_HOST" >> '.git-ftp-curl-delete-tmp'
+	echo "url = $REMOTE_BASE_URL" >> '.git-ftp-curl-delete-tmp'
 	set_default_curl_options
 	CURL_ARGS+=(-K '.git-ftp-curl-delete-tmp')
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
@@ -449,7 +449,7 @@ delete_dir() {
 get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
-	CURL_ARGS+=("$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}${SRC_FILE}")
+	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${SRC_FILE}")
 	curl "${CURL_ARGS[@]}"
 }
 
@@ -459,7 +459,7 @@ set_local_sha1() {
 
 upload_local_sha1() {
 	DEPLOYED_SHA1=$LOCAL_SHA1
-	write_log "Uploading commit log to $REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
+	write_log "Uploading commit log to $REMOTE_BASE_URL_DISPLAY/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$DEPLOYED_SHA1" | upload_file - "$DEPLOYED_SHA1_FILE"
 		check_exit_status "Could not upload." "$ERROR_UPLOAD"
@@ -508,7 +508,7 @@ set_remote_protocol() {
 	local UNKNOWN_PROTOCOL=$(expr "$URL" : "\(.*:[/]*\).*")
 	if [ -z "$UNKNOWN_PROTOCOL" ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://."
-		REMOTE_PROTOCOL=$DEFAULT_PROTOCOL
+		REMOTE_PROTOCOL="$DEFAULT_PROTOCOL"
 		echo "$URL" | egrep -q "/" && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
 		return
@@ -537,7 +537,7 @@ set_deployed_sha1() {
 		return
 	fi
 	# Get the last commit (SHA) we deployed if not ignored or not found
-	write_log "Retrieving last commit from $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH."
+	write_log "Retrieving last commit from $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
@@ -852,9 +852,21 @@ set_remotes() {
 		write_log "Password is set."
 	fi 
 
+	local REMOTE_LOGIN=''
+	local DISPLAY_LOGIN=''
+	if [ ! -z "$REMOTE_USER" ]; then
+		local ENC_USER="$(urlencode "$REMOTE_USER")"
+		local ENC_PASSWD="$(urlencode "$REMOTE_PASSWD")"
+		REMOTE_LOGIN="$ENC_USER":"$ENC_PASSWD"@
+		DISPLAY_LOGIN="$ENC_USER":'***'@
+	fi
+
 	set_remote_protocol
 	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
+
+	REMOTE_BASE_URL="$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST"
+	REMOTE_BASE_URL_DISPLAY="$REMOTE_PROTOCOL://$DISPLAY_LOGIN$REMOTE_HOST"
 
 	set_syncroot
 	write_log "Syncroot is '$SYNCROOT'."
@@ -864,6 +876,22 @@ set_remotes() {
 	
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
+}
+
+# Original implementation http://stackoverflow.com/a/10660730/3377535
+urlencode() {
+	local string="${1}"
+	local strlen=${#string}
+	local encoded=""
+	for (( pos=0 ; pos<strlen ; pos++ )); do
+		c=${string:$pos:1}
+		case "$c" in
+			[-_.~a-zA-Z0-9] ) o="${c}" ;;
+			* )               printf -v o '%%%02x' "'$c"
+		esac
+		encoded+="${o}"
+	done
+	echo "${encoded}"
 }
 
 set_curl_insecure() {
@@ -989,17 +1017,16 @@ action_remove_scope() {
 # Checks
 # ------------------------------------------------------------
 check_remote_access() {
-	local url="$REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH"
-	write_log "Check if $url is accessible."
+	write_log "Check if $REMOTE_BASE_URL_DISPLAY is accessible."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=("$url")
+	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
 	curl "${CURL_ARGS[@]}" > /dev/null
-	check_exit_status "Can't access remote '$url'." "$ERROR_DOWNLOAD"
+	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
 }
 
 check_deployed_sha1() {
-	write_log "Check if $REMOTE_PROTOCOL://$REMOTE_HOST/$REMOTE_PATH is clean."
+	write_log "Check if $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH is clean."
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	if [ "$DEPLOYED_SHA1" != "" ]; then
 		print_error_and_die "Commit found, use 'git ftp push' to sync. Exiting..." "$ERROR_USAGE"
