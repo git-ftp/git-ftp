@@ -348,7 +348,7 @@ test_delete() {
 
 test_ignore_single_file() {
 	cd $GIT_PROJECT_PATH
-	echo "test 1\.txt" > .git-ftp-ignore
+	echo "test 1.txt" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
 
@@ -369,7 +369,7 @@ test_ignore_single_file_force_unknown_commit() {
 
 test_ignore_dir() {
 	cd $GIT_PROJECT_PATH
-	echo "dir 1/.*" > .git-ftp-ignore
+	echo "dir 1/*" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
 
@@ -379,7 +379,7 @@ test_ignore_dir() {
 
 test_ignore_pattern() {
 	cd $GIT_PROJECT_PATH
-	echo "test" > .git-ftp-ignore
+	echo "test*" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
 
@@ -392,7 +392,7 @@ test_ignore_pattern() {
 test_ignore_pattern_single() {
 	cd $GIT_PROJECT_PATH
 	echo 'test' > 'test'
-	echo "^test$" > .git-ftp-ignore
+	echo 'test' > .git-ftp-ignore
 	git add .
 	git commit -m 'adding file that should not be uploaded' > /dev/null
 
@@ -407,7 +407,7 @@ test_ignore_pattern_single() {
 
 test_ignore_wildcard_files() {
 	cd $GIT_PROJECT_PATH
-	echo "test.*\.txt" > .git-ftp-ignore
+	echo "test *.txt" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
 
