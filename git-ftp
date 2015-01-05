@@ -379,8 +379,9 @@ upload_file_buffered() {
 		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
+	local ENC_DEST_FILE="$(urlencode "$DEST_FILE" '[-_.~a-zA-Z0-9/]')"
 	echo "-T \"./$SRC_FILE\"" >> '.git-ftp-curl-upload-tmp'
-	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
+	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
 }
 
 fire_upload_buffer() {
@@ -878,12 +879,14 @@ set_remotes() {
 urlencode() {
 	local string="${1}"
 	local strlen=${#string}
+	local keepset='[-_.~a-zA-Z0-9]'
+	[ $# -gt 1 ] && keepset="${2}"
 	local encoded=""
 	for (( pos=0 ; pos<strlen ; pos++ )); do
 		c=${string:$pos:1}
 		case "$c" in
-			[-_.~a-zA-Z0-9] ) o="${c}" ;;
-			* )               printf -v o '%%%02x' "'$c"
+			$keepset ) o="${c}" ;;
+			* )        printf -v o '%%%02x' "'$c"
 		esac
 		encoded+="${o}"
 	done

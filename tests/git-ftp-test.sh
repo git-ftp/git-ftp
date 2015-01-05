@@ -543,20 +543,25 @@ test_hidden_file_only() {
 }
 
 
+# issue #23
 test_file_with_nonchar() {
-	cd $GIT_PROJECT_PATH
-	echo "test" > ./#4253-Release Contest.md
-	git add . > /dev/null 2>&1
-	git commit -a -m "init" > /dev/null 2>&1
-
+	file1='#4253-Release Contest.md'
+	file1enc='%234253-Release%20Contest.md'
+	file2='v1.2.0 #8950 - Custom Partner Player.md'
+	file2enc='v1.2.0%20%238950%20-%20Custom%20Partner%20Player.md'
+	echo 'content1' > "$file1"
+	echo 'content2' > "$file2"
+	git add .
+	git commit -a -m 'added special filenames' -q
 	init=$($GIT_FTP init)
-	assertTrue 'test failed: #4253-Release Contest.md not uploaded' "remote_file_exists '#4253-Release Contest.md'"
-
-	git rm './#4253-Release Contest.md' > /dev/null 2>&1
-	git commit -a -m "delete" > /dev/null 2>&1
-
+	assertTrue " file $file1 not uploaded" "remote_file_equals '$file1' '$file1enc'"
+	assertTrue " file $file2 not uploaded" "remote_file_equals '$file2' '$file2enc'"
+	git rm "$file1" -q
+	git rm "$file2" -q
+	git commit -m 'delete' -q
 	push=$($GIT_FTP push)
-	assertFalse 'test failed: #4253-Release Contest.md still exists in '$CURL_URL "remote_file_exists '\#4253-Release Contest.md'"
+	assertFalse "file $file1 still exists in $CURL_URL" "remote_file_exists '$file1enc'"
+	assertFalse "file $file2 still exists in $CURL_URL" "remote_file_exists '$file2enc'"
 }
 
 test_syncroot() {
@@ -585,7 +590,10 @@ remote_file_exists() {
 }
 
 remote_file_equals() {
-	curl -s "$CURL_URL/$1" | diff - "$1" > /dev/null
+	local file="$1"
+	local remote="$2"
+	[ -z "$remote" ] && remote="$file"
+	curl -s "$CURL_URL/$remote" | diff - "$file" > /dev/null
 }
 
 assertContains() {
