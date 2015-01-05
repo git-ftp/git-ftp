@@ -629,11 +629,7 @@ add_missing_files() {
 	if [ ! -f "$src" ]; then
 		return
 	fi
-	sort < "$src" | uniq > '.git-ftp-include-uniq-tmp'
-	mv '.git-ftp-include-uniq-tmp' "$src"
-	filter_file "$dst" "$src"
-	filter_file "$second_filter" "$src"
-	cat "$src" >> "$dst"
+	sort < "$src" | uniq | grep -vFx -f "$dst" | grep -vFx -f "$second_filter" >> "$dst"
 	rm -f "$src"
 }
 
