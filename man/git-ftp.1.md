@@ -202,21 +202,20 @@ Deleting scopes is easy using the `remove-scope` action.
 
 # IGNORING FILES TO BE SYNCED
 
-Add file names to `.git-ftp-ignore` to be ignored.
+Add patterns to `.git-ftp-ignore`. All matching file names will be ignored.
+The patterns are interpreted as regular expressions by `grep`.
 
-Ignoring all in Directory `config`:
+For example, ignoring everything in a directory named `config`:
 
 	config/.*
 
-Ignoring all files having extension `.txt` in `./` :
+Ignoring all files having extension `.txt`:
 
 	.*\.txt
 
-This ignores `a.txt` and `b.txt` but not `dir/c.txt`
-
 Ignoring a single file called `foobar.txt`:
 
-	foobar\.txt
+	^foobar\.txt$
 
 # SYNCING UNTRACKED FILES
 
