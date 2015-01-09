@@ -644,10 +644,20 @@ filter_ignore_files() {
 }
 
 filter_file() {
+	glob_filter "$1" < "$2" > '.git-ftp-filtered-tmp'
+	mv '.git-ftp-filtered-tmp' "$2"
+}
+
+# Original implementation http://stackoverflow.com/a/27718468/3377535
+glob_filter() {
 	local patterns="$1"
-	local file="$2"
-	grep --invert-match -f $patterns $file > '.git-ftp-filtered-tmp'
-	mv '.git-ftp-filtered-tmp' $file
+	while IFS= read -r filename; do
+		local hasmatch=0
+		while IFS= read -r pattern; do
+			case $filename in ($pattern) hasmatch=1; break ;; esac
+		done < "$patterns"
+		test $hasmatch = 1 || printf '%s\n' "$filename"
+	done
 }
 
 handle_file_sync() {
