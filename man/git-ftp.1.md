@@ -90,7 +90,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Be as verbose as possible. Useful for debug information.
 
 `--remote-root`
-:	Specifies remote root directory
+:	Specifies the remote root directory to deploy to. The remote path in the URL is ignored.
 
 `--syncroot`
 :	Specifies a local directory to sync from as if it were the git project root path.
