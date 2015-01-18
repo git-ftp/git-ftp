@@ -1,6 +1,20 @@
 Version 1.1.0
 =============
 
+Maikel Linke (mkllnk):
+* Added upload and delete buffers in a curl config file.
+* Added optimisation in include file processing.
+* Added filtering with shell glob patterns instead of regex.
+* Added encoding remote file path for curl.
+* Added misc minor improvements and code optimisations.
+* Docs: Explaining .git-ftp-ignore patterns.
+
+Tim:
+* Added URL encoding username and password to be used in curl URL.
+
+ysakmrkm:
+* Docs: Add --remote-root to man file.
+
 Version 1.0.0
 =============
 
