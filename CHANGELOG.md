@@ -1,3 +1,9 @@
+Version 1.0.1
+=============
+
+ysakmrkm:
+* Docs: Add --remote-root to man file.
+
 Version 1.0.0
 =============
 
