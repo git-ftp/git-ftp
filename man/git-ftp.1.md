@@ -89,6 +89,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-vv`
 :	Be as verbose as possible. Useful for debug information.
 
+`--remote-root`
+:	Specifies remote root directory
+
 `--syncroot`
 :	Specifies a local directory to sync from as if it were the git project root path.
 
