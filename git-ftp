@@ -892,6 +892,9 @@ set_remotes() {
 	set_syncroot
 	write_log "Syncroot is '$SYNCROOT'."
 
+	set_deployed_sha1_file
+	write_log "The remote sha1 is saved in file '$DEPLOYED_SHA1_FILE'."
+
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
 	
@@ -1144,7 +1147,6 @@ do
 			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
 				print_error_and_die "Invalid scope name." "$ERROR_USAGE"
 			fi
-			set_deployed_sha1_file
 			write_log "Using scope $SCOPE if available"
 			;;
 		--syncroot*)

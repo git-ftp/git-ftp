@@ -322,6 +322,15 @@ test_defaults_uses_password_by_cli() {
 	assertEquals 0 $rtrn
 }
 
+test_deployedsha1file_rename() {
+	local file='git-ftp.txt'
+	git config git-ftp.deployedsha1file "$file"
+	init=$($GIT_FTP init)
+	assertEquals 0 $?
+	assertTrue " '$file' does not exist" "remote_file_exists '$file'"
+	assertFalse " '.git-ftp.log' does exist" "remote_file_exists '.git-ftp.log'"
+}
+
 test_scopes() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
