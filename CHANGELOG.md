@@ -1,5 +1,5 @@
 Version 1.1.0
-=============
+==============
 
 Maikel Linke (mkllnk):
 * Added upload and delete buffers in a curl config file.
@@ -8,6 +8,7 @@ Maikel Linke (mkllnk):
 * Added encoding remote file path for curl.
 * Added misc minor improvements and code optimisations.
 * Docs: Explaining .git-ftp-ignore patterns.
+* Docs:
 
 Tim:
 * Added URL encoding username and password to be used in curl URL.
