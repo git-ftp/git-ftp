@@ -1,5 +1,5 @@
 Version 1.1.0
-=============
+==============
 
 Maikel Linke (mkllnk):
 * Added upload and delete buffers in a curl config file.
