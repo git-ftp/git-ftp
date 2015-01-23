@@ -8,6 +8,7 @@ Maikel Linke (mkllnk):
 * Added encoding remote file path for curl.
 * Added misc minor improvements and code optimisations.
 * Docs: Explaining .git-ftp-ignore patterns.
+* Docs:
 
 Tim:
 * Added URL encoding username and password to be used in curl URL.
