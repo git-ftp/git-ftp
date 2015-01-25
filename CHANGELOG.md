@@ -1,6 +1,9 @@
 Version 1.0.1
 =============
 
+Maikel Linke (1):
+* Fixed 'deployedsha1file' was not always considered
+
 ysakmrkm:
 * Docs: Add --remote-root to man file.
 
