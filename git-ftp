@@ -406,7 +406,6 @@ fire_upload_buffer() {
 	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
-	rm -f '.git-ftp-curl-upload-tmp'
 }
 
 delete_file() {
@@ -444,7 +443,6 @@ fire_delete_buffer() {
 	if [ $? -ne 0 ]; then
 		write_log "WARNING: Some files and/or folders could not be deleted."
 	fi
-	rm -f '.git-ftp-curl-delete-tmp'
 }
 
 delete_dir() {
@@ -593,6 +591,7 @@ list_changed_files() {
 		read ANSWER_STATE
 		if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 			print_info "Aborting..."
+			cleanup
 			exit 0
 		fi
 		write_log "Taking all files.";
@@ -600,16 +599,14 @@ list_changed_files() {
 		return 0
 	elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
-		rm -f "$TMP_GITFTP"
+		cleanup
 		exit 0
 	elif [ ! -s "$TMP_GITFTP" ]; then
 		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
-		rm -f "$TMP_GITFTP"
 		return 1
 	fi
 	grep '^D' "$TMP_GITFTP" | cut -f2- > "$TMP_GITFTP_DELETE"
 	grep -v '^D' "$TMP_GITFTP" | cut -f2- > "$TMP_GITFTP_UPLOAD"
-	rm -f "$TMP_GITFTP"
 	return 0
 }
 
@@ -677,8 +674,6 @@ glob_filter() {
 handle_file_sync() {
 	if [ ! -s "$TMP_GITFTP_UPLOAD" ] && [ ! -s "$TMP_GITFTP_DELETE" ]; then
 		print_info "There are no files to sync."
-		rm -f "$TMP_GITFTP_UPLOAD"
-		rm -f "$TMP_GITFTP_DELETE"
 		return
 	fi
 	# Calculate total file count
@@ -697,7 +692,6 @@ handle_file_sync() {
 			upload_file_buffered "$FILE_NAME"
 		fi
 	done < "$TMP_GITFTP_UPLOAD"
-	rm -f "$TMP_GITFTP_UPLOAD"
 	fire_upload_buffer
 
 	while read FILE_ITERATOR; do
@@ -710,7 +704,6 @@ handle_file_sync() {
 			delete_file_buffered "$file" && delete_dir "$dir"
 		fi
 	done < "$TMP_GITFTP_DELETE"
-	rm -f "$TMP_GITFTP_DELETE"
 	fire_delete_buffer
 }
 
