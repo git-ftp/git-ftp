@@ -1,10 +1,10 @@
 % GIT-FTP(1) git-ftp User Manual
 % Rene Moser <mail@renemoser.net>
-% 2013-12-01
+% 2015-02-08
 
 # NAME
 
-Git-ftp - Git powered FTP client written as shell script. 
+Git-ftp - Git powered FTP client written as shell script.
 
 # SYNOPSIS
 
@@ -139,7 +139,7 @@ But, there is not just FTP. Supported protocols are:
 
 # DEFAULTS
 
-Don't repeat yourself. Setting defaults for git-ftp in .git/config
+Don't repeat yourself. Setting config defaults for git-ftp in .git/config
 
 	$ git config git-ftp.<(url|user|password|syncroot|cacert)> <value>
 
@@ -160,7 +160,7 @@ After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 # SCOPES
 
-Need different defaults per each system or environment? Use the so called scope feature.
+Need different config defaults per each system or environment? Use the so called scope feature.
 
 Useful if you use multi environment development. Like a development, testing and a production environment.
 
