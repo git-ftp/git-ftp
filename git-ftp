@@ -620,7 +620,7 @@ add_include_files() {
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
 		if [ -d "$TARGET" ]; then
-			find "$TARGET" -type f >> "$TMP_GITFTP_INCLUDE_UPLOAD"
+			find "$TARGET" -type f >> "$tmp_include_upload"
 		elif [ -f "$TARGET" ]; then
 			if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD"; then
 				echo "$TARGET" >> "$tmp_include_upload"
