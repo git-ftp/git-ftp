@@ -54,7 +54,10 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
-:	FTP password. If no argument is given, a password prompt will be shown.
+:	FTP password. See `-P` for interactive passwort prompt.
+
+`-P`, `--ask-passwd`
+:	Ask for FTP password interactively.
 
 `-k [[user]@[account]]`, `--keychain [[user]@[account]]`
 :	FTP password from KeyChain (Mac OS X only).

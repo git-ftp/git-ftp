@@ -149,6 +149,7 @@ OPTIONS
 	-h, --help		Shows this help screen.
 	-u, --user		FTP login name.
 	-p, --passwd		FTP password.
+	-P, --ask-passwd		Ask for FTP password interactively.
 	-k, --keychain		FTP password from KeyChain (Mac OS X only).
 	-s, --scope		Using a scope (e.g. dev, production, testing).
 	-D, --dry-run		Dry run: Does not upload anything.
@@ -1210,17 +1211,20 @@ do
 					REMOTE_PASSWD=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					ask_for_passwd
+					print_error_and_die "Too few arguments for option -p." "$ERROR_MISSING_ARGUMENTS"
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						REMOTE_PASSWD="$2"
 					else
-						ask_for_passwd
+						print_error_and_die "Too few arguments for option -p." "$ERROR_MISSING_ARGUMENTS"
 					fi
 					shift
 					;;
 			esac
+			;;
+		-P|--ask-passwd)
+			ask_for_passwd
 			;;
 		-k|--keychain*)
 			USE_KEYCHAIN=1
