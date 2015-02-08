@@ -1216,10 +1216,10 @@ do
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
 						REMOTE_PASSWD="$2"
+						shift
 					else
 						print_error_and_die "Too few arguments for option -p." "$ERROR_MISSING_ARGUMENTS"
 					fi
-					shift
 					;;
 			esac
 			;;
