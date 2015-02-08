@@ -15,6 +15,11 @@ Tim:
 ysakmrkm:
 * Docs: Add --remote-root to man file.
 
+René Moser:
+* Added -P for interactive password prompt, use -p only for passing password by cli.
+* Added functionality for using temporary directory for temp files.
+* Docs: Updated man page and docs about -P.
+
 Version 1.0.0
 =============
 
