@@ -66,6 +66,7 @@ declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
+declare -i DEBUG_MODE=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
@@ -330,9 +331,8 @@ print_error_log() {
 print_error_and_die() {
 	if [ $VERBOSE -eq 0 ]; then
 		echo "fatal: $1" >&2
-	else
-		write_log "fatal: $1"
 	fi
+	write_log "fatal: $1"
 	cleanup
 	exit "$2"
 }
@@ -341,13 +341,18 @@ print_error_and_die() {
 print_info() {
 	if [ $VERBOSE -eq 0 ]; then
 		echo "$1"
-	else
-		write_log "$1"
 	fi
+	write_log "$1"
+
 }
 
 cleanup() {
-	rm -rf $TMP_DIR
+	if [ $DEBUG_MODE -ne 1 ]; then
+		rm -rf $TMP_DIR
+	else
+		write_log "Debug log: $TMP_DIR/debug.log"
+		echo -e "$LOG_CACHE" > "$TMP_DIR/debug.log"
+	fi
 }
 
 set_default_curl_options() {
@@ -1275,6 +1280,10 @@ do
 		--version|version)
 			echo "git-ftp version $VERSION"
 			exit 0
+			;;
+		--debug)
+			DEBUG_MODE=1
+			write_log "Debug mode enabled."
 			;;
 		--insecure)
 			CURL_INSECURE=1
