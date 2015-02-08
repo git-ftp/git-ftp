@@ -986,7 +986,6 @@ action_init() {
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	cleanup
 }
 
 action_push() {
@@ -1001,7 +1000,6 @@ action_push() {
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
-	cleanup
 }
 
 action_catchup() {
@@ -1010,7 +1008,6 @@ action_catchup() {
 	set_remotes
 	set_local_sha1
 	upload_local_sha1
-	cleanup
 }
 
 action_show() {
@@ -1018,7 +1015,6 @@ action_show() {
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git show "$DEPLOYED_SHA1"
-	cleanup
 }
 
 action_log() {
@@ -1026,19 +1022,16 @@ action_log() {
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git log "$DEPLOYED_SHA1"
-	cleanup
 }
 
 action_add_scope() {
 	check_is_git_project
 	set_scope
-	cleanup
 }
 
 action_remove_scope() {
 	check_is_git_project
 	remove_scope
-	cleanup
 }
 # ------------------------------------------------------------
 # Checks
@@ -1101,6 +1094,7 @@ check_is_dirty_repository() {
 main() {
 	cache_git_submodules
 	handle_action
+	cleanup
 	print_error_log
 	exit 0
 }
