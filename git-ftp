@@ -52,6 +52,8 @@ DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 TMP_DIR="$(mktemp -d 2>/dev/null || mktemp -d -t 'git-ftp')"
+TMP_CURL_UPLOAD_FILE="$TMP_DIR/curl_upload_list"
+TMP_CURL_DELETE_FILE="$TMP_DIR/curl_delete_list"
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
@@ -386,18 +388,18 @@ upload_file_buffered() {
 	fi
 
 	local ENC_DEST_FILE="$(urlencode "$DEST_FILE" '[-_.~a-zA-Z0-9/]')"
-	echo "-T \"./$SRC_FILE\"" >> '.git-ftp-curl-upload-tmp'
-	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> '.git-ftp-curl-upload-tmp'
+	echo "-T \"./$SRC_FILE\"" >> "$TMP_CURL_UPLOAD_FILE"
+	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
 
 fire_upload_buffer() {
-	if [ ! -f '.git-ftp-curl-upload-tmp' ]; then
+	if [ ! -f "$TMP_CURL_UPLOAD_FILE" ]; then
 		return 0
 	fi
 	print_info "Uploading ..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=(-K '.git-ftp-curl-upload-tmp')
+	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
 	curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 	rm -f '.git-ftp-curl-upload-tmp'
@@ -419,17 +421,17 @@ delete_file() {
 }
 
 delete_file_buffered() {
-	echo "-Q \"${REMOTE_DELETE_CMD}${REMOTE_PATH}${1}\"" >> '.git-ftp-curl-delete-tmp'
+	echo "-Q \"${REMOTE_DELETE_CMD}${REMOTE_PATH}${1}\"" >> "$TMP_CURL_DELETE_FILE"
 }
 
 fire_delete_buffer() {
-	if [ ! -f '.git-ftp-curl-delete-tmp' ]; then
+	if [ ! -f "$TMP_CURL_DELETE_FILE" ]; then
 		return 0
 	fi
 	print_info "Deleting ..."
-	echo "url = $REMOTE_BASE_URL" >> '.git-ftp-curl-delete-tmp'
+	echo "url = $REMOTE_BASE_URL" >> "$TMP_CURL_DELETE_FILE"
 	set_default_curl_options
-	CURL_ARGS+=(-K '.git-ftp-curl-delete-tmp')
+	CURL_ARGS+=(-K "$TMP_CURL_DELETE_FILE")
 	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
