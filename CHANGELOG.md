@@ -1,3 +1,9 @@
+Version 1.0.2
+=============
+
+René Moser:
+* Removed optimistic directory deletion, fixes GH-168 (reported by Justin Maier)
+
 Version 1.0.1
 =============
 
