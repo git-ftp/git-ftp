@@ -19,6 +19,7 @@ René Moser:
 * Added -P for interactive password prompt, use -p only for passing password by cli.
 * Added functionality for using temporary directory for temp files.
 * Docs: Updated man page and docs about -P.
+* Removed optimistic directory deletion, fixes GH-168 (reported by Justin Maier)
 
 Version 1.0.0
 =============
