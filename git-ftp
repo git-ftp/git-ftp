@@ -468,21 +468,9 @@ fire_delete_buffer() {
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
-		write_log "WARNING: Some files and/or folders could not be deleted."
+		write_log "WARNING: Some files and/or directories could not be deleted."
 	fi
 	CURL_DELETE=()
-}
-
-delete_dir() {
-	ORIGIN_REMOTE_DELETE_CMD=$REMOTE_DELETE_CMD
-	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
-		# SFTP uses a different remove command and uses absolute paths
-		REMOTE_DELETE_CMD="rmdir /"
-	else
-		REMOTE_DELETE_CMD="-*RMD "
-	fi
-	delete_file_buffered "$1"
-	REMOTE_DELETE_CMD=$ORIGIN_REMOTE_DELETE_CMD
 }
 
 get_file_content() {
@@ -725,7 +713,7 @@ handle_file_sync() {
 			print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 
 			if [ $DRY_RUN -ne 1 ]; then
-				delete_file_buffered "${FILE_NAME#$SYNCROOT}" && delete_dir "$(dirname "${FILE_NAME#$SYNCROOT}")"
+				delete_file_buffered "${FILE_NAME#$SYNCROOT}"
 			fi
 		fi
 	done
