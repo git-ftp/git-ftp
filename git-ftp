@@ -347,7 +347,7 @@ print_info() {
 }
 
 cleanup() {
-	rm -rf $TMP_DIR
+	rm -rf "$TMP_DIR"
 }
 
 set_default_curl_options() {
