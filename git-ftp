@@ -62,6 +62,7 @@ TMP_GITFTP=""
 TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
+MAX_PROCS=4
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -402,11 +403,12 @@ fire_upload_buffer() {
 	if [ ! -f "$TMP_CURL_UPLOAD_FILE" ]; then
 		return 0
 	fi
+	split_upload_buffer
 	print_info "Uploading ..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
-	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
-	curl "${CURL_ARGS[@]}"
+	CURL_ARGS+=(-K {})
+	find "$TMP_DIR" -name "'$(basename "$TMP_CURL_UPLOAD_FILE").*'" | xargs -i --max-procs="$MAX_PROCS" curl "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 }
 
@@ -655,6 +657,15 @@ filter_file() {
 	mv "$TMP_DIR/filtered_tmp" "$2"
 }
 
+split_upload_buffer() {
+	local num_files="$MAX_PROCS"
+	local total_lines=$(wc -l < "$TMP_CURL_UPLOAD_FILE")
+
+	((lines_per_file = (total_lines + num_files - 1) / num_files))
+
+	split --lines="$lines_per_file" "$TMP_CURL_UPLOAD_FILE" "$TMP_CURL_UPLOAD_FILE."
+}
+
 # Original implementation http://stackoverflow.com/a/27718468/3377535
 glob_filter() {
 	local patterns="$1"
@@ -688,6 +699,7 @@ handle_file_sync() {
 			upload_file_buffered "$FILE_NAME"
 		fi
 	done < "$TMP_GITFTP_UPLOAD"
+
 	fire_upload_buffer
 
 	while read FILE_ITERATOR; do
