@@ -608,13 +608,17 @@ add_include_files() {
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
-		if [ -d "$TARGET" ]; then
-			find "$TARGET" -type f >> "$tmp_include_upload"
-		elif [ -f "$TARGET" ]; then
-			if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD"; then
-				echo "$TARGET" >> "$tmp_include_upload"
-			elif grep -Fxq "$SOURCE" "$TMP_GITFTP_DELETE"; then
-				echo "$TARGET" >> "$tmp_include_delete"
+		if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
+			if [ -e "$TARGET" ]; then
+				if [ -d "$TARGET" ]; then
+					find "$TARGET" -type f >> "$tmp_include_upload"
+				elif [ -f "$TARGET" ]; then
+					echo "$TARGET" >> "$tmp_include_upload"
+				fi
+			else
+				if [ "${TARGET: -1}" != '/' ]; then
+					echo "$TARGET" >> "$tmp_include_delete"
+				fi
 			fi
 		fi
 	done
