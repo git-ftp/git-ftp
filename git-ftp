@@ -616,7 +616,7 @@ add_include_files() {
 					echo "$TARGET" >> "$tmp_include_upload"
 				fi
 			else
-				if [ "${TARGET: -1}" != '/' ]; then
+				if [ $(expr substr "$TARGET" ${#TARGET} 1) != '/' ]; then
 					echo "$TARGET" >> "$tmp_include_delete"
 				fi
 			fi
