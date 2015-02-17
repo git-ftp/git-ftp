@@ -450,6 +450,17 @@ test_include_directory() {
 	assertFalse 'unversioned-not-included/file.txt was uploaded' "remote_file_exists 'unversioned-not-included/file.txt'"
 }
 
+test_include_directory_always() {
+	mkdir unversioned
+	touch unversioned/file.txt
+	echo '!unversioned/' > .git-ftp-include
+	mkdir unversioned-not-included
+	touch unversioned-not-included/file.txt
+	init=$($GIT_FTP init)
+	assertTrue 'unversioned/file.txt was not uploaded' "remote_file_exists 'unversioned/file.txt'"
+	assertFalse 'unversioned-not-included/file.txt was uploaded' "remote_file_exists 'unversioned-not-included/file.txt'"
+}
+
 test_include_whitespace_init() {
 	cd $GIT_PROJECT_PATH
 	echo 'unversioned' > unversioned.txt

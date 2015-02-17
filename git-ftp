@@ -603,8 +603,13 @@ add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	local tmp_include_delete="$TMP_DIR/include_delete_tmp"
 	local tmp_include_upload="$TMP_DIR/include_upload_tmp"
+	local tmp_always_include="$TMP_DIR/always_include_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
-	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | >> "$TMP_GITFTP_UPLOAD"
+	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' > "$tmp_always_include"
+	grep -v '/$' "$tmp_always_include" > "$tmp_include_upload"
+	grep '/$' "$tmp_always_include" | while read TARGET; do
+		find "$TARGET" -type f >> "$tmp_include_upload"
+	done
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
