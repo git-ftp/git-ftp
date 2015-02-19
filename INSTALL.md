@@ -56,7 +56,7 @@ Mac OS X
 Using homebrew:
 
 	# brew install git
-	# brew install curl --with-ssl --with-ssh
+	# brew install curl --with-ssl --with-libssh2
 	# brew install git-ftp
 
 Windows
