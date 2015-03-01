@@ -958,7 +958,7 @@ remove_scope() {
 
 	git config --remove-section "git-ftp.$SCOPE" &>/dev/null
 
-	[ $? -ne 0 ] && print_error_and_die "Cannot fine scope $SCOPE." "$ERROR_GIT"
+	[ $? -ne 0 ] && print_error_and_die "Cannot find scope $SCOPE." "$ERROR_GIT"
 	print_info "Successfully removed scope $SCOPE."
 }
 
