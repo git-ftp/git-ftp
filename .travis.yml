@@ -1,0 +1,27 @@
+language: sh
+
+install:
+  - sudo apt-get install -y vsftpd
+
+before_script:
+  - git config --global user.email "you@example.com"
+  - git config --global user.name "Your Name"
+  - echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
+  - echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
+  - echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
+  - echo anon_umask=000 | sudo tee -a /etc/vsftpd.conf
+  - echo anon_other_write_enable=YES | sudo tee -a /etc/vsftpd.conf
+  - echo anon_root=/var/ftp | sudo tee -a /etc/vsftpd.conf
+  - sudo mkdir -p /var/ftp/pub
+  - sudo chmod a+rwx /var/ftp/pub
+  - sudo service vsftpd restart
+  - export GIT_FTP_ROOT=localhost/pub
+  - export GIT_FTP_USER=ftp
+  - export GIT_FTP_PASSWD=ftp
+
+script:
+  - tests/git-ftp-test.sh
+
+after_failure:
+  - ls -la /var/ftp/pub/*
+  - cat /etc/vsftpd.conf

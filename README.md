@@ -1,7 +1,9 @@
+[![Build Status](https://travis-ci.org/git-ftp/git-ftp.svg?branch=develop)](https://travis-ci.org/git-ftp/git-ftp)
+
 README of git-ftp
 =================
 
-* This application is licenced under [GNU General Public License, Version 3.0]
+* This application is licensed under [GNU General Public License, Version 3.0]
 * Follow this project on twitter [@gitftp](https://twitter.com/gitftp)
 
 Summary
@@ -17,7 +19,7 @@ I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
 web hosting companies do not provide SSH or git support, but only FTP.
 
 That is why I needed an easy way to deploy my git tracked projects. Instead of
-transfering the whole project, I thought, why not only transfer the files
+transferring the whole project, I thought, why not only transfer the files
 that changed since the last time, git can tell me those files.
 
 Even if you are playing with different branches, git-ftp knows which files
@@ -39,16 +41,22 @@ See [INSTALL](INSTALL.md) file.
 Usage
 -----
 
-	$ cd my_git_tracked_project
-	$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+``` sh
+$ cd my_git_tracked_project
+$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+```
 
-For interactive password prompt use:
+For interactive password prompt use `-P`:
 
-	$ git ftp push -u <user> -p - ftp://host.example.com/public_html
+``` sh
+$ git ftp push -u <user> -P ftp://host.example.com/public_html
+```
 
 Pushing for the first time:
 
-	$ git ftp init -u <user> -p - ftp://host.example.com/public_html
+``` sh
+$ git ftp init -u <user> -P ftp://host.example.com/public_html
+```
 
 See [man page](man/git-ftp.1.md) for more options, features and examples!
 
