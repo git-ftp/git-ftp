@@ -9,6 +9,11 @@ all:
 	@echo "       make clean"
 man:
 	install -d -m 0755 man1
+	pandoc -s \
+		-w man git-ftp.1.md \
+		-o  $(MAN_FILE)
+man-ronn:
+	install -d -m 0755 man1
 	ronn --roff --pipe \
 		git-ftp.1.md \
 		> $(MAN_FILE)
