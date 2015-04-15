@@ -144,7 +144,7 @@ But, there is not just FTP. Supported protocols are:
 
 Don't repeat yourself. Setting config defaults for git-ftp in .git/config
 
-	$ git config git-ftp.<(url|user|password|syncroot|cacert)> <value>
+	$ git config git-ftp.<(url|user|password|syncroot|cacert|keychain)> <value>
 
 Everyone likes examples:
 
@@ -156,6 +156,7 @@ Everyone likes examples:
 	$ git config git-ftp.deployedsha1file mySHA1File
 	$ git config git-ftp.insecure 1
 	$ git config git-ftp.key ~/.ssh/id_rsa
+	$ git config git-ftp.keychain user@example.com
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 

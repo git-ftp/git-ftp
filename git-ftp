@@ -186,6 +186,7 @@ SET DEFAULTS
 	. git config git-ftp.cacert path/cacert
 	. git config git-ftp.deployedsha1file mySHA1File
 	. git config git-ftp.insecure 1
+	. git config git-ftp.keychain user@example.com
 
 
 SET SCOPE DEFAULTS 
@@ -828,6 +829,8 @@ set_remote_cacert() {
 }
 
 set_remote_password() {
+	KEYCHAIN_USER="$(get_config keychain)"
+	[ -z "$KEYCHAIN_USER" ] || USE_KEYCHAIN=1
 	[ -z "$REMOTE_PASSWD" ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
 	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
 }
