@@ -12,8 +12,6 @@ git-ftp [actions] [options] [url]...
 
 # DESCRIPTION
 
-This manual page documents briefly the git-ftp program.
-
 Git-ftp is a FTP client using Git to determine which local files to upload or which files should be deleted on the remote host.
 
 It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file. There is no need for [Git] to be installed on the remote host.
