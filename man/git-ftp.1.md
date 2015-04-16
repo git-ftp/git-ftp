@@ -52,7 +52,7 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
-:	FTP password. See `-P` for interactive passwort prompt.
+:	FTP password. See `-P` for interactive password prompt.
 
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
@@ -97,10 +97,10 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 :	Specifies a local directory to sync from as if it were the git project root path.
 
 `--key`
-:	SSH Private key file name.
+:	SSH private key file name.
 
 `--pubkey`
-:	SSH Public key file name. Used with --key option.
+:	SSH public key file name. Used with --key option.
 
 `--insecure`
 :	Don't verify server's certificate.
