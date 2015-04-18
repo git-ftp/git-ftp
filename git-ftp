@@ -25,13 +25,6 @@ readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
 readonly VERSION='1.1.0-UNRELEASED'
-readonly TMP_DIR="$(mktemp -d -t git-ftp-XXXX)"
-readonly TMP_CURL_UPLOAD_FILE="$TMP_DIR/curl_upload_list"
-readonly TMP_CURL_DELETE_FILE="$TMP_DIR/curl_delete_list"
-readonly TMP_GITFTP="$TMP_DIR/git_ftp_tmp"
-readonly TMP_GITFTP_UPLOAD="$TMP_DIR/upload_tmp"
-readonly TMP_GITFTP_DELETE="$TMP_DIR/delete_tmp"
-readonly TMP_GITFTP_INCLUDE="$TMP_DIR/include_tmp"
 
 # ------------------------------------------------------------
 # Defaults
@@ -62,6 +55,13 @@ CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
+TMP_DIR=""
+TMP_CURL_UPLOAD_FILE=""
+TMP_CURL_DELETE_FILE=""
+TMP_GITFTP=""
+TMP_GITFTP_UPLOAD=""
+TMP_GITFTP_DELETE=""
+TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
@@ -545,6 +545,7 @@ set_deployed_sha1() {
 }
 
 set_changed_files() {
+	set_tmp
 	# Get raw list of files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Taking all files.";
@@ -846,6 +847,21 @@ set_syncroot() {
 set_sftp_config() {
 	[ -z "$CURL_PRIVATE_KEY" ] && CURL_PRIVATE_KEY="$(get_config key)"
 	[ -z "$CURL_PUBLIC_KEY" ] && CURL_PUBLIC_KEY="$(get_config pubkey)"
+}
+
+set_tmp() {
+	if command -v mktemp > /dev/null 2>&1; then
+		TMP_DIR="$(mktemp -d -t git-ftp-XXXX)"
+	else
+		TMP_DIR="$(pwd)/.git/git-ftp-tmp"
+		mkdir -p "$TMP_DIR"
+	fi
+	TMP_CURL_UPLOAD_FILE="$TMP_DIR/curl_upload_list"
+	TMP_CURL_DELETE_FILE="$TMP_DIR/curl_delete_list"
+	TMP_GITFTP="$TMP_DIR/git_ftp_tmp"
+	TMP_GITFTP_UPLOAD="$TMP_DIR/upload_tmp"
+	TMP_GITFTP_DELETE="$TMP_DIR/delete_tmp"
+	TMP_GITFTP_INCLUDE="$TMP_DIR/include_tmp"
 }
 
 set_remotes() {
