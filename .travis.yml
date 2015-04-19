@@ -1,7 +1,7 @@
 language: sh
 
 install:
-  - sudo apt-get install -y vsftpd
+  - sudo apt-get install -y vsftpd parallel
 
 before_script:
   - git config --global user.email "you@example.com"

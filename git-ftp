@@ -407,8 +407,9 @@ fire_upload_buffer() {
 	print_info "Uploading ..."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
+	#TODO: implement failsafe
 	CURL_ARGS+=(-K {})
-	find "$TMP_DIR" -name "'$(basename "$TMP_CURL_UPLOAD_FILE").*'" | xargs -i --max-procs="$MAX_PROCS" curl "${CURL_ARGS[@]}"
+	find "$TMP_DIR" -type f -name 'upload_splits_*' | parallel -j +0 curl ${CURL_ARGS[@]}
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 }
 
@@ -663,7 +664,7 @@ split_upload_buffer() {
 
 	((lines_per_file = (total_lines + num_files - 1) / num_files))
 
-	split --lines="$lines_per_file" "$TMP_CURL_UPLOAD_FILE" "$TMP_CURL_UPLOAD_FILE."
+	split --lines="$lines_per_file" "$TMP_CURL_UPLOAD_FILE" upload_splits_
 }
 
 # Original implementation http://stackoverflow.com/a/27718468/3377535
