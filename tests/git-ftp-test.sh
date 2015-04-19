@@ -41,8 +41,13 @@ oneTimeTearDown() {
 }
 
 setUp() {
-	GIT_PROJECT_PATH=$(mktemp -d -t git-ftp-XXXX)
-	GIT_PROJECT_NAME=$(basename $GIT_PROJECT_PATH)
+	if command -v mktemp > /dev/null 2>&1; then
+		GIT_PROJECT_PATH="$(mktemp -d -t git-ftp-XXXX)"
+	else
+		GIT_PROJECT_PATH="git-ftp-test-repo-$(date | md5sum | cut -d ' ' -f1)"
+		mkdir -p "$GIT_PROJECT_PATH"
+	fi
+	GIT_PROJECT_NAME="$(basename $GIT_PROJECT_PATH)"
 
 	GIT_FTP_URL="$GIT_FTP_ROOT/$GIT_PROJECT_NAME"
 
