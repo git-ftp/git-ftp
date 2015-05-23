@@ -629,7 +629,7 @@ test_submodule_catchup() {
 	git submodule -q add "/$submodule" > /dev/null
 	git commit -m 'adding submodule' -q
 	catchup=$($GIT_FTP catchup)
-	assertTrue "test failed: $submodule/.git-ftp-log not there as expected" "remote_file_exists '$submodule/.git-ftp.log'"
+	assertTrue "test failed: $submodule/.git-ftp.log not there as expected" "remote_file_exists '$submodule/.git-ftp.log'"
 }
 
 disabled_test_file_named_dash() {
