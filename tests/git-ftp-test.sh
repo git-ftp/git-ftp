@@ -606,14 +606,30 @@ test_submodule() {
 	mkdir "$submodule"
 	cd "$submodule"
 	touch "$file"
-	git init
+	git init -q
 	git add .
-	git commit -m 'initial submodule commit'
+	git commit -m 'initial submodule commit' -q
 	cd ..
-	git submodule add "/$submodule"
-	git commit -m 'adding submodule'
-	$GIT_FTP init
+	git submodule -q add "/$submodule" > /dev/null
+	git commit -m 'adding submodule' -q
+	init=$($GIT_FTP init)
 	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
+}
+
+test_submodule_catchup() {
+	submodule='sub'
+	file='file.txt'
+	mkdir "$submodule"
+	cd "$submodule"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd ..
+	git submodule -q add "/$submodule" > /dev/null
+	git commit -m 'adding submodule' -q
+	catchup=$($GIT_FTP catchup)
+	assertTrue "test failed: $submodule/.git-ftp-log not there as expected" "remote_file_exists '$submodule/.git-ftp.log'"
 }
 
 disabled_test_file_named_dash() {
