@@ -12,6 +12,11 @@ man:
 	pandoc -s \
 		-w man git-ftp.1.md \
 		-o  $(MAN_FILE)
+man-ronn:
+	install -d -m 0755 man1
+	ronn --roff --pipe \
+		git-ftp.1.md \
+		> $(MAN_FILE)
 html:
 	pandoc -s -S --toc \
 		-c git-ftp.css git-ftp.1.md \

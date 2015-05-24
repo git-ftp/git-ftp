@@ -1,9 +1,11 @@
 language: sh
 
+install:
+  - sudo apt-get install -y vsftpd
+
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - sudo apt-get install -y vsftpd
   - echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
   - echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
   - echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
