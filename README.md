@@ -42,24 +42,25 @@ Usage
 -----
 
 set the configuration into the git config
-	. git config git-ftp.user john
-	. git config git-ftp.url ftp.example.com
-	. git config git-ftp.password secr3t
-	. git config git-ftp.remote-root "~/www/"
-	. git config git-ftp.syncroot path/dir
-	. git config git-ftp.cacert path/cacert
-	. git config git-ftp.deployedsha1file mySHA1File
-	. git config git-ftp.insecure 1
-	. git config git-ftp.mysql_username mysql_user
-	. git config git-ftp.mysql_password mysql_pass
-	. git config git-ftp.mysql_database mysql_db
-	. git config git-ftp.mysql_hostname mysql_host
-	. git config git-ftp.mysql_server_username mysql_user
-	. git config git-ftp.mysql_server_password mysql_pass
-	. git config git-ftp.mysql_server_database mysql_db
-	. git config git-ftp.mysql_server_hostname mysql_host
-	. git config git-ftp.websiteurl http://url.com/
-
+``` sh
+$ git config git-ftp.user john
+$ git config git-ftp.url ftp.example.com
+$ git config git-ftp.password secr3t
+$ git config git-ftp.remote-root "~/www/"
+$ git config git-ftp.syncroot path/dir
+$ git config git-ftp.cacert path/cacert
+$ git config git-ftp.deployedsha1file mySHA1File
+$ git config git-ftp.insecure 1
+$ git config git-ftp.mysql_username mysql_user
+$ git config git-ftp.mysql_password mysql_pass
+$ git config git-ftp.mysql_database mysql_db
+$ git config git-ftp.mysql_hostname mysql_host
+$ git config git-ftp.mysql_server_username mysql_user
+$ git config git-ftp.mysql_server_password mysql_pass
+$ git config git-ftp.mysql_server_database mysql_db
+$ git config git-ftp.mysql_server_hostname mysql_host
+$ git config git-ftp.websiteurl http://url.com/
+```
 or you can pass them inline
 ``` sh
 $ cd my_git_tracked_project
