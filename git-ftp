@@ -63,7 +63,7 @@ TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
-declare -i VERBOSE=0
+declare -i VERBOSE=1
 declare -i IGNORE_DEPLOYED=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
@@ -187,6 +187,15 @@ SET DEFAULTS
 	. git config git-ftp.deployedsha1file mySHA1File
 	. git config git-ftp.insecure 1
 	. git config git-ftp.keychain user@example.com
+	. git config git-ftp.mysql_username mysql_user
+	. git config git-ftp.mysql_password mysql_pass
+	. git config git-ftp.mysql_database mysql_db
+	. git config git-ftp.mysql_hostname mysql_host
+	. git config git-ftp.mysql_server_username mysql_user
+	. git config git-ftp.mysql_server_password mysql_pass
+	. git config git-ftp.mysql_server_database mysql_db
+	. git config git-ftp.mysql_server_hostname mysql_host
+	. git config git-ftp.websiteurl http://url.com/
 
 
 SET SCOPE DEFAULTS 
@@ -711,6 +720,56 @@ handle_file_sync() {
 	fire_delete_buffer
 }
 
+sync_database() {
+    #set local database values
+    [ -z $MYSQLUSERNAME ] && MYSQLUSERNAME="$(get_config mysqlusername)"
+    [ -z $MYSQLPASSWORD ] && MYSQLPASSWORD="$(get_config mysqlpassword)"
+    [ -z $MYSQLDATABASE ] && MYSQLDATABASE="$(get_config mysqldatabase $MYSQLUSERNAME)"
+    [ -z $MYSQLHOSTNAME ] && MYSQLHOSTNAME="$(get_config mysqlhostname localhost)"
+
+    #server db values
+    [ -z $MYSQLSERVERUSERNAME ] && MYSQLSERVERUSERNAME="$(get_config mysqlserverusername $MYSQLUSERNAME)"
+    [ -z $MYSQLSERVERPASSWORD ] && MYSQLSERVERPASSWORD="$(get_config mysqlserverpassword $MYSQLPASSWORD)"
+    [ -z $MYSQLSERVERDATABASE ] && MYSQLSERVERDATABASE="$(get_config mysqlserverdatabase $MYSQLDATABASE)"
+    [ -z $MYSQLSERVERHOSTNAME ] && MYSQLSERVERHOSTNAME="$(get_config mysqlserverhostname $MYSQLHOSTNAME)"
+
+    #server url
+    CURL_URL=("http://$REMOTE_HOST/${REMOTE_PATH}${DEST_FILE}")
+    [ -z $WEBURL ] && WEBURL="$(get_config websiteurl CURL_URL)"
+
+    #dump local db
+    print_info "dumping the local database ..."
+    mysqldump $MYSQLDATABASE -K --add-drop-table -u $MYSQLUSERNAME -p$MYSQLPASSWORD > db.sql
+
+    #generate php file
+    PHP_FILE="
+    <?php
+    \$filename       = 'db.sql';
+    \$mysql_host     = '$MYSQLSERVERHOSTNAME';
+    \$mysql_username = '$MYSQLSERVERUSERNAME';
+    \$mysql_password = '$MYSQLSERVERPASSWORD';
+    \$mysql_database = '$MYSQLSERVERDATABASE';
+    mysql_connect(\$mysql_host, \$mysql_username, \$mysql_password) or die('Error connecting to MySQL server: ' . mysql_error());
+    mysql_select_db(\$mysql_database) or die('Error selecting MySQL database: ' . mysql_error());
+    \$tl= '';\$ls= file(\$filename);foreach (\$ls as \$l){if (substr(\$l, 0, 2) == '--' || \$l == '')continue;\$tl .= \$l;if (substr(trim(\$l), -1, 1) == ';'){mysql_query(\$tl) or print('Error performing query \'<strong>' . \$tl . '\': ' . mysql_error() . '<br /><br />');\$tl = '';}}
+    unlink('db.sql');unlink(__FILE__);"
+
+    #create script to execute db import
+    echo $PHP_FILE > git-ftp-sync-database.php
+
+    #upload
+    upload_file_buffered "db.sql"
+    upload_file_buffered "git-ftp-sync-database.php"
+    fire_upload_buffer
+
+    ##execute
+    print_info "executing in the server ..."
+    curl -v $WEBURL/git-ftp-sync-database.php
+
+    # clean up local
+    rm -rf db.sql git-ftp-sync-database.php
+}
+
 # decodes UTF-8 filenames
 decode_filename() {
 	# git stores names like: forl\303\270b.xml
@@ -1018,6 +1077,7 @@ action_push() {
 	set_changed_files
 	remote_lock
 	handle_file_sync
+	sync_database
 	upload_local_sha1
 	release_remote_lock
 }

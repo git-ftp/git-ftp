@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/git-ftp/git-ftp.svg?branch=develop)](https://travis-ci.org/git-ftp/git-ftp)
-[![GitHub version](https://badge.fury.io/gh/git-ftp%2Fgit-ftp.svg)](http://badge.fury.io/gh/git-ftp%2Fgit-ftp)
 
 README of git-ftp
 =================
@@ -10,7 +9,7 @@ README of git-ftp
 Summary
 -------
 
-Git powered FTP client written as shell script.
+Git powered FTP client written as shell script. modified by oshanrube to add mysql sync. you can visit the main project on https://travis-ci.org/git-ftp/git-ftp
 
 
 About
@@ -42,21 +41,42 @@ See [INSTALL](INSTALL.md) file.
 Usage
 -----
 
+set the configuration into the git config
+``` sh
+$ git config git-ftp.user john
+$ git config git-ftp.url ftp.example.com
+$ git config git-ftp.password secr3t
+$ git config git-ftp.remote-root "~/www/"
+$ git config git-ftp.syncroot path/dir
+$ git config git-ftp.cacert path/cacert
+$ git config git-ftp.deployedsha1file mySHA1File
+$ git config git-ftp.insecure 1
+$ git config git-ftp.mysql_username mysql_user
+$ git config git-ftp.mysql_password mysql_pass
+$ git config git-ftp.mysql_database mysql_db
+$ git config git-ftp.mysql_hostname mysql_host
+$ git config git-ftp.mysql_server_username mysql_user
+$ git config git-ftp.mysql_server_password mysql_pass
+$ git config git-ftp.mysql_server_database mysql_db
+$ git config git-ftp.mysql_server_hostname mysql_host
+$ git config git-ftp.websiteurl http://url.com/
+```
+or you can pass them inline
 ``` sh
 $ cd my_git_tracked_project
 $ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
 ```
 
-For interactive password prompt use `-P`:
+For interactive password prompt use:
 
 ``` sh
-$ git ftp push -u <user> -P ftp://host.example.com/public_html
+$ git ftp push -u <user> -p - ftp://host.example.com/public_html
 ```
 
 Pushing for the first time:
 
 ``` sh
-$ git ftp init -u <user> -P ftp://host.example.com/public_html
+$ git ftp init -u <user> -p - ftp://host.example.com/public_html
 ```
 
 See [man page](man/git-ftp.1.md) for more options, features and examples!
