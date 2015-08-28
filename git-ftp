@@ -219,7 +219,7 @@ cache_git_submodules() {
 }
 
 is_submodule() {
-	has "$1" "${GIT_SUBMODULES[@]}"
+	has "$1" ${GIT_SUBMODULES[@]}
 }
 
 ask_for_passwd() {
