@@ -628,13 +628,18 @@ add_include_file() {
 	local tmp_include_delete="${3}"
 	if [ -e "$TARGET" ]; then
 		if [ -d "$TARGET" ]; then
+			write_log "Including all files in $TARGET for upload."
 			find "$TARGET" -type f >> "$tmp_include_upload"
 		elif [ -f "$TARGET" ]; then
+			write_log "Including $TARGET for upload."
 			echo "$TARGET" >> "$tmp_include_upload"
 		fi
 	else
 		if echo "$TARGET" | grep -v '/$'; then
+			write_log "Including $TARGET for deletion."
 			echo "$TARGET" >> "$tmp_include_delete"
+		else
+			write_log "Deletion of directory $TARGET is not supported."
 		fi
 	fi
 }
