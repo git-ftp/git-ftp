@@ -66,6 +66,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-A`, `--active`
 :	Uses FTP active mode.
 
+`-b [branch]`, `--branch [branch]`
+:	Push a specific branch
+
 `-s [scope]`, `--scope [scope]`
 :	Using a scope (e.g. dev, production, testing, foobar). See **SCOPE** and **DEFAULTS** section for more information.
 
