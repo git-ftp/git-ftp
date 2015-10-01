@@ -48,7 +48,7 @@ Note: Usually updated after every release (tag).
 
 ArchLinux (AUR: unofficial)
 ---------------------------
-See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go 
+See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go
 
 
 Mac OS X
@@ -85,6 +85,23 @@ After this, open git bash (or cygwin bash for cygwin only):
 
 *Note: the /bin/ directory is a alias, and if you use msysgit this is the same as C:\Program Files (x86)\Git\bin\*
 
+### msysgit with installed cygwin
+
+If you have both msysgit and cygwin installed on Windows and want to use msysgit for git commands, you may get an error "No such file or directory" for a path starting "/cygdrive/"; e.g.:
+
+	creating `/cygdrive/c/TEMP/git-ftp-m7GH/delete_tmp': No such file or directory
+
+The problem is that git-ftp use commands from both cygwin and msysgit folders, but cygwin is by default configured to start paths with "/cygdrive" prefix while msysgit starts paths with "/". To fix the problem, open file "<cygwin>\etc\fstab" (e.g. "c:\cygwin\etc\fstab") and change parameter "/cygwin/" to "/"; e.g.:
+
+	# This is default:
+	none /cygdrive/ cygdrive binary,posix=0,user 0 0
+
+change to:
+
+	# This is default:
+	none / cygdrive binary,posix=0,user 0 0
+
+After this, close all console windows and try again.
 
 Upstream using symlinking
 -------------------------

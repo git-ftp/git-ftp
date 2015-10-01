@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/git-ftp/git-ftp.svg?branch=develop)](https://travis-ci.org/git-ftp/git-ftp)
+[![GitHub version](https://badge.fury.io/gh/git-ftp%2Fgit-ftp.svg)](http://badge.fury.io/gh/git-ftp%2Fgit-ftp)
 
 README of git-ftp
 =================
