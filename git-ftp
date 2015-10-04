@@ -611,7 +611,7 @@ add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	local tmp_include_delete="$TMP_DIR/include_delete_tmp"
 	local tmp_include_upload="$TMP_DIR/include_upload_tmp"
-	local tmp_always_include="$TMP_DIR/always_include_tmp"
+	local tmp_include_filter="$TMP_DIR/include_filter_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
 		add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
@@ -624,8 +624,11 @@ add_include_files() {
 		fi
 	done
 	rm -f "$TMP_GITFTP_INCLUDE"
-	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
-	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$TMP_GITFTP_UPLOAD"
+	[ -s "$TMP_GITFTP_UPLOAD" ] && cat "$TMP_GITFTP_UPLOAD" >> "$tmp_include_filter"
+	[ -s "$TMP_GITFTP_DELETE" ] && cat "$TMP_GITFTP_DELETE" >> "$tmp_include_filter"
+	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$tmp_include_filter"
+	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$tmp_include_filter"
+	rm -f "$tmp_include_filter"
 }
 
 add_include_file() {
@@ -653,11 +656,16 @@ add_include_file() {
 add_missing_files() {
 	local src="$1"
 	local dst="$2"
-	local second_filter="$3"
+	local filter="$3"
 	if [ ! -f "$src" ]; then
 		return
 	fi
-	sort < "$src" | uniq | grep -vFx -f "$dst" | grep -vFx -f "$second_filter" >> "$dst"
+	if [ -s "$filter" ]; then
+		sort < "$src" | uniq | grep -vFx -f "$filter" >> "$dst"
+	else
+		# Skip grep because Mac OS X grep doesn't match anything with an empty file.
+		sort < "$src" | uniq >> "$dst"
+	fi
 	rm -f "$src"
 }
 
