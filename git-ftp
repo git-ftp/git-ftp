@@ -44,6 +44,8 @@ REMOTE_CMD_OPTIONS="-s"
 ACTION=""
 LOG_CACHE=""
 ERROR_LOG=""
+BRANCH=""
+CURRENT_BRANCH=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
@@ -151,6 +153,7 @@ OPTIONS
 	-p, --passwd		FTP password.
 	-P, --ask-passwd		Ask for FTP password interactively.
 	-k, --keychain		FTP password from KeyChain (Mac OS X only).
+	-b, --branch		Git branch to push
 	-s, --scope		Using a scope (e.g. dev, production, testing).
 	-D, --dry-run		Dry run: Does not upload anything.
 	-a, --all		Uploads all files, ignores deployed SHA1 hash.
@@ -172,6 +175,7 @@ OPTIONS
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
+	. git-ftp push -p -u john ftp.example.com --branch prod
 	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
 	. git-ftp push --scope production
 	. git-ftp remove-scope production
@@ -182,6 +186,7 @@ SET DEFAULTS
 	. git config git-ftp.url ftp.example.com
 	. git config git-ftp.password secr3t
 	. git config git-ftp.remote-root "~/www/"
+	. git config git-ftp.branch prod
 	. git config git-ftp.syncroot path/dir
 	. git config git-ftp.cacert path/cacert
 	. git config git-ftp.deployedsha1file mySHA1File
@@ -219,7 +224,7 @@ cache_git_submodules() {
 }
 
 is_submodule() {
-	has "$1" "${GIT_SUBMODULES[@]}"
+	has "$1" ${GIT_SUBMODULES[@]}
 }
 
 ask_for_passwd() {
@@ -591,6 +596,7 @@ list_changed_files() {
 	elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
 		cleanup
+		unset_branch
 		exit 0
 	elif [ ! -s "$TMP_GITFTP" ]; then
 		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
@@ -605,39 +611,61 @@ add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	local tmp_include_delete="$TMP_DIR/include_delete_tmp"
 	local tmp_include_upload="$TMP_DIR/include_upload_tmp"
-	local tmp_always_include="$TMP_DIR/always_include_tmp"
+	local tmp_include_filter="$TMP_DIR/include_filter_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
-	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' > "$tmp_always_include"
-	grep -v '/$' "$tmp_always_include" > "$tmp_include_upload"
-	grep '/$' "$tmp_always_include" | while read TARGET; do
-		find "$TARGET" -type f >> "$tmp_include_upload"
+	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
+		add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
 	done
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
-		if [ -d "$TARGET" ]; then
-			find "$TARGET" -type f >> "$tmp_include_upload"
-		elif [ -f "$TARGET" ]; then
-			if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD"; then
-				echo "$TARGET" >> "$tmp_include_upload"
-			elif grep -Fxq "$SOURCE" "$TMP_GITFTP_DELETE"; then
-				echo "$TARGET" >> "$tmp_include_delete"
-			fi
+		if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
+			add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
 		fi
 	done
 	rm -f "$TMP_GITFTP_INCLUDE"
-	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
-	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$TMP_GITFTP_UPLOAD"
+	[ -s "$TMP_GITFTP_UPLOAD" ] && cat "$TMP_GITFTP_UPLOAD" >> "$tmp_include_filter"
+	[ -s "$TMP_GITFTP_DELETE" ] && cat "$TMP_GITFTP_DELETE" >> "$tmp_include_filter"
+	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$tmp_include_filter"
+	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$tmp_include_filter"
+	rm -f "$tmp_include_filter"
+}
+
+add_include_file() {
+	local TARGET="${1}"
+	local tmp_include_upload="${2}"
+	local tmp_include_delete="${3}"
+	if [ -e "$TARGET" ]; then
+		if [ -d "$TARGET" ]; then
+			write_log "Including all files in $TARGET for upload."
+			find "$TARGET" -type f >> "$tmp_include_upload"
+		elif [ -f "$TARGET" ]; then
+			write_log "Including $TARGET for upload."
+			echo "$TARGET" >> "$tmp_include_upload"
+		fi
+	else
+		if echo "$TARGET" | grep -v '/$'; then
+			write_log "Including $TARGET for deletion."
+			echo "$TARGET" >> "$tmp_include_delete"
+		else
+			write_log "Deletion of directory $TARGET is not supported."
+		fi
+	fi
 }
 
 add_missing_files() {
 	local src="$1"
 	local dst="$2"
-	local second_filter="$3"
+	local filter="$3"
 	if [ ! -f "$src" ]; then
 		return
 	fi
-	sort < "$src" | uniq | grep -vFx -f "$dst" | grep -vFx -f "$second_filter" >> "$dst"
+	if [ -s "$filter" ]; then
+		sort < "$src" | uniq | grep -vFx -f "$filter" >> "$dst"
+	else
+		# Skip grep because Mac OS X grep doesn't match anything with an empty file.
+		sort < "$src" | uniq >> "$dst"
+	fi
 	rm -f "$src"
 }
 
@@ -850,6 +878,32 @@ set_remote_password() {
 	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
 }
 
+set_branch() {
+    [ -z $BRANCH ] && BRANCH="$(get_config branch)"
+    if [ ! -z $BRANCH ]; then
+        set_current_branch
+	write_log "Checkout on branch $BRANCH"
+	git checkout $BRANCH > /dev/null 2>&1 || print_error_and_die "'$BRANCH' is not a valid branch! Exiting..." "ERROR_GIT"
+    fi
+}
+
+set_current_branch() {
+    local current=$(( git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null ) | sed "s#^refs/heads/##")
+    if [ "$?" -ne "0" ]; then
+	set_local_sha1
+	current=$LOCAL_SHA1
+    fi
+    write_log "Currently on branch $current"
+    CURRENT_BRANCH=$current
+}
+
+unset_branch() {
+    if [ ! -z $CURRENT_BRANCH ]; then
+	write_log "Checkout on branch $CURRENT_BRANCH"
+	git checkout $CURRENT_BRANCH > /dev/null 2>&1
+    fi
+}
+
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	if [ "$SYNCROOT" ]; then
@@ -1002,6 +1056,7 @@ action_init() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
+	set_branch
 	set_remotes
 	check_remote_access
 	check_deployed_sha1
@@ -1011,12 +1066,14 @@ action_init() {
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
+	unset_branch
 }
 
 action_push() {
 	check_git_version
 	check_is_git_project
 	check_is_dirty_repository
+	set_branch
 	set_remotes
 	set_deployed_sha1
 	set_local_sha1
@@ -1025,15 +1082,18 @@ action_push() {
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
+	unset_branch
 }
 
 action_catchup() {
 	check_is_git_project
 	check_is_dirty_repository
+	set_branch
 	set_remotes
 	set_local_sha1
 	upload_local_sha1
 	submodule_catchup
+	unset_branch
 }
 
 action_show() {
@@ -1186,6 +1246,24 @@ do
 				print_error_and_die "Invalid scope name." "$ERROR_USAGE"
 			fi
 			write_log "Using scope $SCOPE if available"
+			;;
+		-b|--branch*)
+			case "$#,$1" in
+			    *,*=*)
+				BRANCH=$(expr 'z$1' : 'z-[^=]*=\(.*\)')
+				;;
+			    1,*)
+				print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+				;;
+			    *)
+				if ! echo "$2" | egrep -q '^-'; then
+				    BRANCH="$2"
+				    shift
+				else
+				    print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+				fi
+				;;
+			esac
 			;;
 		--syncroot*)
 			case "$#,$1" in

@@ -490,6 +490,26 @@ test_include_push() {
 	assertTrue 'unversioned.txt was not uploaded' "remote_file_exists 'unversioned.txt'"
 }
 
+test_include_push_delete() {
+	echo 'unversioned' > unversioned.txt
+	echo 'unversioned.txt' >> .gitignore
+	echo 'unversioned.txt:test 1.txt' > .git-ftp-include
+	echo 'unversioned.txt:test 2.txt' >> .git-ftp-include
+	echo 'new content' >> 'test 1.txt'
+	git add .
+	git commit -m 'unversioned file unversioned.txt should be uploaded with test 1.txt' -q
+	init=$($GIT_FTP init)
+	git rm 'test 1.txt' -q
+	git commit -m 'the trigger file of unversioned.txt is deleted which deletes the target file' -q
+	push=$($GIT_FTP push)
+	assertTrue 'unversioned.txt was deleted' "remote_file_exists 'unversioned.txt'"
+	echo 'new content' >> 'test 2.txt'
+	rm 'unversioned.txt'
+	git commit -a -m 'the local deletion of unversioned.txt should delete remote file' -q
+	push=$($GIT_FTP push)
+	assertFalse 'unversioned.txt was not deleted' "remote_file_exists 'unversioned.txt'"
+}
+
 test_include_ignore_init() {
 	cd $GIT_PROJECT_PATH
 	echo 'htaccess' > .htaccess

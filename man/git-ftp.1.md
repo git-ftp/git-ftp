@@ -66,6 +66,9 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `-A`, `--active`
 :	Uses FTP active mode.
 
+`-b [branch]`, `--branch [branch]`
+:	Push a specific branch
+
 `-s [scope]`, `--scope [scope]`
 :	Using a scope (e.g. dev, production, testing, foobar). See **SCOPE** and **DEFAULTS** section for more information.
 
@@ -224,14 +227,32 @@ Ignoring a single file called `foobar.txt`:
 
 # SYNCING UNTRACKED FILES
 
-To upload an untracked file when a paired tracked file changes (e.g. uploading a compiled CSS file when its source SCSS or LESS file changes), add a file pair to `.git-ftp-include`:
+The `.git-ftp-include` file specifies intentionally untracked files that Git-ftp should upload.
+If you have a file that should always be uploaded, add a line beginning with ! followed by the file's name.
+For example, if you have a file called VERSION.txt then add the following line:
+
+	!VERSION.txt
+
+If you have a file that should be uploaded whenever a tracked file changes, add a line beginning with the untracked file's name followed by a colon and the tracked file's name.
+For example, if you have a CSS file compiled from an SCSS file then add the following line:
 
 	css/style.css:scss/style.scss
 
-If you have multiple source files being combined into a single untracked file, you can pair the untracked file with multiple tracked files, one per line. This ensures the combined untracked file is properly uploaded when any of the component tracked files change:
+If you have multiple source files, you can add multiple lines for each of them.
+Whenever one of the tracked files changes, the upload of the paired untracked file will be triggered.
 
 	css/style.css:scss/style.scss
 	css/style.css:scss/mixins.scss
+
+If a local untracked file is deleted, a paired tracked file will trigger the deletion of the remote file on the server.
+
+It is also possible to upload whole directories.
+For example, if you use a package manager like composer, you can upload all vendor packages when the file composer.lock changes:
+
+	vendor/:composer.lock
+
+But keep in mind that this will upload all files in the vendor folder, even those that are on the server already.
+And it will not delete files from that directory if local files are deleted.
 
 # NETRC
 
