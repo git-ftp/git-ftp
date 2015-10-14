@@ -220,7 +220,7 @@ has() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule | awk '{print $2}')"
+	GIT_SUBMODULES="$(git submodule status -- "$syncroot" | awk '{print $2}')"
 }
 
 is_submodule() {
@@ -743,7 +743,38 @@ decode_filename() {
 
 handle_submodule_sync() {
 	print_info "Handling submodule sync for $1."
+	set_submodule_args
+	(
+		cd "${SYNCROOT}$1" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+	)
 
+	local EXIT_CODE=$?
+
+	# Pushing failed. Submodule may not be initialized
+	if [ "$EXIT_CODE" -eq "$ERROR_DOWNLOAD" ] && [ "$ACTION" == "push" ]; then
+		print_info "Could not push $1, trying to init..."
+		(
+			cd "${SYNCROOT}$1" && "$0" init ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+		)
+		check_exit_status "Failed to sync submodules." "$ERROR_UPLOAD"
+	elif [ $EXIT_CODE -ne 0 ]; then
+		print_error_and_die "Failed to sync submodules." "$ERROR_UPLOAD"
+	fi
+}
+
+submodule_catchup() {
+	[ -z "$GIT_SUBMODULES" ] && return
+	set_submodule_args
+	url="$(git config git-ftp.url)"
+	print_info "Submodules are $GIT_SUBMODULES"
+	for submodule in "$GIT_SUBMODULES"
+	do
+		print_info "Catching up submodule $submodule."
+		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+	done
+}
+
+set_submodule_args() {
 	# Duplicate the current required parameters
 	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
 
@@ -767,23 +798,6 @@ handle_submodule_sync() {
 	fi
 
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
-
-	(
-		cd "${SYNCROOT}$1" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
-	)
-
-	local EXIT_CODE=$?
-
-	# Pushing failed. Submodule may not be initialized
-	if [ "$EXIT_CODE" -eq "$ERROR_DOWNLOAD" ] && [ "$ACTION" == "push" ]; then
-		print_info "Could not push $1, trying to init..."
-		(
-			cd "${SYNCROOT}$1" && "$0" init ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
-		)
-		check_exit_status "Failed to sync submodules." "$ERROR_UPLOAD"
-	elif [ $EXIT_CODE -ne 0 ]; then
-		print_error_and_die "Failed to sync submodules." "$ERROR_UPLOAD"
-	fi
 }
 
 handle_remote_protocol_options() {
@@ -1078,6 +1092,7 @@ action_catchup() {
 	set_remotes
 	set_local_sha1
 	upload_local_sha1
+	submodule_catchup
 	unset_branch
 }
 
