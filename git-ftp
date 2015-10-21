@@ -552,13 +552,13 @@ set_deployed_sha1() {
 set_changed_files() {
 	set_tmp
 	# Get raw list of files
+	add_include_files
 	if [ $IGNORE_DEPLOYED -ne 0 ]; then
 		write_log "Taking all files.";
 		list_all_files
 	else
 		list_changed_files || return
 	fi
-	add_include_files
 	filter_ignore_files "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
 	if [ -s "$TMP_GITFTP_UPLOAD" ] || [ -s "$TMP_GITFTP_DELETE" ]; then
 		write_log "Having files to sync.";
