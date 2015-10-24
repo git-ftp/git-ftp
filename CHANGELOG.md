@@ -1,5 +1,14 @@
-Version 1.1.0
-=============
+Version 1.1.0-rc.1
+==================
+
+Benjamin Marguin:
+* Fixed submodule upload with multiple submodules.
+
+Hugo Laloge (laloge_h)
+* Added option to push specific branch.
+
+Alex Hoppen:
+* Added keychain config.
 
 Maikel Linke (mkllnk):
 * Added upload and delete buffers in a curl config file.
@@ -8,6 +17,9 @@ Maikel Linke (mkllnk):
 * Added encoding remote file path for curl.
 * Added misc minor improvements and code optimisations.
 * Docs: Explaining .git-ftp-ignore patterns.
+* Fixed Mac OS X compatibility issues.
+* Added mktemp alternative.
+* Added catchup of submodules.
 
 Tim:
 * Added URL encoding username and password to be used in curl URL.
