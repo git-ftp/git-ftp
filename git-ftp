@@ -704,7 +704,7 @@ handle_file_sync() {
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	print_info "There are $TOTAL_ITEMS files to sync:"
+	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
 	while read FILE_ITERATOR; do
 		(( DONE_ITEMS++ ))
