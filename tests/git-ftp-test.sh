@@ -155,7 +155,7 @@ test_push_nothing() {
 	git commit -a -m "change" > /dev/null 2>&1
 	push=$($GIT_FTP push --dry-run)
 	assertEquals 0 $?
-	assertTrue "$push" "echo \"$push\" | grep 'There are 1 files to sync:'"
+	assertTrue "$push" "echo \"$push\" | grep '1 file to sync:'"
 	echo 'test 1.txt' >> .git-ftp-ignore
 	push=$($GIT_FTP push)
 	assertEquals 0 $?
