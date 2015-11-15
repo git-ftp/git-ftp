@@ -89,7 +89,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals = "git-ftp version 1.1.0-UNRELEASED"  "$version"
+	assertEquals = "git-ftp version 1.2.0-UNRELEASED"  "$version"
 }
 
 test_inits() {
@@ -155,7 +155,7 @@ test_push_nothing() {
 	git commit -a -m "change" > /dev/null 2>&1
 	push=$($GIT_FTP push --dry-run)
 	assertEquals 0 $?
-	assertTrue "$push" "echo \"$push\" | grep 'There are 1 files to sync:'"
+	assertTrue "$push" "echo \"$push\" | grep '1 file to sync:'"
 	echo 'test 1.txt' >> .git-ftp-ignore
 	push=$($GIT_FTP push)
 	assertEquals 0 $?
@@ -672,6 +672,38 @@ test_download_dry_run() {
 	$GIT_FTP download --dry-run > /dev/null 2>&1
 	assertEquals 0 $?
 	assertTrue ' external file downloaded' "[ ! -e 'external.txt' ]"
+}
+
+test_submodule() {
+	submodule='sub'
+	file='file.txt'
+	mkdir "$submodule"
+	cd "$submodule"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd ..
+	git submodule -q add "/$submodule" > /dev/null
+	git commit -m 'adding submodule' -q
+	init=$($GIT_FTP init)
+	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
+}
+
+test_submodule_catchup() {
+	submodule='sub'
+	file='file.txt'
+	mkdir "$submodule"
+	cd "$submodule"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd ..
+	git submodule -q add "/$submodule" > /dev/null
+	git commit -m 'adding submodule' -q
+	catchup=$($GIT_FTP catchup)
+	assertTrue "test failed: $submodule/.git-ftp.log not there as expected" "remote_file_exists '$submodule/.git-ftp.log'"
 }
 
 disabled_test_file_named_dash() {

@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.1.0-UNRELEASED'
+readonly VERSION='1.2.0-UNRELEASED'
 
 # ------------------------------------------------------------
 # Defaults
@@ -225,7 +225,7 @@ has() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule | awk '{print $2}')"
+	GIT_SUBMODULES="$(git submodule status -- "$syncroot" | grep -v '^-' | awk '{print $2}')"
 }
 
 is_submodule() {
@@ -616,7 +616,7 @@ add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	local tmp_include_delete="$TMP_DIR/include_delete_tmp"
 	local tmp_include_upload="$TMP_DIR/include_upload_tmp"
-	local tmp_always_include="$TMP_DIR/always_include_tmp"
+	local tmp_include_filter="$TMP_DIR/include_filter_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
 		add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
@@ -629,8 +629,11 @@ add_include_files() {
 		fi
 	done
 	rm -f "$TMP_GITFTP_INCLUDE"
-	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
-	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$TMP_GITFTP_UPLOAD"
+	[ -s "$TMP_GITFTP_UPLOAD" ] && cat "$TMP_GITFTP_UPLOAD" >> "$tmp_include_filter"
+	[ -s "$TMP_GITFTP_DELETE" ] && cat "$TMP_GITFTP_DELETE" >> "$tmp_include_filter"
+	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$tmp_include_filter"
+	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$tmp_include_filter"
+	rm -f "$tmp_include_filter"
 }
 
 add_include_file() {
@@ -658,11 +661,16 @@ add_include_file() {
 add_missing_files() {
 	local src="$1"
 	local dst="$2"
-	local second_filter="$3"
+	local filter="$3"
 	if [ ! -f "$src" ]; then
 		return
 	fi
-	sort < "$src" | uniq | grep -vFx -f "$dst" | grep -vFx -f "$second_filter" >> "$dst"
+	if [ -s "$filter" ]; then
+		sort < "$src" | uniq | grep -vFx -f "$filter" >> "$dst"
+	else
+		# Skip grep because Mac OS X grep doesn't match anything with an empty file.
+		sort < "$src" | uniq >> "$dst"
+	fi
 	rm -f "$src"
 }
 
@@ -701,7 +709,7 @@ handle_file_sync() {
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | wc -l)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
-	print_info "There are $TOTAL_ITEMS files to sync:"
+	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
 	while read FILE_ITERATOR; do
 		(( DONE_ITEMS++ ))
@@ -740,7 +748,38 @@ decode_filename() {
 
 handle_submodule_sync() {
 	print_info "Handling submodule sync for $1."
+	set_submodule_args
+	(
+		cd "${SYNCROOT}$1" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+	)
 
+	local EXIT_CODE=$?
+
+	# Pushing failed. Submodule may not be initialized
+	if [ "$EXIT_CODE" -eq "$ERROR_DOWNLOAD" ] && [ "$ACTION" == "push" ]; then
+		print_info "Could not push $1, trying to init..."
+		(
+			cd "${SYNCROOT}$1" && "$0" init ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+		)
+		check_exit_status "Failed to sync submodules." "$ERROR_UPLOAD"
+	elif [ $EXIT_CODE -ne 0 ]; then
+		print_error_and_die "Failed to sync submodules." "$ERROR_UPLOAD"
+	fi
+}
+
+submodule_catchup() {
+	[ -z "$GIT_SUBMODULES" ] && return
+	set_submodule_args
+	url="$(git config git-ftp.url)"
+	print_info "Submodules are $GIT_SUBMODULES"
+	for submodule in "$GIT_SUBMODULES"
+	do
+		print_info "Catching up submodule $submodule."
+		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+	done
+}
+
+set_submodule_args() {
 	# Duplicate the current required parameters
 	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
 
@@ -764,23 +803,6 @@ handle_submodule_sync() {
 	fi
 
 	[ $DRY_RUN -eq 1 ] && args+=(--dry-run)
-
-	(
-		cd "${SYNCROOT}$1" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
-	)
-
-	local EXIT_CODE=$?
-
-	# Pushing failed. Submodule may not be initialized
-	if [ "$EXIT_CODE" -eq "$ERROR_DOWNLOAD" ] && [ "$ACTION" == "push" ]; then
-		print_info "Could not push $1, trying to init..."
-		(
-			cd "${SYNCROOT}$1" && "$0" init ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
-		)
-		check_exit_status "Failed to sync submodules." "$ERROR_UPLOAD"
-	elif [ $EXIT_CODE -ne 0 ]; then
-		print_error_and_die "Failed to sync submodules." "$ERROR_UPLOAD"
-	fi
 }
 
 handle_remote_protocol_options() {
@@ -1096,6 +1118,7 @@ action_catchup() {
 	set_remotes
 	set_local_sha1
 	upload_local_sha1
+	submodule_catchup
 	unset_branch
 }
 
