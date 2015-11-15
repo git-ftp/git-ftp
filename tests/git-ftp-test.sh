@@ -620,6 +620,60 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 
+test_download() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rtrn=$?
+	assertEquals 0 $rtrn
+	rm external.txt
+	$GIT_FTP download > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
+test_download_untracked() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	touch 'untracked.file'
+	$GIT_FTP download > /dev/null 2>&1
+	assertEquals 8 $?
+	assertFalse ' external file downloaded' "[ -f 'external.txt' ]"
+	assertTrue ' untracked file deleted' "[ -r 'untracked.file' ]"
+}
+
+test_download_syncroot() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	mkdir foobar && echo "test" > foobar/syncroot.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	init=$($GIT_FTP init --syncroot foobar)
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	$GIT_FTP download --syncroot foobar/ > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertFalse ' external file downloaded to git root' "[ -r 'external.txt' ]"
+	assertTrue ' external file not downloaded to syncroot' "[ -r 'foobar/external.txt' ]"
+}
+
+test_download_dry_run() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
+	$GIT_FTP download --dry-run > /dev/null 2>&1
+	assertEquals 0 $?
+	assertTrue ' external file downloaded' "[ ! -e 'external.txt' ]"
+}
+
 test_submodule() {
 	submodule='sub'
 	file='file.txt'
@@ -676,6 +730,10 @@ remote_file_equals() {
 
 assertContains() {
 	assertTrue "Could not find expression: $1\nTested: $2" "echo \"$2\" | grep '$1'"
+}
+
+skip_without() {
+	command -v $1 > /dev/null || startSkipping
 }
 
 # load and run shUnit2
