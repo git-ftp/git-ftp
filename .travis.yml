@@ -2,6 +2,10 @@ os:
   - linux
   - osx
 
+env:
+  - LFTP_SUPPORT=1
+  - LFTP_SUPPORT=0
+
 language: sh
 
 install:
@@ -17,6 +21,7 @@ install:
       echo anon_other_write_enable=YES | sudo tee -a /etc/vsftpd.conf
       echo anon_root=/var/ftp | sudo tee -a /etc/vsftpd.conf
       sudo service vsftpd restart
+      if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
     fi
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -24,6 +29,7 @@ install:
       echo "modify guest MKD" | sudo tee -a /etc/ftpd.conf
       echo "modify guest RMD" | sudo tee -a /etc/ftpd.conf
       sudo -s launchctl load -w /System/Library/LaunchDaemons/ftp.plist
+      if [ "$LFTP_SUPPORT" -eq 1 ]; then brew install lftp; fi
     fi
 
 before_script:
