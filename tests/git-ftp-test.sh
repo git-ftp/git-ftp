@@ -334,6 +334,15 @@ test_scopes_uses_password_by_cli() {
 	assertEquals 0 $rtrn
 }
 
+test_scopes_add() {
+	add=$($GIT_FTP_CMD add-scope xyz ftpes://user:password@ftp.example.com/xyz)
+	assertEquals 0 $?
+	assertFalse 'Does not display warning with valid URL' "echo $add | grep ^Warning -q"
+	add=$($GIT_FTP_CMD add-scope xyz ftpes://user:pass:word@ftp.example.com/xyz)
+	assertEquals 0 $?
+	assertTrue 'Does display warning invalid URL' "echo $add | grep ^Warning -q"
+}
+
 test_delete() {
 	cd $GIT_PROJECT_PATH
 
