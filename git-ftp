@@ -903,16 +903,6 @@ set_branch() {
     fi
 }
 
-set_current_branch() {
-    local current=$(( git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null ) | sed "s#^refs/heads/##")
-    if [ "$?" -ne "0" ]; then
-	set_local_sha1
-	current=$LOCAL_SHA1
-    fi
-    write_log "Currently on branch $current"
-    CURRENT_BRANCH=$current
-}
-
 unset_branch() {
     if [ ! -z $CURRENT_BRANCH ]; then
 	write_log "Checkout on branch $CURRENT_BRANCH"
