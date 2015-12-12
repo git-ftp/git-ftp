@@ -682,10 +682,10 @@ add_missing_files() {
 filter_ignore_files() {
 	[ -f '.git-ftp-ignore' ] || return
 	local patterns="$TMP_DIR/ignore_tmp"
-	grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > $patterns
-	filter_file $patterns "$1"
-	filter_file $patterns "$2"
-	rm -f $patterns
+	grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > "$patterns"
+	filter_file "$patterns" "$1"
+	filter_file "$patterns" "$2"
+	rm -f "$patterns"
 }
 
 filter_file() {
