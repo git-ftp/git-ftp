@@ -61,7 +61,6 @@ CURL_DISABLE_EPSV=0
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
-TMP_GITFTP=""
 TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
@@ -583,10 +582,10 @@ list_all_files() {
 }
 
 list_changed_files() {
-	git diff --name-status --no-renames "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP"
+	git diff --name-only --no-renames --diff-filter=AM "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_UPLOAD"
+	git diff --name-only --no-renames --diff-filter=D  "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_DELETE"
 	local git_diff_status=$?
 	if [ "$git_diff_status" -ne 0 ]; then
-		rm -f "$TMP_GITFTP"
 		if [ $FORCE -eq 1 ]; then
 			print_info "Unknown SHA1 object, could not determine changed files, taking all files."
 			list_all_files
@@ -608,12 +607,10 @@ list_changed_files() {
 		cleanup
 		unset_branch
 		exit 0
-	elif [ ! -s "$TMP_GITFTP" ]; then
+	elif [ ! -s "$TMP_GITFTP_UPLOAD" -a ! -s "$TMP_GITFTP_DELETE" ]; then
 		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
 		return 1
 	fi
-	grep '^D' "$TMP_GITFTP" | cut -f2- > "$TMP_GITFTP_DELETE"
-	grep -v '^D' "$TMP_GITFTP" | cut -f2- > "$TMP_GITFTP_UPLOAD"
 	return 0
 }
 
@@ -932,7 +929,6 @@ set_tmp() {
 	fi
 	TMP_CURL_UPLOAD_FILE="$TMP_DIR/curl_upload_list"
 	TMP_CURL_DELETE_FILE="$TMP_DIR/curl_delete_list"
-	TMP_GITFTP="$TMP_DIR/git_ftp_tmp"
 	TMP_GITFTP_UPLOAD="$TMP_DIR/upload_tmp"
 	TMP_GITFTP_DELETE="$TMP_DIR/delete_tmp"
 	TMP_GITFTP_INCLUDE="$TMP_DIR/include_tmp"
