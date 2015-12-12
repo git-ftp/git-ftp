@@ -1,7 +1,81 @@
+Version 1.1.0-rc.1
+==================
+
+Benjamin Marguin:
+* Fixed submodule upload with multiple submodules.
+
+Hugo Laloge (laloge_h)
+* Added option to push specific branch.
+
+Alex Hoppen:
+* Added keychain config.
+
+Maikel Linke (mkllnk):
+* Added upload and delete buffers in a curl config file.
+* Added optimisation in include file processing.
+* Added filtering with shell glob patterns instead of regex.
+* Added encoding remote file path for curl.
+* Added misc minor improvements and code optimisations.
+* Docs: Explaining .git-ftp-ignore patterns.
+* Fixed Mac OS X compatibility issues.
+* Added mktemp alternative.
+* Added catchup of submodules.
+
+Tim:
+* Added URL encoding username and password to be used in curl URL.
+
+ysakmrkm:
+* Docs: Add --remote-root to man file.
+
+René Moser:
+* Added -P for interactive password prompt, use -p only for passing password by cli.
+* Added functionality for using temporary directory for temp files.
+* Docs: Updated man page and docs about -P.
+* Removed optimistic directory deletion, fixes GH-168 (reported by Justin Maier)
+
+Version 1.0.0
+=============
+
+Maikel Linke (mkllnk):
+* Added test to ignore single file in root directory.
+* Added Travis support.
+* Added tests for git-ftp-include with git-ftp-ignore.
+* Added test uploading heaps.
+* Improved and extended testing.
+* Improved checking remote access before initial upload.
+* Fixed upload_sha1 at end of push action.
+* Fixed not recognizing different SHA1 object.
+* Fixed upload local sha1 only if files where pushed.
+* Fixed delete buffer. Fire before ARG_MAX reached.
+* Fixed counting bug in handle_file_sync().
+* Fixed upload buffer length check.
+* Fixed prevent deleting of unversioned files.
+* Removed duplicate code of setting curl args.
+
+Andrew Minion, Szerémi Attila, Max Horn, Ryan Ponce, Rob Upcraft, Pablo Alejandro Fiumara:
+* Documentation updates.
+
+René Moser:
+* Fixed scope may not contain spaces
+* Fixed error level of failing delete action.
+* Several improvements.
+
+Sudaraka Wijesinghe:
+* Fix for url from git config not being identified correctly.
+
+Matteo Manchi:
+* Fixed DEPLOYED_SHA1_FILE now cares about scope.
+
+iKasty:
+* Added support for different remote root directory, option --remote-root.
+
+Brad Jones:
+* Fixed delete for SFTP.
+
 Version 1.0.0-rc.2
 ==================
 
-mkllnk:
+Maikel Linke (mkllnk):
 * Added more tests, tests clean up and improvements. See README.md in /tests.
 * Improved docs.
 
