@@ -786,7 +786,9 @@ test_pull_stash() {
 	git stash -u -q
 	pull=$($GIT_FTP pull 2> /dev/null)
 	assertEquals 0 $?
-	assertEquals 1 "$(git stash list | wc -l)"
+	stash_count="$(git stash list | wc -l)"
+	stash_count=$((stash_count+0)) # trims whitespaces produced by wc on OSX
+	assertEquals 1 "$stash_count"
 	assertFalse 'internal.txt appeared' "[ -f internal.txt ]"
 	assertEquals '' "$(git log -- 'internal.txt')"
 }
