@@ -616,64 +616,39 @@ list_changed_files() {
 
 add_include_files() {
 	[ -f '.git-ftp-include' ] || return
-	local tmp_include_delete="$TMP_DIR/include_delete_tmp"
-	local tmp_include_upload="$TMP_DIR/include_upload_tmp"
 	local tmp_include_filter="$TMP_DIR/include_filter_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
-		add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
+		add_include_file "$TARGET"
 	done
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
 		if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
-			add_include_file "$TARGET" "$tmp_include_upload" "$tmp_include_delete"
+			add_include_file "$TARGET"
 		fi
 	done
 	rm -f "$TMP_GITFTP_INCLUDE"
-	[ -s "$TMP_GITFTP_UPLOAD" ] && cat "$TMP_GITFTP_UPLOAD" >> "$tmp_include_filter"
-	[ -s "$TMP_GITFTP_DELETE" ] && cat "$TMP_GITFTP_DELETE" >> "$tmp_include_filter"
-	add_missing_files "$tmp_include_upload" "$TMP_GITFTP_UPLOAD" "$tmp_include_filter"
-	add_missing_files "$tmp_include_delete" "$TMP_GITFTP_DELETE" "$tmp_include_filter"
-	rm -f "$tmp_include_filter"
 }
 
 add_include_file() {
 	local TARGET="${1}"
-	local tmp_include_upload="${2}"
-	local tmp_include_delete="${3}"
 	if [ -e "$TARGET" ]; then
 		if [ -d "$TARGET" ]; then
 			write_log "Including all files in $TARGET for upload."
-			find "$TARGET" -type f >> "$tmp_include_upload"
+			find "$TARGET" -type f >> "$TMP_GITFTP_UPLOAD"
 		elif [ -f "$TARGET" ]; then
 			write_log "Including $TARGET for upload."
-			echo "$TARGET" >> "$tmp_include_upload"
+			echo "$TARGET" >> "$TMP_GITFTP_UPLOAD"
 		fi
 	else
 		if echo "$TARGET" | grep -v '/$'; then
 			write_log "Including $TARGET for deletion."
-			echo "$TARGET" >> "$tmp_include_delete"
+			echo "$TARGET" >> "$TMP_GITFTP_DELETE"
 		else
 			write_log "Deletion of directory $TARGET is not supported."
 		fi
 	fi
-}
-
-add_missing_files() {
-	local src="$1"
-	local dst="$2"
-	local filter="$3"
-	if [ ! -f "$src" ]; then
-		return
-	fi
-	if [ -s "$filter" ]; then
-		sort < "$src" | uniq | grep -vFx -f "$filter" >> "$dst"
-	else
-		# Skip grep because Mac OS X grep doesn't match anything with an empty file.
-		sort < "$src" | uniq >> "$dst"
-	fi
-	rm -f "$src"
 }
 
 filter_ignore_files() {
@@ -707,6 +682,8 @@ handle_file_sync() {
 		print_info "There are no files to sync."
 		return
 	fi
+	sort -u -o "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_UPLOAD"
+	sort -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
 	# Calculate total file count
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | wc -l)
