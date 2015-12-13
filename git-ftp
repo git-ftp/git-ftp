@@ -577,13 +577,13 @@ set_changed_files() {
 }
 
 list_all_files() {
-	git ls-files -- "$SYNCROOT" > "$TMP_GITFTP_UPLOAD"
+	git ls-files -z -- "$SYNCROOT" > "$TMP_GITFTP_UPLOAD"
 	touch "$TMP_GITFTP_DELETE"
 }
 
 list_changed_files() {
-	git diff --name-only --no-renames --diff-filter=AM "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_UPLOAD"
-	git diff --name-only --no-renames --diff-filter=D  "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_DELETE"
+	git diff --name-only --no-renames --diff-filter=AM -z "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_UPLOAD"
+	git diff --name-only --no-renames --diff-filter=D  -z "$DEPLOYED_SHA1" -- "$SYNCROOT" 2>/dev/null > "$TMP_GITFTP_DELETE"
 	local git_diff_status=$?
 	if [ "$git_diff_status" -ne 0 ]; then
 		if [ $FORCE -eq 1 ]; then
@@ -624,7 +624,7 @@ add_include_files() {
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
-		if grep -Fxq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
+		if grep -Fxzq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
 			add_include_file "$TARGET"
 		fi
 	done
@@ -636,15 +636,15 @@ add_include_file() {
 	if [ -e "$TARGET" ]; then
 		if [ -d "$TARGET" ]; then
 			write_log "Including all files in $TARGET for upload."
-			find "$TARGET" -type f >> "$TMP_GITFTP_UPLOAD"
+			find "$TARGET" -type f -print0 >> "$TMP_GITFTP_UPLOAD"
 		elif [ -f "$TARGET" ]; then
 			write_log "Including $TARGET for upload."
-			echo "$TARGET" >> "$TMP_GITFTP_UPLOAD"
+			printf '%s\0' "$TARGET" >> "$TMP_GITFTP_UPLOAD"
 		fi
 	else
 		if echo "$TARGET" | grep -v '/$'; then
 			write_log "Including $TARGET for deletion."
-			echo "$TARGET" >> "$TMP_GITFTP_DELETE"
+			printf '%s\0' "$TARGET" >> "$TMP_GITFTP_DELETE"
 		else
 			write_log "Deletion of directory $TARGET is not supported."
 		fi
@@ -668,12 +668,12 @@ filter_file() {
 # Original implementation http://stackoverflow.com/a/27718468/3377535
 glob_filter() {
 	local patterns="$1"
-	while IFS= read -r filename; do
+	while IFS= read -r -d '' filename; do
 		local hasmatch=0
 		while IFS= read -r pattern; do
 			case $filename in ($pattern) hasmatch=1; break ;; esac
 		done < "$patterns"
-		test $hasmatch = 1 || printf '%s\n' "$filename"
+		test $hasmatch = 1 || printf '%s\0' "$filename"
 	done
 }
 
@@ -682,17 +682,16 @@ handle_file_sync() {
 		print_info "There are no files to sync."
 		return
 	fi
-	sort -u -o "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_UPLOAD"
-	sort -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
+	sort -z -u -o "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_UPLOAD"
+	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
 	# Calculate total file count
 	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | wc -l)
+	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | sed "s/[^\x00]//g" |wc -c)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
-	while read FILE_ITERATOR; do
+	while IFS= read -r -d '' FILE_NAME; do
 		(( DONE_ITEMS++ ))
-		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
 		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for upload '$FILE_NAME'."
 		if is_submodule "$FILE_NAME"; then
 			handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
@@ -702,9 +701,8 @@ handle_file_sync() {
 	done < "$TMP_GITFTP_UPLOAD"
 	fire_upload_buffer
 
-	while read FILE_ITERATOR; do
+	while IFS= read -r -d '' FILE_NAME; do
 		(( DONE_ITEMS++ ))
-		FILE_NAME="$(decode_filename "$FILE_ITERATOR")"
 		print_info "[$DONE_ITEMS of $TOTAL_ITEMS] Buffered for delete '$FILE_NAME'."
 		if [ $DRY_RUN -ne 1 ]; then
 			local file="${FILE_NAME#$SYNCROOT}"
@@ -712,17 +710,6 @@ handle_file_sync() {
 		fi
 	done < "$TMP_GITFTP_DELETE"
 	fire_delete_buffer
-}
-
-# decodes UTF-8 filenames
-decode_filename() {
-	# git stores names like: forl\303\270b.xml
-	local git_name="$1"
-	# printf restores that to: forløb.xml
-	local decoded="$(printf "$git_name")"
-	decoded="${decoded/#\"/}"
-	decoded="${decoded/%\"/}"
-	echo "$decoded"
 }
 
 handle_submodule_sync() {
