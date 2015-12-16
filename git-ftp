@@ -616,18 +616,27 @@ list_changed_files() {
 
 add_include_files() {
 	[ -f '.git-ftp-include' ] || return
-	local tmp_include_filter="$TMP_DIR/include_filter_tmp"
+	local tmp_include_sources="$TMP_DIR/include_sources_tmp"
 	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
 		add_include_file "$TARGET"
 	done
+	# test if grep knows --null-data (GNU grep) or not (OSX grep)
+	if echo 'test' | grep -q --null-data 'test' 2> /dev/null; then
+		cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" > "$tmp_include_sources"
+		grep_cmd='grep --null-data'
+	else
+		cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr "\0" "\n" > "$tmp_include_sources"
+		grep_cmd='grep'
+	fi
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET=${LINE%%:*}
 		local SOURCE=${LINE#*:}
-		if grep -Fxzq "$SOURCE" "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"; then
+		if $grep_cmd -Fxq "$SOURCE" "$tmp_include_sources"; then
 			add_include_file "$TARGET"
 		fi
 	done
+	rm -f "$tmp_include_sources"
 	rm -f "$TMP_GITFTP_INCLUDE"
 }
 
