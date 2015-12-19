@@ -13,6 +13,7 @@ install:
   - sudo chmod a+rwx /var/ftp/pub
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      sudo apt-get update -y
       sudo apt-get install -y vsftpd
       echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
       echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
