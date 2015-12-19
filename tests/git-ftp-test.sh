@@ -148,7 +148,6 @@ test_push_unknown_commit() {
 }
 
 test_push_nothing() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	# make some changes
 	echo "1" >> "./test 1.txt"
@@ -871,6 +870,10 @@ skip_without() {
 	command -v $1 > /dev/null || startSkipping
 }
 
+# Git for Windows running with Wine doesn't handle unicode well.
+# Unicode filenames don't work on Windows at the moment.
+# - `sort -u` thinks that 'a' equals 'ä' and therefore omits 'ä'.
+# - `curl` fails to open files with unicode in their name bagder/curl#345
 supports_unicode() {
 	count="$(printf 'a\nä\n' | sort -u | wc -l)"
 	count=$((count+0)) # trims whitespaces produced by wc on OSX

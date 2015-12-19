@@ -407,7 +407,7 @@ upload_file_buffered() {
 		DEST_FILE="${SRC_FILE#$SYNCROOT}"
 	fi
 
-	local ENC_DEST_FILE="$(urlencode "$DEST_FILE" '[-_.~a-zA-Z0-9/]')"
+	local ENC_DEST_FILE="$(encode_hash "$DEST_FILE")"
 	echo "-T \"./$SRC_FILE\"" >> "$TMP_CURL_UPLOAD_FILE"
 	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
@@ -695,7 +695,7 @@ handle_file_sync() {
 	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
 	# Calculate total file count
 	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | sed "s/[^\x00]//g" |wc -c)
+	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' |wc -c)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
@@ -966,6 +966,10 @@ urlencode() {
 		encoded+="${o}"
 	done
 	echo "${encoded}"
+}
+
+encode_hash() {
+	printf "${1}" | sed s/#/%23/g
 }
 
 set_curl_insecure() {
