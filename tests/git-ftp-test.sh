@@ -148,7 +148,6 @@ test_push_unknown_commit() {
 }
 
 test_push_nothing() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	# make some changes
 	echo "1" >> "./test 1.txt"
@@ -619,6 +618,22 @@ test_file_with_nonchar() {
 	assertFalse "file $file2 still exists in $CURL_URL" "remote_file_exists '$file2enc'"
 }
 
+# issue #209
+test_file_with_unicode() {
+	supports_unicode || startSkipping
+	file1='umlaut_ä.md'
+	file1enc='umlaut_%C3%A4.md'
+	echo 'content' > "$file1"
+	git add .
+	git commit -a -m 'added special filenames' -q
+	init=$($GIT_FTP init)
+	assertTrue " file $file1 not uploaded" "remote_file_equals '$file1' '$file1enc'"
+	git rm "$file1" -q
+	git commit -m 'delete' -q
+	push=$($GIT_FTP push)
+	assertFalse "file $file1 still exists in $CURL_URL" "remote_file_exists '$file1enc'"
+}
+
 test_syncroot() {
 	cd $GIT_PROJECT_PATH
 	syncroot='foo bar'
@@ -853,6 +868,16 @@ assertContains() {
 
 skip_without() {
 	command -v $1 > /dev/null || startSkipping
+}
+
+# Git for Windows running with Wine doesn't handle unicode well.
+# Unicode filenames don't work on Windows at the moment.
+# - `sort -u` thinks that 'a' equals 'ä' and therefore omits 'ä'.
+# - `curl` fails to open files with unicode in their name bagder/curl#345
+supports_unicode() {
+	count="$(printf 'a\nä\n' | sort -u | wc -l)"
+	count=$((count+0)) # trims whitespaces produced by wc on OSX
+	test "$count" = "2"
 }
 
 # load and run shUnit2
