@@ -229,7 +229,7 @@ has() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule status -- "$syncroot" | grep -v '^-' | awk '{print $2}')"
+	GIT_SUBMODULES="$(git submodule status -- "$syncroot" 2>/dev/null | grep -v '^-' | awk '{print $2}')"
 }
 
 is_submodule() {
