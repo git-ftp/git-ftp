@@ -795,7 +795,7 @@ handle_remote_protocol_options() {
 		fi
 		
 		# SFTP uses a different remove command and uses absolute paths
-		REMOTE_DELETE_CMD="rm /"
+		REMOTE_DELETE_CMD="-*rm /"
 	fi
 
 	# Check for using cacert
