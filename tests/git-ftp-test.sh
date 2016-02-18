@@ -24,7 +24,8 @@ suite() {
 }
 
 oneTimeSetUp() {
-	GIT_FTP_CMD="$TESTDIR/../git-ftp"
+	GIT_FTP_CMD="$(dirname "$TESTDIR")/git-ftp"
+
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
 	: ${GIT_FTP_ROOT=localhost}
@@ -878,12 +879,12 @@ supports_unicode() {
 	test "$count" = "2"
 }
 
-get_real_path() {
+abs_dirname() {
 	# Some systems don't know the `realpath` command and `readlink -f` doesn't work on OSX ...
 	# use workaround from http://stackoverflow.com/a/3572105
-	(cd $(dirname $1) && echo $PWD/$(basename $1))
+	(cd "$(dirname "$1")" && echo "$PWD")
 }
 
 # load and run shUnit2
-TESTDIR=$(dirname $(get_real_path $0))
+TESTDIR="$(abs_dirname "$0")"
 . $TESTDIR/shunit2-2.1.6/src/shunit2
