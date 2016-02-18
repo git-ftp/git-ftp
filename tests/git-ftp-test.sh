@@ -878,6 +878,12 @@ supports_unicode() {
 	test "$count" = "2"
 }
 
+get_real_path() {
+	# Some systems don't know the `realpath` command and `readlink -f` doesn't work on OSX ...
+	# use workaround from http://stackoverflow.com/a/3572105
+	(cd $(dirname $1) && echo $PWD/$(basename $1))
+}
+
 # load and run shUnit2
-TESTDIR=$(dirname $(realpath $0))
+TESTDIR=$(dirname $(get_real_path $0))
 . $TESTDIR/shunit2-2.1.6/src/shunit2
