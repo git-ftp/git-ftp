@@ -24,7 +24,7 @@ suite() {
 }
 
 oneTimeSetUp() {
-	GIT_FTP_CMD="$(pwd)/../git-ftp"
+	GIT_FTP_CMD="$TESTDIR/../git-ftp"
 	: ${GIT_FTP_USER=ftp}
 	: ${GIT_FTP_PASSWD=}
 	: ${GIT_FTP_ROOT=localhost}
@@ -879,5 +879,5 @@ supports_unicode() {
 }
 
 # load and run shUnit2
-TESTDIR=$(dirname $0)
+TESTDIR=$(dirname $(realpath $0))
 . $TESTDIR/shunit2-2.1.6/src/shunit2
