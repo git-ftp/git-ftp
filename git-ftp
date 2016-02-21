@@ -177,7 +177,6 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
-	--verbose-commit	Include list of modified files in commit message after the pull.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
@@ -1061,12 +1060,7 @@ fetch_remote() {
 	download_remote_updates
 	[ $DRY_RUN -ne 1 ] || return
 	git add --all
-	local default_commit_message='[git-ftp] remotely untracked modifications'
-	if [ $VERBOSE_COMMIT -eq 1 ] ; then
-		git commit -m "$default_commit_message" -m "`git diff HEAD --name-status`" | grep -v '^#'
-	else
-		git commit -m "$default_commit_message" | grep -v '^#'
-	fi
+	git commit -m '[git-ftp] remotely untracked modifications' -m "`git diff HEAD --name-status`" | grep -v '^#'
 	set_local_sha1
 	upload_local_sha1
 }
@@ -1515,10 +1509,6 @@ do
 		--no-commit)
 			MERGE_ARGS="$MERGE_ARGS --no-commit"
 			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
-			;;
-		--verbose-commit)
-			VERBOSE_COMMIT=1
-			write_log "Enabling verbose commit message"
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then

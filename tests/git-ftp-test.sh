@@ -712,6 +712,7 @@ test_pull() {
 	rtrn=$?
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertTrue ' external file not listed in commit message' "git log | grep 'external.txt'"
 }
 
 test_pull_nothing() {
@@ -760,27 +761,6 @@ test_pull_no_commit() {
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
 	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
-}
-
-test_pull_verbose_commit() {
-	skip_without lftp
-	cd $GIT_PROJECT_PATH
-	$GIT_FTP init > /dev/null
-	echo 'foreign content' > external.txt
-	curl -T external.txt $CURL_URL/ 2> /dev/null
-	rm external.txt
-	$GIT_FTP pull > /dev/null 2>&1
-	rtrn=$?
-	assertEquals 0 $rtrn
-	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
-	assertFalse ' got verbose commit message although option was not set' "git log -1 | grep 'external.txt'"
-	echo 'even more foreign content' > external2.txt
-	curl -T external2.txt $CURL_URL/ 2> /dev/null
-	rm external2.txt
-	$GIT_FTP pull --verbose-commit > /dev/null 2>&1
-	rtrn=$?
-	assertEquals 0 $rtrn
-	assertTrue ' changed file not listed in verbose commit message' "git log -1 | grep 'external2.txt'"
 }
 
 test_pull_dry_run() {
