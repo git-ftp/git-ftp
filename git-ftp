@@ -1060,7 +1060,7 @@ fetch_remote() {
 	download_remote_updates
 	[ $DRY_RUN -ne 1 ] || return
 	git add --all
-	git commit -m '[git-ftp] remotely untracked modifications' | grep -v '^#'
+	git commit -m '[git-ftp] remotely untracked modifications' -m "`git diff HEAD --name-status`" | grep -v '^#'
 	set_local_sha1
 	upload_local_sha1
 }
