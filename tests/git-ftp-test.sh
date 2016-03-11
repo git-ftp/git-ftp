@@ -544,6 +544,16 @@ test_include_ignore_push() {
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
 }
 
+# Testing Github issue #245
+test_include_ignore_all_push() {
+	init=$($GIT_FTP init)
+	echo 'always include me' > untracked.txt
+	echo '!untracked.txt' > .git-ftp-include
+	git commit --allow-empty -m 'There are no changed files in this commit.' -q
+	push=$($GIT_FTP push)
+	assertTrue ' include file always' "remote_file_exists 'untracked.txt'"
+}
+
 test_include_ftp_ignore_init() {
 	cd $GIT_PROJECT_PATH
 	echo 'htaccess' > .htaccess

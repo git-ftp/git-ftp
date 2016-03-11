@@ -565,7 +565,7 @@ set_changed_files() {
 		write_log "Taking all files.";
 		list_all_files
 	else
-		list_changed_files || return
+		list_changed_files
 	fi
 	add_include_files
 	filter_ignore_files "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
@@ -589,7 +589,7 @@ list_changed_files() {
 		if [ $FORCE -eq 1 ]; then
 			print_info "Unknown SHA1 object, could not determine changed files, taking all files."
 			list_all_files
-			return 0
+			return
 		fi
 		print_info "Unknown SHA1 object, make sure you are deploying the right branch and it is up-to-date."
 		echo -n "Do you want to ignore and upload all files again? [y/N]: "
@@ -601,7 +601,6 @@ list_changed_files() {
 		fi
 		write_log "Taking all files.";
 		list_all_files
-		return 0
 	elif [ "$LOCAL_SHA1" == "$DEPLOYED_SHA1" ]; then
 		print_info "No changed files for $REMOTE_HOST/$REMOTE_PATH. Everything up-to-date."
 		cleanup
@@ -609,9 +608,7 @@ list_changed_files() {
 		exit 0
 	elif [ ! -s "$TMP_GITFTP_UPLOAD" -a ! -s "$TMP_GITFTP_DELETE" ]; then
 		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
-		return 1
 	fi
-	return 0
 }
 
 add_include_files() {
