@@ -1,3 +1,21 @@
+Version 1.2.0-rc.1
+==================
+
+File selecting:
+* Consider .git-ftp-include even if no files changed
+* Let curl encode file names
+* Separate filenames by nul instead of newline
+* Using --diff-filter to list added/changed/deleted files
+
+Submodules:
+* Suppress submodule status error message of git v2.7
+* Ignore uninitialised submodules
+
+New features:
+* Pull feature
+* Download feature using lftp
+
+
 Version 1.1.0-rc.1
 ==================
 
