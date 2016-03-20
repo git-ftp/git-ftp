@@ -2,10 +2,12 @@ SHELL=/bin/sh
 
 # files that need mode 644
 MAN_FILE=git-ftp.1
-HTML_FILE=html/git-ftp.html
+HTML_FILE=git-ftp.html
 
 all:
 	@echo "usage: make man"
+	@echo "       make man-ronn  # use ronn instead of pandoc"
+	@echo "       make html"
 	@echo "       make clean"
 man:
 	pandoc -s \

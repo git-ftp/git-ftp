@@ -1,8 +1,7 @@
 body {
-    color: black;
     font-family: Verdana, sans-serif;
     font-size: 100%;
-    color: #333; 
+    color: #333;
 }
 pre {
     border: 1px dotted gray;
@@ -13,9 +12,9 @@ pre {
 code {
     font-family: monospace;
 }
-h1 a, h2 a, h3 a, h4 a, h5 a { 
+h1 a, h2 a, h3 a, h4 a, h5 a {
     text-decoration: none;
-    color: #7a5ada; 
+    color: #7a5ada;
 }
 h1, h2, h3, h4, h5 { font-family: verdana;
                      font-weight: bold;
@@ -43,7 +42,7 @@ h5 {
         font-style: italic;
 }
 
-h1.title {
+.title {
         font-size: 200%;
         font-weight: bold;
         padding-top: 0.2em;
