@@ -219,21 +219,12 @@ usage() {
 	exit "$ERROR_USAGE"
 }
 
-escape() {
-	echo "$1" | sed 's/\([\.\+\$]\)/\\\1/g'
-}
-
-has() {
-	local item=$1; shift
-	echo " $@ " | grep -q " $(escape "$item") "
-}
-
 cache_git_submodules() {
 	GIT_SUBMODULES="$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"
 }
 
 is_submodule() {
-	has "$1" ${GIT_SUBMODULES[@]}
+	echo "${GIT_SUBMODULES[@]}" | grep -Fx "$1"
 }
 
 ask_for_passwd() {
@@ -260,7 +251,7 @@ get_keychain_password () {
 		[ -n "$KEYCHAIN_HOST" ] && CURL_ARGS+=(-s "$KEYCHAIN_HOST")
 
 		local pass
-		if pass="$(security find-internet-password ${CURL_ARGS[@]} -g 2>&1 > /dev/null)"; then
+		if pass="$(security find-internet-password "${CURL_ARGS[@]}" -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
@@ -720,7 +711,7 @@ handle_submodule_sync() {
 	print_info "Handling submodule sync for $1."
 	set_submodule_args
 	(
-		cd "${SYNCROOT}$1" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+		cd "${SYNCROOT}$1" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
 	)
 
 	local EXIT_CODE=$?
@@ -729,7 +720,7 @@ handle_submodule_sync() {
 	if [ "$EXIT_CODE" -eq "$ERROR_DOWNLOAD" ] && [ "$ACTION" == "push" ]; then
 		print_info "Could not push $1, trying to init..."
 		(
-			cd "${SYNCROOT}$1" && "$0" init ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
+			cd "${SYNCROOT}$1" && "$0" init "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$1"
 		)
 		check_exit_status "Failed to sync submodules." "$ERROR_UPLOAD"
 	elif [ $EXIT_CODE -ne 0 ]; then
@@ -742,10 +733,10 @@ submodule_catchup() {
 	set_submodule_args
 	url="$(git config git-ftp.url)"
 	print_info "Submodules are $GIT_SUBMODULES"
-	for submodule in "$GIT_SUBMODULES"
+	for submodule in "${GIT_SUBMODULES[@]}"
 	do
 		print_info "Catching up submodule $submodule."
-		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" ${args[@]} "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
 	done
 }
 
@@ -1042,7 +1033,7 @@ remove_scope() {
 }
 
 set_current_branch() {
-	local current=$(( git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null ) | sed "s#^refs/heads/##")
+	local current=$( (git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null) | sed "s#^refs/heads/##")
 	if [ "$?" -ne "0" ]; then
 		set_local_sha1
 		current=$LOCAL_SHA1
