@@ -440,11 +440,9 @@ test_ignore_wildcard_files() {
 }
 
 test_include_init() {
-	cd $GIT_PROJECT_PATH
 	echo 'unversioned' > unversioned.txt
 	echo 'unversioned.txt' >> .gitignore
 	echo 'unversioned.txt:test 1.txt' > .git-ftp-include
-	echo 'new content' >> 'test 1.txt'
 	git add .
 	git commit -m 'unversioned file unversioned.txt should be uploaded with test 1.txt' > /dev/null
 	init=$($GIT_FTP init)
@@ -594,6 +592,23 @@ test_include_similar() {
 	init=$($GIT_FTP init)
 	assertTrue 'foo.html was not uploaded' "remote_file_exists 'foo.html'"
 	assertTrue 'templates/foo.html was not uploaded' "remote_file_exists 'templates/foo.html'"
+}
+
+# resolves issue #245
+test_include_syncroot() {
+	syncroot="dist"
+	targetfile="main.css"
+	target="$syncroot/$targetfile"
+	source="main.scss"
+	touch "$source"
+	mkdir "$syncroot"
+	touch "$target"
+	echo "$syncroot" > ".gitignore"
+	echo "$target:/$source" > ".git-ftp-include"
+	git add . > /dev/null
+	git commit -a -m "test uploading only dist files" -q
+	init=$($GIT_FTP init --syncroot "$syncroot")
+	assertTrue "remote file '$targetfile'" "remote_file_exists '$targetfile'"
 }
 
 test_hidden_file_only() {

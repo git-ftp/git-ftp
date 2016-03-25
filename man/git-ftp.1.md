@@ -246,6 +246,12 @@ Whenever one of the tracked files changes, the upload of the paired untracked fi
 
 If a local untracked file is deleted, a paired tracked file will trigger the deletion of the remote file on the server.
 
+When using the `--syncroot` option, all paths are relative to the set syncroot.
+If your source file is outside the syncroot, add a / and define a path relative to the Git working directory.
+
+	# upload "dist/style.css" with syncroot "dist"
+	style.css:/style.scss
+
 It is also possible to upload whole directories.
 For example, if you use a package manager like composer, you can upload all vendor packages when the file composer.lock changes:
 

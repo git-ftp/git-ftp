@@ -618,18 +618,16 @@ add_include_files() {
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
 		add_include_file "$TARGET"
 	done
-	# test if grep knows --null-data (GNU grep) or not (OSX grep)
-	if echo 'test' | grep -q --null-data 'test' 2> /dev/null; then
-		cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" > "$tmp_include_sources"
-		grep_cmd='grep --null-data'
-	else
-		cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr "\0" "\n" > "$tmp_include_sources"
-		grep_cmd='grep'
-	fi
+	local AGAINST="${DEPLOYED_SHA1:-"$(git hash-object -t tree /dev/null)"}"
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
-		local TARGET=${LINE%%:*}
-		local SOURCE=${LINE#*:}
-		if $grep_cmd -Fxq "$SOURCE" "$tmp_include_sources"; then
+		local TARGET="${LINE%%:*}"
+		local SOURCE="${LINE#*:}"
+		if echo "$SOURCE" | grep '^/'; then
+			SOURCE="${SOURCE%%/*}"
+		elif [ -n "$SYNCROOT" ]; then
+			SOURCE="$SYNCROOT/$SOURCE"
+		fi
+		if ! git diff --quiet "$AGAINST" -- "$SOURCE"; then
 			add_include_file "$TARGET"
 		fi
 	done
