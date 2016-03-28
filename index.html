@@ -5,9 +5,9 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
-    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
 
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -20,64 +20,86 @@
     <header>
       <div class="inner">
         <h1>Git-ftp</h1>
-        <h2>Git powered FTP client written as shell script.</h2>
-        <a href="https://github.com/git-ftp/git-ftp" class="button"><small>View project on</small>GitHub</a>
+        <h2>Upload to FTP servers the Git way</h2>
+        <a href="https://github.com/git-ftp/git-ftp" class="button"><small>View project on</small> GitHub</a>
       </div>
     </header>
 
     <div id="content-wrapper">
       <div class="inner clearfix">
         <section id="main-content">
-          <h1>
-<a name="readme-of-git-ftp" class="anchor" href="#readme-of-git-ftp"><span class="octicon octicon-link"></span></a>README of git-ftp</h1>
+          <p>If you use Git and you need to upload your files to an FTP server,
+Git-ftp can save you some time and bandwidth by uploading only those files that
+changed since the last upload.</p>
+
+<p>It keeps track of the uploaded files by storing the commit id
+in a log file on the server. It uses Git to determine which local
+files have changed.</p>
+
+<p>You can easily deploy another branch or go back in the Git history to upload
+an older version.</p>
+
+<div class="highlight highlight-source-shell"><pre><span class="pl-c"># Setup</span>
+git config git-ftp.url ftp.example.net
+git config git-ftp.user ftp-user
+git config git-ftp.password secr3t
+
+<span class="pl-c"># Upload all files</span>
+git ftp init
+
+<span class="pl-c"># Or if the files are already there</span>
+git ftp catchup
+
+<span class="pl-c"># Work and deploy</span>
+<span class="pl-c1">echo</span> <span class="pl-s"><span class="pl-pds">"</span>new content<span class="pl-pds">"</span></span> <span class="pl-k">&gt;&gt;</span> index.txt
+git commit index.txt -m <span class="pl-s"><span class="pl-pds">"</span>Add new content<span class="pl-pds">"</span></span>
+git ftp push
+<span class="pl-c"># 1 file to sync:</span>
+<span class="pl-c"># [1 of 1] Buffered for upload 'index.txt'.</span>
+<span class="pl-c"># Uploading ...</span>
+<span class="pl-c"># Last deployment changed to ded01b27e5c785fb251150805308d3d0f8117387.</span></pre></div>
+
+<h2>
+<a id="further-reading" class="anchor" href="#further-reading" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Further Reading</h2>
 
 <ul>
-<li>This application is licenced under <a href="http://www.gnu.org/licenses/gpl-3.0-standalone.html">GNU General Public License, Version 3.0</a>
-</li>
-</ul><h2>
-<a name="summary" class="anchor" href="#summary"><span class="octicon octicon-link"></span></a>Summary</h2>
-
-<p>Git powered FTP client written as shell script.</p>
-
-<h2>
-<a name="about" class="anchor" href="#about"><span class="octicon octicon-link"></span></a>About</h2>
-
-<p>I use git-ftp for my script based projects, mostly PHP. Most of the low-cost
-web hosting companies do not provide SSH or git support, but only FTP.</p>
-
-<p>That is why I needed an easy way to deploy my git tracked projects. Instead of
-transfering the whole project, I thought, why not only transfer the files
-that changed since the last time, git can tell me those files.</p>
-
-<p>Even if you are playing with different branches, git-ftp knows which files
-are different. No ordinary FTP client can do that.</p>
+<li>Read the <a href="man/git-ftp.1.md">manual</a> for more options, features and examples.</li>
+<li>See the <a href="INSTALL.md">installtion instructions</a> for your system.</li>
+<li>Check <a href="http://github.com/git-ftp/git-ftp/issues">git-ftp issues on GitHub</a> for open issues.</li>
+<li>Follow this project on twitter <a href="https://twitter.com/gitftp">@gitftp</a>.</li>
+</ul>
 
 <h2>
-<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+<a id="limitations" class="anchor" href="#limitations" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Limitations</h2>
 
-<pre><code>$ cd my_git_tracked_project
-$ git ftp push --user &lt;user&gt; --passwd &lt;password&gt; ftp://host.example.com/public_html
-</code></pre>
+<ul>
+<li>Windows and OS X: I am very limited in testing on Windows and OS X. Thanks
+for helping me out fixing bugs on these platforms.</li>
+<li>git-ftp as deployment tool: git-ftp was not designed as centralized
+deployment tool. While running git-ftp, you have to take care, no one pushes or
+touches this repo (e.g. no commits, no checkouts, no file modifications)!</li>
+</ul>
 
-<p>For interactive password prompt use:</p>
+<h2>
+<a id="contributions" class="anchor" href="#contributions" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Contributions</h2>
 
-<pre><code>$ git ftp push -u &lt;user&gt; -p - ftp://host.example.com/public_html
-</code></pre>
+<p>Don't hesitate to improve this tool.
+Don't forget to add yourself to the <a href="AUTHORS">AUTHORS</a> file.
+Core functionality is unit tested using shunit2.
+You can find the tests in <code>tests/</code>.</p>
 
-<p>Pushing for the first time:</p>
+<h2>
+<a id="copyright" class="anchor" href="#copyright" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Copyright</h2>
 
-<pre><code>$ git ftp init -u &lt;user&gt; -p - ftp://host.example.com/public_html
-</code></pre>
-
-<p>See <a href="https://github.com/git-ftp/git-ftp/blob/releases/0.9.x/man/git-ftp.1.md">man page</a> for more options, features and examples!</p>
+<p>This application is licensed under <a href="http://www.gnu.org/licenses/gpl-3.0-standalone.html">GNU General Public License, Version 3.0</a></p>
         </section>
 
         <aside id="sidebar">
-          <a href="https://github.com/git-ftp/git-ftp/zipball/develop" class="button">
+          <a href="https://github.com/git-ftp/git-ftp/zipball/master" class="button">
             <small>Download</small>
             .zip file
           </a>
-          <a href="https://github.com/git-ftp/git-ftp/tarball/develop" class="button">
+          <a href="https://github.com/git-ftp/git-ftp/tarball/master" class="button">
             <small>Download</small>
             .tar.gz file
           </a>

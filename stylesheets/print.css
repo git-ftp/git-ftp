@@ -7,19 +7,19 @@ b, u, i, center,
 dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
 menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
-  margin: 0;
   padding: 0;
-  border: 0;
-  font-size: 100%;
+  margin: 0;
   font: inherit;
+  font-size: 100%;
   vertical-align: baseline;
+  border: 0;
 }
 /* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
+article, aside, details, figcaption, figure,
 footer, header, hgroup, menu, nav, section {
   display: block;
 }
@@ -38,19 +38,19 @@ q:before, q:after {
   content: none;
 }
 table {
-  border-collapse: collapse;
   border-spacing: 0;
+  border-collapse: collapse;
 }
 body {
-  font-size: 13px;
-  line-height: 1.5; 
   font-family: 'Helvetica Neue', Helvetica, Arial, serif;
+  font-size: 13px;
+  line-height: 1.5;
   color: #000;
 }
 
 a {
-  color: #d5000d;
   font-weight: bold;
+  color: #d5000d;
 }
 
 header {
@@ -59,19 +59,19 @@ header {
 }
 
 header h1 {
-  font-weight: bold;
-  letter-spacing: -1px;
   font-size: 48px;
-  color: #303030;
+  font-weight: bold;
   line-height: 1.2;
+  color: #303030;
+  letter-spacing: -1px;
 }
 
 header h2 {
-  letter-spacing: -1px;
   font-size: 24px;
-  color: #aaa;
   font-weight: normal;
   line-height: 1.3;
+  color: #aaa;
+  letter-spacing: -1px;
 }
 #downloads {
   display: none;
@@ -81,10 +81,10 @@ header h2 {
 }
 
 code, pre {
-  font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal;
-  color: #222;
   margin-bottom: 30px;
+  font-family: Monaco, "Bitstream Vera Sans Mono", "Lucida Console", Terminal;
   font-size: 12px;
+  color: #222;
 }
 
 code {
@@ -92,9 +92,9 @@ code {
 }
 
 pre {
-  border: solid 1px #ddd;
   padding: 20px;
   overflow: auto;
+  border: solid 1px #ddd;
 }
 pre code {
   padding: 0;
@@ -117,15 +117,15 @@ th {
 }
 
 td {
-  border: 1px solid #ebebeb;
-  text-align: center; 
   font-weight: 300;
+  text-align: center;
+  border: 1px solid #ebebeb;
 }
 
 form {
-  background: #f2f2f2;
   padding: 20px;
-  
+  background: #f2f2f2;
+
 }
 
 
@@ -133,43 +133,43 @@ form {
 
 h1 {
   font-size: 2.8em;
-} 
+}
 
 h2 {
+  margin-bottom: 8px;
   font-size: 22px;
   font-weight: bold;
   color: #303030;
-  margin-bottom: 8px;
-} 
+}
 
 h3 {
-  color: #d5000d;
+  margin-bottom: 8px;
   font-size: 18px;
   font-weight: bold;
-  margin-bottom: 8px;
-} 
- 
+  color: #d5000d;
+}
+
 h4 {
   font-size: 16px;
-  color: #303030;
   font-weight: bold;
-} 
+  color: #303030;
+}
 
 h5 {
   font-size: 1em;
   color: #303030;
-} 
+}
 
 h6 {
   font-size: .8em;
   color: #303030;
-} 
+}
 
 p {
-  font-weight: 300;
   margin-bottom: 20px;
+  font-weight: 300;
 }
- 
+
 a {
   text-decoration: none;
 }
@@ -179,20 +179,22 @@ p a {
 }
 
 blockquote {
+  padding: 0 0 0 30px;
+  margin-bottom: 20px;
   font-size: 1.6em;
   border-left: 10px solid #e9e9e9;
-  margin-bottom: 20px;
-  padding: 0 0 0 30px;
 }
 
 ul li {
-  list-style: disc inside;
   padding-left: 20px;
+  list-style-position: inside;
+  list-style: disc;
 }
 
 ol li {
-  list-style: decimal inside;
   padding-left: 3px;
+  list-style-position: inside;
+  list-style: decimal;
 }
 
 dl dd {
@@ -201,9 +203,9 @@ dl dd {
 }
 
 footer {
-  margin-top: 40px;
   padding-top: 20px;
   padding-bottom: 30px;
+  margin-top: 40px;
   font-size: 13px;
   color: #aaa;
 }
@@ -214,11 +216,11 @@ footer a {
 
 /* MISC */
 .clearfix:after {
-  clear: both;
-  content: '.';
   display: block;
-  visibility: hidden;
   height: 0;
+  clear: both;
+  visibility: hidden;
+  content: '.';
 }
 
 .clearfix {display: inline-block;}
