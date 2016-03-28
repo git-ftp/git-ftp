@@ -1234,6 +1234,8 @@ main() {
 	exit 0
 }
 
+write_log "git-ftp version $VERSION running on $(uname -a)"
+
 # 2 args are needed: action and url
 if [ $# = 0 ]; then
 	usage;
