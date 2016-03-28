@@ -596,19 +596,46 @@ test_include_similar() {
 
 # resolves issue #245
 test_include_syncroot() {
+	source1="main.scss"
+	source2="other.scss"
+	source3="three.scss"
+	targetfile1="main.css"
+	targetfile2="other.css"
+	targetfile3="three.css"
 	syncroot="dist"
-	targetfile="main.css"
-	target="$syncroot/$targetfile"
-	source="main.scss"
-	touch "$source"
+	target1="$syncroot/$targetfile1"
+	target2="$syncroot/$targetfile2"
+	target3="$syncroot/$targetfile3"
+	touch "$source1" "$source2" "$source3"
 	mkdir "$syncroot"
-	touch "$target"
+	touch "$target1" "$target2" "$target3"
 	echo "$syncroot" > ".gitignore"
-	echo "$target:/$source" > ".git-ftp-include"
-	git add . > /dev/null
-	git commit -a -m "test uploading only dist files" -q
-	init=$($GIT_FTP init --syncroot "$syncroot")
-	assertTrue "remote file '$targetfile'" "remote_file_exists '$targetfile'"
+	echo "$target1:/$source1" >> ".git-ftp-include"
+	git add .
+	git commit -a -m "no dist files included" -q
+	init="$($GIT_FTP init --syncroot "$syncroot")"
+	assertTrue "remote file '$targetfile1'" "remote_file_exists '$targetfile1'"
+	assertFalse "remote file '$targetfile2'" "remote_file_exists '$targetfile2'"
+	assertFalse "remote file '$targetfile3'" "remote_file_exists '$targetfile3'"
+
+	# push no files
+	echo "$target2:/$source2" >> ".git-ftp-include"
+	echo "$target3:/$source3" >> ".git-ftp-include"
+	git add .
+	git commit -a -m "test not uploading dist files" -q
+	push="$($GIT_FTP push --syncroot "$syncroot")"
+	assertTrue "remote file '$targetfile1'" "remote_file_exists '$targetfile1'"
+	assertFalse "remote file '$targetfile2'" "remote_file_exists '$targetfile2'"
+	assertFalse "remote file '$targetfile3'" "remote_file_exists '$targetfile3'"
+
+	# push no files
+	echo "content" >> "$source2"
+	git add .
+	git commit -a -m "test uploading some dist files" -q
+	push="$($GIT_FTP push --syncroot "$syncroot")"
+	assertTrue "remote file '$targetfile1'" "remote_file_exists '$targetfile1'"
+	assertTrue "remote file '$targetfile2'" "remote_file_exists '$targetfile2'"
+	assertFalse "remote file '$targetfile3'" "remote_file_exists '$targetfile3'"
 }
 
 test_hidden_file_only() {

@@ -613,8 +613,8 @@ add_include_files() {
 	grep ':' "$TMP_GITFTP_INCLUDE" | while read LINE; do
 		local TARGET="${LINE%%:*}"
 		local SOURCE="${LINE#*:}"
-		if echo "$SOURCE" | grep '^/'; then
-			SOURCE="${SOURCE%%/*}"
+		if echo "$SOURCE" | grep -q '^/'; then
+			SOURCE="${SOURCE#/}"
 		elif [ -n "$SYNCROOT" ]; then
 			SOURCE="$SYNCROOT/$SOURCE"
 		fi
