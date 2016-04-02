@@ -1,5 +1,5 @@
-Git-ftp uploads to FTP servers the Git way.
-===========================================
+Git-ftp -- uploads to FTP servers the Git way
+=============================================
 
 If you use Git and you need to upload your files to an FTP server,
 Git-ftp can save you some time and bandwidth by uploading only those files that
@@ -46,10 +46,10 @@ Limitations
 -----------
 
 * Windows and OS X: I am very limited in testing on Windows and OS X. Thanks
-for helping me out fixing bugs on these platforms.
+  for helping me out fixing bugs on these platforms.
 * git-ftp as deployment tool: git-ftp was not designed as centralized
-deployment tool. While running git-ftp, you have to take care, no one pushes or
-touches this repo (e.g. no commits, no checkouts, no file modifications)!
+  deployment tool. While running git-ftp, you have to take care, no one pushes
+  or touches this repo (e.g. no commits, no checkouts, no file modifications)!
 
 Contributions
 -------------

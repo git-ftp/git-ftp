@@ -1,3 +1,9 @@
+# Make a man page
+#
+# You can view the results of editing the man page on the fly:
+#
+#   pandoc -s -w man git-ftp.1.md | man -l -
+#
 SHELL=/bin/sh
 
 # files that need mode 644

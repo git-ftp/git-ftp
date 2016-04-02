@@ -94,7 +94,7 @@ usage_long()
 local pager=$(git config --get core.pager)
 ${GIT_PAGER:-${pager:-${PAGER:-less -FRSX}}} << EOF
 USAGE
-	git-ftp <action> [<options>] <url>
+	git-ftp <action> [<options>] [<url>]
 
 
 DESCRIPTION
@@ -115,8 +115,14 @@ ACTIONS
 		git-tracked files to the remote server and creates .git-ftp.log
 		file containing the SHA1 of the latest commit.
 
+	. catchup
+		Updates the commit id stored on the server.
+
 	. push
 		Uploads git-tracked files which have changed since last upload.
+
+	. download
+		Downloads changes from the remote host into your working tree.
 
 	. pull
 		Downloads changes from the remote server into a separate commit
@@ -127,15 +133,6 @@ ACTIONS
 
 	. log
 		Downloads last uploaded SHA1 from log and hooks \`git log\`.
-
-	. catchup
-		Uploads current SHA1 to log, does not upload any files.
-
-		This is useful if you used another FTP client to upload the
-		files and now want to remember the SHA1.
-
-	. download
-		Downloads changes from the remote host into your working tree.
 
 	. add-scope
 		Add a scope (e.g. dev, production, testing).
@@ -159,7 +156,7 @@ OPTIONS
 	-h, --help		Shows this help screen.
 	-u, --user		FTP login name.
 	-p, --passwd		FTP password.
-	-P, --ask-passwd		Ask for FTP password interactively.
+	-P, --ask-passwd	Ask for FTP password interactively.
 	-k, --keychain		FTP password from KeyChain (Mac OS X only).
 	-b, --branch		Git branch to push
 	-s, --scope		Using a scope (e.g. dev, production, testing).
@@ -215,7 +212,7 @@ exit 0
 }
 
 usage() {
-	echo "git-ftp <action> [<options>] <url>"
+	echo "git-ftp <action> [<options>] [<url>]"
 	exit "$ERROR_USAGE"
 }
 
