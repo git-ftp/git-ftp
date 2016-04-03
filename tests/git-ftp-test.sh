@@ -83,7 +83,7 @@ tearDown() {
 
 test_displays_usage() {
 	usage=$($GIT_FTP_CMD 2>&1)
-	assertEquals "git-ftp <action> [<options>] <url>" "$usage"
+	assertEquals "git-ftp <action> [<options>] [<url>]" "$usage"
 }
 
 test_prints_version() {
