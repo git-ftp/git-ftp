@@ -54,6 +54,7 @@ DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
+CURL_PROTOCOL=""
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
@@ -221,7 +222,7 @@ cache_git_submodules() {
 }
 
 is_submodule() {
-	echo "${GIT_SUBMODULES[@]}" | grep -Fx "$1"
+	echo "${GIT_SUBMODULES[@]}" | grep -Fxq "$1"
 }
 
 ask_for_passwd() {
@@ -499,6 +500,7 @@ set_remote_host() {
 set_remote_protocol() {
 	# Split protocol from url
 	REMOTE_PROTOCOL="$(get_protocol_of_url "$URL")"
+	CURL_PROTOCOL="$REMOTE_PROTOCOL"
 
 	# Protocol found?
 	if [ ! -z "$REMOTE_PROTOCOL" ]; then
@@ -512,6 +514,7 @@ set_remote_protocol() {
 	if [ -z "$UNKNOWN_PROTOCOL" ]; then
 		write_log "Protocol not set, using default protocol $DEFAULT_PROTOCOL://."
 		REMOTE_PROTOCOL="$DEFAULT_PROTOCOL"
+		CURL_PROTOCOL="$REMOTE_PROTOCOL"
 		echo "$URL" | egrep -q "/" && REMOTE_PATH=$(echo "$URL" | cut -d '/' -f 2-)
 		handle_remote_protocol_options
 		return
@@ -789,7 +792,7 @@ handle_remote_protocol_options() {
 
 	# Options for curl if using FTPES
 	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
-		REMOTE_PROTOCOL="ftp"
+		CURL_PROTOCOL="ftp"
 		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl"
 	fi
 
@@ -917,7 +920,7 @@ set_remotes() {
 	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
 
-	REMOTE_BASE_URL="$REMOTE_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST"
+	REMOTE_BASE_URL="$CURL_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST"
 	REMOTE_BASE_URL_DISPLAY="$REMOTE_PROTOCOL://$DISPLAY_LOGIN$REMOTE_HOST"
 
 	set_syncroot

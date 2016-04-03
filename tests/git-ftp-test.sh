@@ -892,6 +892,24 @@ test_submodule_catchup() {
 	assertTrue "test failed: $submodule/.git-ftp.log not there as expected" "remote_file_exists '$submodule/.git-ftp.log'"
 }
 
+test_submodule_syncroot() {
+	syncroot='dist'
+	submodule="sub"
+	submodule_path="$syncroot/sub"
+	file='file.txt'
+	mkdir -p "$submodule_path"
+	cd "$submodule_path"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd - > /dev/null
+	git submodule -q add "./$submodule_path" "$submodule_path" > /dev/null
+	git commit -m 'adding submodule' -q
+	init="$($GIT_FTP init --syncroot "$syncroot")"
+	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
+}
+
 disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
