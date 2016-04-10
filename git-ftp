@@ -471,6 +471,33 @@ upload_local_sha1() {
 	print_info "Last deployment changed to $DEPLOYED_SHA1.";
 }
 
+pre_push_hook() {
+	hook='.git/hooks/pre-ftp-push'
+	if [ -x "$hook" ]; then
+		scope="${SCOPE:-$REMOTE_HOST}"
+		write_log "Trigger pre-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
+		print_status | $hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+	fi
+}
+
+post_push_hook() {
+	hook='.git/hooks/post-ftp-push'
+	if [ -x "$hook" ]; then
+		scope="${SCOPE:-$REMOTE_HOST}"
+		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
+		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+	fi
+}
+
+print_status() {
+	while IFS= read -r -d '' FILE_NAME; do
+		printf 'A %s\0' "$FILE_NAME"
+	done < "$TMP_GITFTP_UPLOAD"
+	while IFS= read -r -d '' FILE_NAME; do
+		printf 'D %s\0' "$FILE_NAME"
+	done < "$TMP_GITFTP_DELETE"
+}
+
 remote_lock() {
 	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
@@ -1081,10 +1108,12 @@ action_init() {
 	check_deployed_sha1
 	set_local_sha1
 	set_changed_files
+	pre_push_hook
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
+	post_push_hook
 	unset_branch
 }
 
@@ -1097,10 +1126,12 @@ action_push() {
 	set_deployed_sha1
 	set_local_sha1
 	set_changed_files
+	pre_push_hook
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
 	release_remote_lock
+	post_push_hook
 	unset_branch
 }
 

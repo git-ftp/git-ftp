@@ -348,6 +348,67 @@ If you abort the merge, the downloaded changes will stay in an unreferenced
 commit until the Git garbage collector is run.
 The commit id will be printed so that you can tag it or create a new branch.
 
+# HOOKS (EXPERIMENTAL)
+
+**This feature is experimental. The interface may change.**
+
+Git-ftp supports client-side hook scripts during the init and the push action.
+
+`pre-ftp-push` is called just before the upload to the server starts, but after
+the changeset of files was generated. It is fed with all filenames to sync
+through standard input. This list is different to git diff, because
+it has been changed by the rules of the `.git-ftp-include` file and the
+`.git-ftp-ignore` file. An example is:
+
+```bash
+#!/bin/bash
+#
+# An example hook script to verify what is about to be uploaded.
+#
+# Called by "git ftp push" after it has checked the remote status, but before
+# anything has been pushed. If this script exits with a non-zero status nothing
+# will be pushed.
+#
+# This hook is called with the following parameters:
+#
+# $1 -- Scope name if set or host name of the remote
+# $2 -- URL to which the upload is being done
+# $3 -- Local commit id which is being uploaded
+# $4 -- Remote commit id which is on the server
+#
+# Information about the files which are being uploaded or deleted is supplied
+# as NUL separated entries to the standard input in the form:
+#
+#   <status> <path>
+#
+# The status is either A for upload or D for delete. The path contains the
+# path to the local file. It contains the syncroot if set.
+#
+# This sample shows how to prevent upload of files containing the word TODO.
+
+remote="$1"
+url="$2"
+local_sha="$3"
+remote_sha="$4"
+
+while read -r -d '' status file
+do
+	if [ "$status" = "A" ]
+	then
+		if grep 'TODO' "$file"; then
+			echo "TODO found in file $file, not uploading."
+			exit 1
+		fi
+	fi
+done
+
+exit 0
+```
+
+`post-ftp-push` is called after the transfer has been finished. The standard
+input is empty, but the parameters are the same as given to the `pre-ftp-push`
+hook.
+
 # NETRC
 
 In the backend, Git-ftp uses curl.

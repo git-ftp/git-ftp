@@ -910,6 +910,38 @@ test_submodule_syncroot() {
 	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
 }
 
+test_pre_push() {
+	# init
+	hook=".git/hooks/pre-ftp-push"
+	message="pre-ftp-push executed."
+	echo "echo '$message'" > "$hook"
+	chmod +x "$hook"
+	out="$($GIT_FTP init)"
+	firstline="$(echo "$out" | head -n 1)"
+	assertEquals "$message" "$firstline"
+
+	# push
+	echo 'new content' >> 'test 1.txt'
+	git rm 'test 2.txt' -q
+	git commit -a -m 'new content' -q
+	echo 'while read -r -d "" status file; do echo "$status - $file"; done' > "$hook"
+	out="$($GIT_FTP push -n)"
+	firstline="$(echo "$out" | head -n 1)"
+	lastline="$(echo "$out" | tail -n 1)"
+	assertEquals "A - test 1.txt" "$firstline"
+	assertEquals "D - test 2.txt" "$lastline"
+}
+
+test_post_push() {
+	# init
+	hook=".git/hooks/post-ftp-push"
+	message="post-ftp-push executed."
+	echo "echo '$message'" > "$hook"
+	chmod +x "$hook"
+	out="$($GIT_FTP init -n)"
+	assertEquals "$message" "$out"
+}
+
 disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
