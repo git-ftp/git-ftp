@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-tw">
+<head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+
+    <title>陳緯麟-履歷作品集</title>
+
+    
+
+
+<link rel="stylesheet" href="http://yui.yahooapis.com/pure/0.6.0/pure-min.css">
+
+
+
+
+
+
+
+  
+    <!--[if lte IE 8]>
+        <link rel="stylesheet" href="css/layouts/side-menu-old-ie.css">
+    <![endif]-->
+    <!--[if gt IE 8]><!-->
+        <link rel="stylesheet" href="css/layouts/side-menu.css">
+    <!--<![endif]-->
+  
+
+
+    
+
+    
+
+    <style type="text/css">
+<!--
+.style1 {font-size: 9px}
+-->
+    </style>
+    <style>
+  .button-error {
+            background: rgb(202, 60, 60); /* this is a maroon */
+			color:#FFFFFF;
+        }
+a {
+    color: #3b8bba; /* block-background-text-normal */
+    text-decoration: none;
+	font-weight: bold;
+}
+
+a:visited {
+    color: #265778; /* block-normal-text-normal */
+}
+a:hover{
+text-decoration:underline;
+}
+#menu a:hover{
+text-decoration:none;
+}
+</style>
+</head>
+<body>
+
+
+
+
+
+
+
+<div id="layout">
+    <!-- Menu toggle -->
+    <a href="#menu" id="menuLink" class="menu-link">
+        <!-- Hamburger icon -->
+        <span></span>
+    </a>
+
+     <div id="menu">
+        <div class="pure-menu">
+        	<div class="pure-menu-heading" href="#">目錄</div>
+
+            <ul class="pure-menu-list">
+                <li class="pure-menu-item"><a href="1.html" class="pure-menu-link">簡歷</a></li>
+                <li class="pure-menu-item"><a href="2.html" class="pure-menu-link">自傳</a></li>
+ 				<li class="pure-menu-item"><a href="3.html" class="pure-menu-link">作品 1</a></li>
+                <li class="pure-menu-item"><a href="4.html" class="pure-menu-link">作品 2</a></li>
+                 <li class="pure-menu-item"><a href="5.html" class="pure-menu-link">作品 3</a></li>
+            </ul>
+      </div>
+    </div>
+
+    <div id="main">
+        <div class="header">
+            <h1>簡　歷</h1>
+            <!--<h2>A subtitle for your page goes here</h2>-->
+        </div>
+
+        <div class="content">
+        <p>本人在104上的履歷：</p>
+              <img class="pure-img-responsive" src="img/me.jpg?id=2" alt="Peyto Lake">
+      </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+<script src="js/ui.js"></script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-62981892-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+
+</body>
+</html>
