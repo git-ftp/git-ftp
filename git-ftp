@@ -390,15 +390,10 @@ upload_file() {
 
 upload_file_buffered() {
 	local SRC_FILE="$1"
-	local DEST_FILE="$2"
-
-	if [ -z "$DEST_FILE" ]; then
-		DEST_FILE="${SRC_FILE#$SYNCROOT}"
-	fi
-
-	local ENC_DEST_FILE="$(encode_hash "$DEST_FILE")"
-	echo "-T \"./$SRC_FILE\"" >> "$TMP_CURL_UPLOAD_FILE"
-	echo "url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
+	local DEST_FILE="${SRC_FILE#$SYNCROOT}"
+	local ENC_DEST_FILE="${DEST_FILE//#/%23}"
+	echo "-T \"./$SRC_FILE\"
+url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
 
 fire_upload_buffer() {
@@ -979,10 +974,6 @@ urlencode() {
 		encoded+="${o}"
 	done
 	echo "${encoded}"
-}
-
-encode_hash() {
-	printf "${1}" | sed s/#/%23/g
 }
 
 set_curl_insecure() {
