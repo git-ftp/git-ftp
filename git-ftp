@@ -391,7 +391,7 @@ upload_file() {
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="${SRC_FILE#$SYNCROOT}"
-	local ENC_DEST_FILE="${DEST_FILE//#/%23}"
+	local ENC_DEST_FILE="${DEST_FILE//#}"
 	echo "-T \"./$SRC_FILE\"
 url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
