@@ -930,6 +930,19 @@ test_pre_push() {
 	lastline="$(echo "$out" | tail -n 1)"
 	assertEquals "A - test 1.txt" "$firstline"
 	assertEquals "D - test 2.txt" "$lastline"
+
+	# push fail
+	echo 'new content' >> 'test 1.txt'
+	git commit -a -m 'new content' -q
+	echo 'exit 1' > "$hook"
+	out="$($GIT_FTP push -n)"
+	assertEquals 9 "$?"
+	assertEquals "" "$out"
+
+	# ignore hook
+	out="$($GIT_FTP push -n --no-verify)"
+	assertEquals 0 "$?"
+	assertEquals "" "$out"
 }
 
 test_post_push() {

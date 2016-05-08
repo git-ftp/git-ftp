@@ -142,6 +142,9 @@ different and handles only those files. That saves time and bandwidth.
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
 
+`--no-verify`
+:	Bypass the pre-ftp-push hook. See **HOOKS** section.
+
 `--version`
 :	Prints version.
 
@@ -355,10 +358,26 @@ The commit id will be printed so that you can tag it or create a new branch.
 Git-ftp supports client-side hook scripts during the init and the push action.
 
 `pre-ftp-push` is called just before the upload to the server starts, but after
-the changeset of files was generated. It is fed with all filenames to sync
-through standard input. This list is different to git diff, because
+the changeset of files was generated. It can be bypassed with the --no-verify
+option.
+
+The hook is called with four parameters.
+The first is the used scope or the host name if no scope is used.
+The second parameter is the destination URL.
+The third is the local commit id which is going to be uploaded and
+the fourth is the remote commit id on the server which is going to be updated.
+
+The standard input is a list of all filenames to sync. Each file is preceeded
+by A or D followed by a space. A means that this file is scheduled for upload,
+D means it's scheduled for deletion. All entries are separated by the NUL byte.
+This list is different to git diff, because
 it has been changed by the rules of the `.git-ftp-include` file and the
-`.git-ftp-ignore` file. An example is:
+`.git-ftp-ignore` file.
+
+Exiting with non-zero status from this script causes
+Git-ftp to abort and exit with status 9.
+
+An example script is:
 
 ```bash
 #!/bin/bash
@@ -407,7 +426,9 @@ exit 0
 
 `post-ftp-push` is called after the transfer has been finished. The standard
 input is empty, but the parameters are the same as given to the `pre-ftp-push`
-hook.
+hook. This hook is **not** bypassed by the --no-verify option.
+It is meant primarily for notification and its exit status does not have any
+effect.
 
 # NETRC
 
@@ -449,6 +470,9 @@ At the time of this writing, the exit codes are:
 
 `8`
 :	Not a Git project
+
+`9`
+:	The `pre-ftp-push` hook failed
 
 # KNOWN ISSUES & BUGS
 

@@ -73,6 +73,7 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
+declare -i EXECUTE_HOOKS=1
 declare -a GIT_SUBMODULES
 
 # ------------------------------------------------------------
@@ -85,6 +86,7 @@ readonly ERROR_DOWNLOAD=5
 readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
+readonly ERROR_HOOK=9
 
 # ------------------------------------------------------------
 # Functions
@@ -175,6 +177,7 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
 
@@ -468,16 +471,16 @@ upload_local_sha1() {
 
 pre_push_hook() {
 	hook='.git/hooks/pre-ftp-push'
-	if [ -x "$hook" ]; then
+	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
 		scope="${SCOPE:-$REMOTE_HOST}"
 		write_log "Trigger pre-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		print_status | $hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+		print_status | $hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1" || exit "$ERROR_HOOK"
 	fi
 }
 
 post_push_hook() {
 	hook='.git/hooks/post-ftp-push'
-	if [ -x "$hook" ]; then
+	if [ -e "$hook" ]; then
 		scope="${SCOPE:-$REMOTE_HOST}"
 		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
 		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
@@ -1528,6 +1531,10 @@ do
 			;;
 		--remote-root)
 			REMOTE_ROOT="$2"
+			shift
+			;;
+		--no-verify)
+			EXECUTE_HOOKS=0
 			shift
 			;;
 		*)
