@@ -460,13 +460,13 @@ set_local_sha1() {
 }
 
 upload_local_sha1() {
-	DEPLOYED_SHA1=$LOCAL_SHA1
 	write_log "Uploading commit log to $REMOTE_BASE_URL_DISPLAY/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
-		echo "$DEPLOYED_SHA1" | upload_file - "$DEPLOYED_SHA1_FILE"
+		echo "$LOCAL_SHA1" | upload_file - "$DEPLOYED_SHA1_FILE"
 		check_exit_status "Could not upload." "$ERROR_UPLOAD"
 	fi
-	print_info "Last deployment changed to $DEPLOYED_SHA1.";
+	print_info "Last deployment changed from $DEPLOYED_SHA1 to $LOCAL_SHA1.";
+	DEPLOYED_SHA1="$LOCAL_SHA1"
 }
 
 pre_push_hook() {
