@@ -685,6 +685,26 @@ test_file_with_unicode() {
 	assertFalse "file $file1 still exists in $CURL_URL" "remote_file_exists '$file1enc'"
 }
 
+# issue #259
+test_file_with_dash() {
+	dir='-dashdir'
+	file='-dash'
+	mkdir -- "$dir"
+	echo 'content' > "$file"
+	echo 'content' > "$dir/$file"
+	git add .
+	git commit -a -m 'added special filenames' -q
+	init="$($GIT_FTP init)"
+	assertTrue " file $file not uploaded" "remote_file_equals '$file'"
+	assertTrue " file $dir/$file not uploaded" "remote_file_equals '$dir/$file'"
+	git rm -q -- "$file"
+	git rm -q -- "$dir/$file"
+	git commit -m 'delete' -q
+	push="$($GIT_FTP push)"
+	assertFalse "file $file still exists in $CURL_URL" "remote_file_exists '$file'"
+	assertFalse "file $dir/$file still exists in $CURL_URL" "remote_file_exists '$dir/$file'"
+}
+
 test_syncroot() {
 	cd $GIT_PROJECT_PATH
 	syncroot='foo bar'
@@ -974,7 +994,7 @@ remote_file_equals() {
 	local file="$1"
 	local remote="$2"
 	[ -z "$remote" ] && remote="$file"
-	curl -s "$CURL_URL/$remote" | diff - "$file" > /dev/null
+	curl -s "$CURL_URL/$remote" | diff - -- "$file" > /dev/null
 }
 
 assertContains() {

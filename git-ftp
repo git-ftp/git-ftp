@@ -225,7 +225,7 @@ cache_git_submodules() {
 }
 
 is_submodule() {
-	echo "${GIT_SUBMODULES[@]}" | grep -Fxq "$1"
+	echo "${GIT_SUBMODULES[@]}" | grep -Fxq -- "$1"
 }
 
 ask_for_passwd() {
