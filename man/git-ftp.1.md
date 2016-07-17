@@ -36,10 +36,12 @@ different and handles only those files. That saves time and bandwidth.
 :	Uploads files that have changed and
 	deletes files that have been deleted since the last upload.
 
-`download`
+`download` (EXPERIMENTAL)
 :	Downloads changes from the remote host into your working tree.
 	This feature needs lftp to be installed and does not use any power of
 	Git.
+	WARNING: It can delete local untracked files that are not listed in
+	your .git-ftp-ignore file.
 
 `pull`
 :	Downloads changes from the remote host into a separate commit
@@ -309,9 +311,12 @@ But keep in mind that this will upload all files in the vendor folder, even
 those that are on the server already.
 And it will not delete files from that directory if local files are deleted.
 
-# DOWNLOADING FILES
+# DOWNLOADING FILES (EXPERIMENTAL)
 
-You can use git-ftp to download the from the remote host into your repository.
+**WARNING:** It can delete local untracked files that are not listed in your
+.git-ftp-ignore file.
+
+You can use git-ftp to download from the remote host into your repository.
 You will need to install the lftp command line tool for that.
 
 	git ftp download

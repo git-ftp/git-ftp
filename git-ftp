@@ -110,8 +110,6 @@ DESCRIPTION
 	It keeps track of the deployed state by uploading the SHA1 of the last
 	deployed commit in a log file.
 
-	It downloads remote changes and merges them into your working copy.
-
 ACTIONS
 	. init
 		Does an initial upload of the latest version of all non-ignored
@@ -124,8 +122,10 @@ ACTIONS
 	. push
 		Uploads git-tracked files which have changed since last upload.
 
-	. download
+	. download (EXPERIMENTAL)
 		Downloads changes from the remote host into your working tree.
+		WARNING: It can delete local untracked files that are not
+		listed in your .git-ftp-ignore file.
 
 	. pull
 		Downloads changes from the remote server into a separate commit
