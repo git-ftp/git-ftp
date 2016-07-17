@@ -20,6 +20,10 @@
 # Setup Environment
 # ------------------------------------------------------------
 
+# Git config
+GIT_DIR="$(git rev-parse --git-dir)"
+: ${GIT_WORK_TREE="."}
+
 # General config
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
@@ -59,6 +63,8 @@ CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
+IGNORE_PATTERN_FILE="$GIT_WORK_TREE/.git-ftp-ignore"
+INCLUDE_PATTERN_FILE="$GIT_WORK_TREE/.git-ftp-include"
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
@@ -470,7 +476,7 @@ upload_local_sha1() {
 }
 
 pre_push_hook() {
-	hook='.git/hooks/pre-ftp-push'
+	hook="$GIT_DIR/hooks/pre-ftp-push"
 	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
 		scope="${SCOPE:-$REMOTE_HOST}"
 		write_log "Trigger pre-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
@@ -479,7 +485,7 @@ pre_push_hook() {
 }
 
 post_push_hook() {
-	hook='.git/hooks/post-ftp-push'
+	hook="$GIT_DIR/hooks/post-ftp-push"
 	if [ -e "$hook" ]; then
 		scope="${SCOPE:-$REMOTE_HOST}"
 		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
@@ -628,9 +634,9 @@ list_changed_files() {
 }
 
 add_include_files() {
-	[ -f '.git-ftp-include' ] || return
+	[ -f "$INCLUDE_PATTERN_FILE" ] || return
 	local tmp_include_sources="$TMP_DIR/include_sources_tmp"
-	grep -v '^#.*$\|^\s*$' '.git-ftp-include' | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
+	grep -v '^#.*$\|^\s*$' "$INCLUDE_PATTERN_FILE" | tr -d '\r' > "$TMP_GITFTP_INCLUDE"
 	grep '^!' "$TMP_GITFTP_INCLUDE" | sed 's/^!//' | while read TARGET; do
 		add_include_file "$TARGET"
 	done
@@ -672,9 +678,9 @@ add_include_file() {
 }
 
 filter_ignore_files() {
-	[ -f '.git-ftp-ignore' ] || return
+	[ -f "$IGNORE_PATTERN_FILE" ] || return
 	local patterns="$TMP_DIR/ignore_tmp"
-	grep -v '^#.*$\|^\s*$' '.git-ftp-ignore' | tr -d '\r' > "$patterns"
+	grep -v '^#.*$\|^\s*$' "$IGNORE_PATTERN_FILE" | tr -d '\r' > "$patterns"
 	filter_file "$patterns" "$1"
 	filter_file "$patterns" "$2"
 	rm -f "$patterns"
@@ -908,7 +914,7 @@ set_tmp() {
 	if command -v mktemp > /dev/null 2>&1; then
 		TMP_DIR="$(mktemp -d -t git-ftp-XXXX)"
 	else
-		TMP_DIR="$(pwd)/.git/git-ftp-tmp"
+		TMP_DIR="$GIT_DIR/git-ftp-tmp"
 		mkdir -p "$TMP_DIR"
 	fi
 	TMP_CURL_UPLOAD_FILE="$TMP_DIR/curl_upload_list"
@@ -996,12 +1002,14 @@ download_remote_updates () {
 		mirror_options="$mirror_options -v"
 	fi
 
-	ignore=""
-	if [ -f '.git-ftp-ignore' ]; then
-		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/--exclude /'`
-		ignore=`echo $ignore | tr -d '\r'`
+	ignore="$(lftp_exclude_options)"
+	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=\.git/?$ --exclude=\.git-ftp\.log$ --exclude=\.git-ftp-ignore$ . '$GIT_WORK_TREE/$SYNCROOT' && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+}
+
+lftp_exclude_options() {
+	if [ -f "$IGNORE_PATTERN_FILE" ]; then
+		grep -v '^#' "$IGNORE_PATTERN_FILE" | awk 'NF' | sed "s|^/?|--exclude-glob '$GIT_WORK_TREE/'|" | tr -d '\r'
 	fi
-	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 set_scope() {
@@ -1233,7 +1241,7 @@ check_remote_lock() {
 check_is_git_project() {
 	local git_project_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
 	[ -z "$git_project_dir" ] &&  print_error_and_die "Not a Git project? Exiting..." "$ERROR_GIT"
-	cd "$git_project_dir"
+	true
 }
 
 check_is_dirty_repository() {
