@@ -164,7 +164,7 @@ OPTIONS
 	-b, --branch		Git branch to push
 	-s, --scope		Using a scope (e.g. dev, production, testing).
 	-D, --dry-run		Dry run: Does not upload anything.
-	-a, --all		Uploads all files, ignores deployed SHA1 hash.
+	-a, --all		Uploads or pull all files, ignores deployed SHA1 hash.
 	-c, --commit		Sets SHA1 hash of last deployed commit by option.
 	-A, --active		Use FTP active mode.
 	-l, --lock		Enable/Disable remote locking.
@@ -307,7 +307,7 @@ set_deployed_sha1_file() {
 # Simple log func
 write_log() {
 	if [ $VERBOSE -eq 1 ]; then
-		echo "$(date): $1"
+		echo -e "$(date): $1"
 	else
 		if [ -n "$LOG_CACHE" ]; then
 			LOG_CACHE="$LOG_CACHE\n$(date): $1"
@@ -347,7 +347,7 @@ print_error_and_die() {
 # Simple info printer
 print_info() {
 	if [ $VERBOSE -eq 0 ]; then
-		echo "$1"
+		echo -e "$1"
 	else
 		write_log "$1"
 	fi
@@ -996,12 +996,24 @@ download_remote_updates () {
 		mirror_options="$mirror_options -v"
 	fi
 
+	include=""
+	ignoreall=""
+	# For a pull command, by default, mirror only the files from the diff between the FTP commit and the current branch/commit
+	if [ ! -z $CURRENT_BRANCH ] && [ $IGNORE_DEPLOYED -ne 1 ]; then
+		ignoreall=" --exclude '.*' --exclude '.*/'"
+		include=`git diff $CURRENT_BRANCH --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n'`
+		filenames=`git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/' `
+		write_log "Only pulling diff files:\n$filenames"
+	fi
+
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/--exclude /'`
-		ignore=`echo $ignore | tr -d '\r'`
+		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/ --exclude /' | tr -d '\r\n'`
 	fi
-	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
+
+	lftp_command="set ftp:list-options -a && mirror$mirror_options --delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
+	lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 set_scope() {

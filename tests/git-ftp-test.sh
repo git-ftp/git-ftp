@@ -779,7 +779,7 @@ test_pull() {
 	echo 'own content' > internal.txt
 	git add . > /dev/null 2>&1
 	git commit -a -m "local modification" > /dev/null 2>&1
-	$GIT_FTP pull > /dev/null 2>&1
+	$GIT_FTP pull --all > /dev/null 2>&1
 	rtrn=$?
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
@@ -790,7 +790,7 @@ test_pull_nothing() {
 	skip_without lftp
 	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
-	$GIT_FTP pull > /dev/null 2>&1
+	$GIT_FTP pull --all > /dev/null 2>&1
 	assertEquals 0 $?
 }
 
@@ -808,7 +808,7 @@ test_pull_branch() {
 	echo '1' > version.txt
 	git add -A .
 	git commit -m 'branch modification' > /dev/null 2>&1
-	$GIT_FTP pull > /dev/null 2>&1
+	$GIT_FTP pull --all > /dev/null 2>&1
 	rtrn=$?
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
@@ -827,7 +827,7 @@ test_pull_no_commit() {
 	git add . > /dev/null 2>&1
 	git commit -a -m "local modification" > /dev/null 2>&1
 	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
-	$GIT_FTP pull --no-commit > /dev/null 2>&1
+	$GIT_FTP pull --all --no-commit > /dev/null 2>&1
 	rtrn=$?
 	assertEquals 0 $rtrn
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
@@ -842,7 +842,7 @@ test_pull_dry_run() {
 	echo 'own content' > internal.txt
 	git add . > /dev/null 2>&1
 	git commit -a -m "local modification" > /dev/null 2>&1
-	pull=$($GIT_FTP pull --dry-run 2> /dev/null)
+	pull=$($GIT_FTP pull --all --dry-run 2> /dev/null)
 	assertEquals 0 $?
 	assertTrue ' external file downloaded' "[ ! -e 'external.txt' ]"
 	assertFalse "$pull" "echo \"$pull\" | grep 'Last deployment changed to '"
@@ -858,7 +858,7 @@ test_pull_untracked() {
 	echo 'internal.txt' >> .gitignore
 	git add . > /dev/null 2>&1
 	git commit -a -m "ignore some file" > /dev/null 2>&1
-	pull=$($GIT_FTP pull 2> /dev/null)
+	pull=$($GIT_FTP pull --all 2> /dev/null)
 	assertEquals 0 $?
 	assertTrue 'internal.txt is missing' "[ -f internal.txt ]"
 	assertEquals '' "$(git log -- 'internal.txt')"
@@ -871,13 +871,42 @@ test_pull_stash() {
 	echo 'foreign content' | curl -T - $CURL_URL/external.txt 2> /dev/null
 	echo 'own content' > internal.txt
 	git stash -u -q
-	pull=$($GIT_FTP pull 2> /dev/null)
+	pull=$($GIT_FTP pull --all 2> /dev/null)
 	assertEquals 0 $?
 	stash_count="$(git stash list | wc -l)"
 	stash_count=$((stash_count+0)) # trims whitespaces produced by wc on OSX
 	assertEquals 1 "$stash_count"
 	assertFalse 'internal.txt appeared' "[ -f internal.txt ]"
 	assertEquals '' "$(git log -- 'internal.txt')"
+}
+
+test_pull_diffonly() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > not_modified.txt
+	echo 'own content' > locally_modified.txt
+	echo 'own content' > locallyremotely_modified.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "init" > /dev/null 2>&1
+	$GIT_FTP init > /dev/null
+	echo 'own content local modification' > locally_modified.txt
+	echo 'own content\nforeign content' > locallyremotely_modified.txt
+	curl -T locallyremotely_modified.txt $CURL_URL/ 2> /dev/null
+	echo 'local modification\nown content' > locallyremotely_modified.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	$GIT_FTP pull > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertFalse ' external file downloaded' "[ -r 'external.txt' ]"
+	assertFalse ' external file listed in commit message' "git log | grep 'external.txt'"
+	assertFalse ' not_modified file listed in commit message' "git log | grep 'not_modified.txt'"
+	assertFalse ' locally_modified file listed in commit message' "git log | grep 'locally_modified.txt'"
+	assertTrue ' locallyremotely_modified file not listed in commit message' "git log | grep 'locallyremotely_modified.txt'"
+	assertEquals ' locallremotely_modified not correctly merged' 3 $(cat locallyremotely_modified.txt | wc -l)
 }
 
 test_submodule() {

@@ -80,7 +80,7 @@ different and handles only those files. That saves time and bandwidth.
 :	FTP password from KeyChain (Mac OS X only).
 
 `-a`, `--all`
-:	Uploads all files of current Git checkout.
+:	Uploads (or pull) all files of current Git checkout (or FTP) disregarding commit changes.
 
 `-A`, `--active`
 :	Uses FTP active mode.
