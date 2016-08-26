@@ -579,6 +579,20 @@ test_include_ftp_ignore_push() {
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
 }
 
+test_include_syncroot_push() {
+	init=$($GIT_FTP init)
+	mkdir "public_html"
+	echo "public_html" > .gitignore
+	echo "content" > "public_html/always.html"
+	echo "!public_html/always.html" > .git-ftp-include
+	git add .
+	git commit -m "setup" > /dev/null
+	$GIT_FTP push --syncroot "public_html"
+	#push="$($GIT_FTP push --syncroot "public_html")"
+	curl "$CURL_URL/"
+	assertTrue " upload always.html" "remote_file_exists 'always.html'"
+}
+
 # addresses issue #41
 test_include_similar() {
 	cd $GIT_PROJECT_PATH
