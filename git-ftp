@@ -164,7 +164,7 @@ OPTIONS
 	-b, --branch		Git branch to push
 	-s, --scope		Using a scope (e.g. dev, production, testing).
 	-D, --dry-run		Dry run: Does not upload anything.
-	-a, --all		Uploads or pull all files, ignores deployed SHA1 hash.
+	-a, --all		Uploads all files, ignores deployed SHA1 hash.
 	-c, --commit		Sets SHA1 hash of last deployed commit by option.
 	-A, --active		Use FTP active mode.
 	-l, --lock		Enable/Disable remote locking.
@@ -177,6 +177,7 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+	--changed-only	During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
 	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
@@ -998,8 +999,8 @@ download_remote_updates () {
 
 	include=""
 	ignoreall=""
-	# For a pull command, by default, mirror only the files from the diff between the FTP commit and the current branch/commit
-	if [ ! -z $CURRENT_BRANCH ] && [ $IGNORE_DEPLOYED -ne 1 ]; then
+	# Mirror only the files from the diff between the FTP commit and the current branch/commit
+	if [ $PULL_CHANGED_ONLY -eq 1 ] && [ ! -z $CURRENT_BRANCH ]; then
 		ignoreall=" --exclude '.*' --exclude '.*/'"
 		include=`git diff $CURRENT_BRANCH --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n'`
 		filenames=`git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/' `
@@ -1534,6 +1535,10 @@ do
 		--no-commit)
 			MERGE_ARGS="$MERGE_ARGS --no-commit"
 			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
+			;;
+		--changed-only)
+			PULL_CHANGED_ONLY=1
+			write_log "Pulling only changed files."
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then

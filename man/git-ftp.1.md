@@ -80,7 +80,7 @@ different and handles only those files. That saves time and bandwidth.
 :	FTP password from KeyChain (Mac OS X only).
 
 `-a`, `--all`
-:	Uploads (or pull) all files of current Git checkout (or FTP) disregarding commit changes.
+:	Uploads all files of current Git checkout.
 
 `-A`, `--active`
 :	Uses FTP active mode.
@@ -143,6 +143,9 @@ different and handles only those files. That saves time and bandwidth.
 
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
+
+`--changed-only`
+: During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
 
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
