@@ -587,9 +587,7 @@ test_include_syncroot_push() {
 	echo "!public_html/always.html" > .git-ftp-include
 	git add .
 	git commit -m "setup" > /dev/null
-	$GIT_FTP push --syncroot "public_html"
-	#push="$($GIT_FTP push --syncroot "public_html")"
-	curl "$CURL_URL/"
+	push="$($GIT_FTP push --syncroot "public_html")"
 	assertTrue " upload always.html" "remote_file_exists 'always.html'"
 }
 
