@@ -579,7 +579,7 @@ test_include_ftp_ignore_push() {
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
 }
 
-test_include_syncroot_push() {
+test_include_always_syncroot_push() {
 	init=$($GIT_FTP init)
 	mkdir "public_html"
 	echo "public_html" > .gitignore
@@ -589,6 +589,19 @@ test_include_syncroot_push() {
 	git commit -m "setup" > /dev/null
 	push="$($GIT_FTP push --syncroot "public_html")"
 	assertTrue " upload always.html" "remote_file_exists 'always.html'"
+}
+
+test_include_syncroot_push() {
+	init=$($GIT_FTP init)
+	mkdir "public_html"
+	echo "content" > "public_html/style.sass"
+	echo "content" > "public_html/style.css"
+	echo "public_html/style.css" > .gitignore
+	echo "public_html/style.css:style.sass" > .git-ftp-include
+	git add .
+	git commit -m "setup" > /dev/null
+	push="$($GIT_FTP push --syncroot "public_html")"
+	assertTrue " upload style.css" "remote_file_exists 'style.css'"
 }
 
 # addresses issue #41
