@@ -876,19 +876,19 @@ set_remote_password() {
 }
 
 set_branch() {
-    [ -z $BRANCH ] && BRANCH="$(get_config branch)"
-    if [ ! -z $BRANCH ]; then
-        set_current_branch
-	write_log "Checkout on branch $BRANCH"
-	git checkout $BRANCH > /dev/null 2>&1 || print_error_and_die "'$BRANCH' is not a valid branch! Exiting..." "ERROR_GIT"
-    fi
+	: "${BRANCH:=$(get_config branch)}"
+	if [ -n "$BRANCH" ]; then
+		set_current_branch
+		write_log "Checkout on branch $BRANCH"
+		git checkout "$BRANCH" > /dev/null 2>&1 || print_error_and_die "'$BRANCH' is not a valid branch! Exiting..." "ERROR_GIT"
+	fi
 }
 
 unset_branch() {
-    if [ ! -z $CURRENT_BRANCH ]; then
-	write_log "Checkout on branch $CURRENT_BRANCH"
-	git checkout $CURRENT_BRANCH > /dev/null 2>&1
-    fi
+	if [ -n "$CURRENT_BRANCH" ]; then
+		write_log "Checkout on branch $CURRENT_BRANCH"
+		git checkout "$CURRENT_BRANCH" > /dev/null 2>&1
+	fi
 }
 
 set_syncroot() {
