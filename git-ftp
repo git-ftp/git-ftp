@@ -68,6 +68,7 @@ TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
+declare -i PULL_CHANGED_ONLY=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
@@ -1000,10 +1001,10 @@ download_remote_updates () {
 	include=""
 	ignoreall=""
 	# Mirror only the files from the diff between the FTP commit and the current branch/commit
-	if [ $PULL_CHANGED_ONLY -eq 1 ] && [ ! -z $CURRENT_BRANCH ]; then
+	if [ "$PULL_CHANGED_ONLY" -eq 1 ] && [ -n "$CURRENT_BRANCH" ]; then
 		ignoreall=" --exclude '.*' --exclude '.*/'"
-		include=`git diff $CURRENT_BRANCH --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n'`
-		filenames=`git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/' `
+		include="$(git diff "$CURRENT_BRANCH" --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n')"
+		filenames="$(git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/')"
 		write_log "Only pulling diff files:\n$filenames"
 	fi
 
