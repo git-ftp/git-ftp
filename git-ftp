@@ -206,7 +206,7 @@ SET DEFAULTS
 	. git config git-ftp.keychain user@example.com
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -796,7 +796,7 @@ set_submodule_args() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
+
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
 			if [ -z "$CURL_PUBLIC_KEY" ]; then
@@ -806,7 +806,7 @@ handle_remote_protocol_options() {
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
-		
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -932,7 +932,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
@@ -958,7 +958,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
@@ -998,10 +998,12 @@ download_remote_updates () {
 		mirror_options="$mirror_options -v"
 	fi
 
+	delete="--delete"
 	include=""
 	ignoreall=""
 	# Mirror only the files from the diff between the FTP commit and the current branch/commit
 	if [ "$PULL_CHANGED_ONLY" -eq 1 ] && [ -n "$CURRENT_BRANCH" ]; then
+		delete=""
 		ignoreall=" --exclude '.*' --exclude '.*/'"
 		include="$(git diff "$CURRENT_BRANCH" --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n')"
 		filenames="$(git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/')"
@@ -1014,7 +1016,7 @@ download_remote_updates () {
 	fi
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
-	lftp_command="set ftp:list-options -a && mirror$mirror_options --delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
+	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
 	lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
