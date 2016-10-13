@@ -144,6 +144,9 @@ different and handles only those files. That saves time and bandwidth.
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
 
+`--changed-only`
+: During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
+
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
 

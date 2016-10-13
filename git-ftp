@@ -68,6 +68,7 @@ TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
+declare -i PULL_CHANGED_ONLY=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
@@ -177,6 +178,7 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+	--changed-only	During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
 	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
@@ -204,7 +206,7 @@ SET DEFAULTS
 	. git config git-ftp.keychain user@example.com
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -307,7 +309,7 @@ set_deployed_sha1_file() {
 # Simple log func
 write_log() {
 	if [ $VERBOSE -eq 1 ]; then
-		echo "$(date): $1"
+		echo -e "$(date): $1"
 	else
 		if [ -n "$LOG_CACHE" ]; then
 			LOG_CACHE="$LOG_CACHE\n$(date): $1"
@@ -347,7 +349,7 @@ print_error_and_die() {
 # Simple info printer
 print_info() {
 	if [ $VERBOSE -eq 0 ]; then
-		echo "$1"
+		echo -e "$1"
 	else
 		write_log "$1"
 	fi
@@ -794,7 +796,7 @@ set_submodule_args() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
+
 		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
 			if [ -z "$CURL_PUBLIC_KEY" ]; then
@@ -804,7 +806,7 @@ handle_remote_protocol_options() {
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
 		fi
-		
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -930,7 +932,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
@@ -956,7 +958,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
@@ -996,12 +998,26 @@ download_remote_updates () {
 		mirror_options="$mirror_options -v"
 	fi
 
+	delete="--delete"
+	include=""
+	ignoreall=""
+	# Mirror only the files from the diff between the FTP commit and the current branch/commit
+	if [ "$PULL_CHANGED_ONLY" -eq 1 ] && [ -n "$CURRENT_BRANCH" ]; then
+		delete=""
+		ignoreall=" --exclude '.*' --exclude '.*/'"
+		include="$(git diff "$CURRENT_BRANCH" --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n')"
+		filenames="$(git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/')"
+		write_log "Only pulling diff files:\n$filenames"
+	fi
+
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/--exclude /'`
-		ignore=`echo $ignore | tr -d '\r'`
+		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/ --exclude /' | tr -d '\r\n'`
 	fi
-	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
+
+	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
+	lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
 }
 
 set_scope() {
@@ -1522,6 +1538,10 @@ do
 		--no-commit)
 			MERGE_ARGS="$MERGE_ARGS --no-commit"
 			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
+			;;
+		--changed-only)
+			PULL_CHANGED_ONLY=1
+			write_log "Pulling only changed files."
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then

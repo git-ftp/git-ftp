@@ -905,6 +905,35 @@ test_pull_stash() {
 	assertEquals '' "$(git log -- 'internal.txt')"
 }
 
+test_pull_changedonly() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	echo 'foreign content' > external.txt
+	curl -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > not_modified.txt
+	echo 'own content' > locally_modified.txt
+	echo 'own content' > locallyremotely_modified.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "init" > /dev/null 2>&1
+	$GIT_FTP init > /dev/null
+	echo 'own content local modification' > locally_modified.txt
+	echo 'own content\nforeign content' > locallyremotely_modified.txt
+	curl -T locallyremotely_modified.txt $CURL_URL/ 2> /dev/null
+	echo 'local modification\nown content' > locallyremotely_modified.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	$GIT_FTP pull --changed-only > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertFalse ' external file downloaded' "[ -r 'external.txt' ]"
+	assertFalse ' external file listed in commit message' "git log | grep 'external.txt'"
+	assertFalse ' not_modified file listed in commit message' "git log | grep 'not_modified.txt'"
+	assertFalse ' locally_modified file listed in commit message' "git log | grep 'locally_modified.txt'"
+	assertTrue ' locallyremotely_modified file not listed in commit message' "git log | grep 'locallyremotely_modified.txt'"
+	assertEquals ' locallremotely_modified not correctly merged' 3 $(cat locallyremotely_modified.txt | wc -l)
+}
+
 test_submodule() {
 	submodule='sub'
 	file='file.txt'
