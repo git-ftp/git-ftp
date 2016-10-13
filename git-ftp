@@ -309,7 +309,7 @@ set_deployed_sha1_file() {
 # Simple log func
 write_log() {
 	if [ $VERBOSE -eq 1 ]; then
-		echo -e "$(date): $1"
+		echo "$(date): $1"
 	else
 		if [ -n "$LOG_CACHE" ]; then
 			LOG_CACHE="$LOG_CACHE\n$(date): $1"
@@ -1007,12 +1007,12 @@ download_remote_updates () {
 		ignoreall=" --exclude '.*' --exclude '.*/'"
 		include="$(git diff "$CURRENT_BRANCH" --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n')"
 		filenames="$(git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/')"
-		write_log "Only pulling diff files:\n$filenames"
+		write_log "Only pulling diff files:$'\n'$filenames"
 	fi
 
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/ --exclude /' | tr -d '\r\n'`
+		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^/ --exclude /' | tr -d '\r\n')"
 	fi
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
