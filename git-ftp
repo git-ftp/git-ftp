@@ -29,6 +29,7 @@ readonly VERSION='1.2.0'
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
+FOLDER_CLONE=""
 URL=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
@@ -142,6 +143,10 @@ ACTIONS
 
 	. remove-scope
 		Completely remove a scope.
+
+    . clone
+        clone a git-ftp repository.
+        ftp-git clone [option] <ftp-address> [folder where to clone (if . we extract the name of the folder on the server and use it)]
 
 	. help
 		Shows this help screen.
@@ -811,6 +816,45 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
+extract_folder_clone() {
+    local fulladdress=$1
+    #check if the last char is /, in this case eliminate it!
+    length=${#filename}
+    ((length--))
+    [ "${fulladdress:$length:1}" == "/" ] && fulladdress="${fulladdress%?}"
+
+    FOLDER_CLONE=${fulladdress##*/}
+}
+
+set_up_clone_folder() {
+    
+    [ -z $URL ] && echo Error: give a url to clone. && exit
+    [ $FOLDER_CLONE == "." ] && extract_folder_clone $URL
+    
+    if [ -d "$FOLDER_CLONE" ]; then
+        echo "Folder $FOLDER_CLONE already exists, Do you want to overwrite it? [yes/no]. All change will be lost"
+        local OVERWRITE=
+        read OVERWRITE
+        if [[ $OVERWRITE == "y"* ]]; then rm -rf $FOLDER_CLONE
+        else exit 
+        fi
+    fi
+    
+    mkdir $FOLDER_CLONE && \
+    cd $FOLDER_CLONE && \
+    git init
+
+    git config git-ftp.user $REMOTE_USER
+    git config git-ftp.url $URL
+    git config git-ftp.password $REMOTE_PASSWD
+}
+
+commit_cloning() {
+    git add .
+    git commit -m "commit cloning with git-ftp"
+    git ftp catchup
+}
+
 handle_action() {
 	case "$ACTION" in
 		init)
@@ -834,6 +878,9 @@ handle_action() {
 		pull)
 			action_pull
 			;;
+        clone)
+            action_clone
+            ;;
 		add-scope)
 			action_add_scope
 			;;
@@ -1082,6 +1129,20 @@ handle_fetch() {
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
+
+action_clone() {
+    set_up_clone_folder 
+	
+    check_lftp_available
+	set_remotes
+	remote_lock
+	download_remote_updates
+	release_remote_lock
+
+    commit_cloning
+
+}
+
 action_init() {
 	check_git_version
 	check_is_git_project
@@ -1253,7 +1314,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log|clone)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1519,7 +1580,17 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
+            if [[ "$ACTION" == "clone" ]];then
+                if [ -z "$2" ]; then 
+                    FOLDER_CLONE="."
+                else
+                    FOLDER_CLONE="$2"
+                fi
+			    [ -n "$1" ] && URL=$1
+                shift
+            else
+			    [ -n "$1" ] && URL=$1
+            fi
 			;;
 	esac
 	shift
