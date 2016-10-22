@@ -29,7 +29,6 @@ readonly VERSION='1.2.0'
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
-FOLDER_CLONE=""
 URL=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
@@ -60,6 +59,7 @@ CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
 TMP_DIR=""
+SNAPSHOT_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
 TMP_GITFTP_UPLOAD=""
@@ -85,7 +85,9 @@ readonly ERROR_DOWNLOAD=5
 readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
-
+readonly ERROR_MKDIR=9
+readonly ERROR_NOT_EMPTY_DIR=10
+readonly ERROR_CDDIR=11
 # ------------------------------------------------------------
 # Functions
 # ------------------------------------------------------------
@@ -144,9 +146,10 @@ ACTIONS
 	. remove-scope
 		Completely remove a scope.
 
-    . clone
-        clone a git-ftp repository.
-        ftp-git clone [option] <ftp-address> [folder where to clone (if . we extract the name of the folder on the server and use it)]
+    . snapshot
+        Downloads files into a new Git repository.
+        Takes an additional argument as local destination directory. Example:
+             \`git-ftp snapshot ftp://example.com/public_html projects/example\`
 
 	. help
 		Shows this help screen.
@@ -816,42 +819,36 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
-extract_folder_clone() {
+extract_folder_snapshot() {
     local fulladdress=$1
-    #check if the last char is /, in this case eliminate it!
-    length=${#filename}
-    ((length--))
-    [ "${fulladdress:$length:1}" == "/" ] && fulladdress="${fulladdress%?}"
-
-    FOLDER_CLONE=${fulladdress##*/}
+    SNAPSHOT_DIR="$(basename "$fulladdress")"
 }
 
-set_up_clone_folder() {
-    
-    [ -z $URL ] && echo Error: give a url to clone. && exit
-    [ $FOLDER_CLONE == "." ] && extract_folder_clone $URL
-    
-    if [ -d "$FOLDER_CLONE" ]; then
-        echo "Folder $FOLDER_CLONE already exists, Do you want to overwrite it? [yes/no]. All change will be lost"
-        local OVERWRITE=
-        read OVERWRITE
-        if [[ $OVERWRITE == "y"* ]]; then rm -rf $FOLDER_CLONE
-        else exit 
-        fi
-    fi
-    
-    mkdir $FOLDER_CLONE && \
-    cd $FOLDER_CLONE && \
-    git init
-
+save_credential() {
     git config git-ftp.user $REMOTE_USER
     git config git-ftp.url $URL
     git config git-ftp.password $REMOTE_PASSWD
 }
 
+init_new_repository() {
+    
+    [ -z "$URL" ] && print_error_and_die "Error: give a url to snapshot." "$ERROR_USAGE"
+    [ -z $SNAPSHOT_DIR ] && extract_folder_snapshot $URL   # empty string, "clone" into folder with the same name as in the server
+    
+    if [ -d "$SNAPSHOT_DIR" ]; then    # if directory already exists (including . ) check for emptiness
+        if test "$(ls -a)"; then
+            print_error_and_die "Directorty $SNAPSHOT_DIR is not empty. In order to initialize a git repository the folder has to be empty." "$ERROR_NOT_EMPTY_DIR"
+        fi
+    else
+        mkdir $SNAPSHOT_DIR 2>/dev/null || [ print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR" ]
+        cd $SNAPSHOT_DIR 2>/dev/null || [ print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR" ]
+    fi
+    git init
+}
+
 commit_cloning() {
     git add .
-    git commit -m "commit cloning with git-ftp"
+    git commit -m "Download $URL with git-ftp"
     git ftp catchup
 }
 
@@ -875,11 +872,11 @@ handle_action() {
 		download)
 			action_download
 			;;
-		pull)
+        pull)
 			action_pull
 			;;
-        clone)
-            action_clone
+        snapshot)
+            action_snapshot
             ;;
 		add-scope)
 			action_add_scope
@@ -1130,15 +1127,14 @@ handle_fetch() {
 # Actions
 # ------------------------------------------------------------
 
-action_clone() {
-    set_up_clone_folder 
+action_snapshot() {
 	
     check_lftp_available
+    init_new_repository
 	set_remotes
 	remote_lock
 	download_remote_updates
 	release_remote_lock
-
     commit_cloning
 
 }
@@ -1314,7 +1310,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log|clone)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1580,18 +1576,16 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-            if [[ "$ACTION" == "clone" ]];then
-                if [ -z "$2" ]; then 
-                    FOLDER_CLONE="."
+            if [ -n "$1" ]; then
+                if [ -z "$URL" ]; then
+                    URL="$1"
+                elif [ "$ACTION" == "snapshot" -a -z "$SNAPSHOT_DIR" ]; then
+                    SNAPSHOT_DIR="$1"
                 else
-                    FOLDER_CLONE="$2"
+                    print_error_and_die "Unrecognised option: $1" "$ERROR_MISSING_ARGUMENTS"
                 fi
-			    [ -n "$1" ] && URL=$1
-                shift
-            else
-			    [ -n "$1" ] && URL=$1
             fi
-			;;
+            ;;
 	esac
 	shift
 done
