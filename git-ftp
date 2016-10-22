@@ -836,20 +836,21 @@ init_new_repository() {
     [ -z $SNAPSHOT_DIR ] && extract_folder_snapshot $URL   # empty string, "clone" into folder with the same name as in the server
     
     if [ -d "$SNAPSHOT_DIR" ]; then    # if directory already exists (including . ) check for emptiness
-        if test "$(ls -a)"; then
+        if [ "$(ls -A $SNAPSHOT_DIR)" ]; then
             print_error_and_die "Directorty $SNAPSHOT_DIR is not empty. In order to initialize a git repository the folder has to be empty." "$ERROR_NOT_EMPTY_DIR"
         fi
     else
-        mkdir $SNAPSHOT_DIR 2>/dev/null || [ print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR" ]
-        cd $SNAPSHOT_DIR 2>/dev/null || [ print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR" ]
+        mkdir $SNAPSHOT_DIR 2>/dev/null || print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR"
     fi
+
+    cd $SNAPSHOT_DIR 2>/dev/null || print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR"
     git init
 }
 
 commit_cloning() {
-    git add .
-    git commit -m "Download $URL with git-ftp"
-    git ftp catchup
+    git add . > /dev/null || print_error_and_die "Git: error adding changed files" "$ERROR_GIT"
+    git commit -m "Download $URL with git-ftp" -q  > /dev/null || print_error_and_die "Git: error commiting the changes" "$ERROR_GIT"
+    git ftp -u $REMOTE_USER -p $REMOTE_PASSWD $URL catchup  > /dev/null || print_error_and_die "Uploads current SHA1 to log" "$ERROR_LOG"
 }
 
 handle_action() {
