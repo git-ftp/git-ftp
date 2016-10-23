@@ -401,6 +401,7 @@ upload_file() {
 
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
+    CURL_ARGS+=(--no-epsv)
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
@@ -819,38 +820,27 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
-extract_folder_snapshot() {
-    local fulladdress=$1
-    SNAPSHOT_DIR="$(basename "$fulladdress")"
-}
-
-save_credential() {
-    git config git-ftp.user $REMOTE_USER
-    git config git-ftp.url $URL
-    git config git-ftp.password $REMOTE_PASSWD
-}
-
 init_new_repository() {
     
     [ -z "$URL" ] && print_error_and_die "Error: give a url to snapshot." "$ERROR_USAGE"
-    [ -z $SNAPSHOT_DIR ] && extract_folder_snapshot $URL   # empty string, "clone" into folder with the same name as in the server
+    [ -z "$SNAPSHOT_DIR" ] && SNAPSHOT_DIR="$(basename "$URL")"   # empty string, "clone" into folder with the same name as in the server
     
     if [ -d "$SNAPSHOT_DIR" ]; then    # if directory already exists (including . ) check for emptiness
         if [ "$(ls -A $SNAPSHOT_DIR)" ]; then
             print_error_and_die "Directorty $SNAPSHOT_DIR is not empty. In order to initialize a git repository the folder has to be empty." "$ERROR_NOT_EMPTY_DIR"
         fi
     else
-        mkdir $SNAPSHOT_DIR 2>/dev/null || print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR"
+        mkdir -p $SNAPSHOT_DIR || print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR"
     fi
 
-    cd $SNAPSHOT_DIR 2>/dev/null || print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR"
+    cd $SNAPSHOT_DIR || print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR"
     git init
 }
 
 commit_cloning() {
     git add . > /dev/null || print_error_and_die "Git: error adding changed files" "$ERROR_GIT"
     git commit -m "Download $URL with git-ftp" -q  > /dev/null || print_error_and_die "Git: error commiting the changes" "$ERROR_GIT"
-    git ftp -u $REMOTE_USER -p $REMOTE_PASSWD $URL catchup  > /dev/null || print_error_and_die "Uploads current SHA1 to log" "$ERROR_LOG"
+	action_catchup
 }
 
 handle_action() {
@@ -1128,18 +1118,6 @@ handle_fetch() {
 # Actions
 # ------------------------------------------------------------
 
-action_snapshot() {
-	
-    check_lftp_available
-    init_new_repository
-	set_remotes
-	remote_lock
-	download_remote_updates
-	release_remote_lock
-    commit_cloning
-
-}
-
 action_init() {
 	check_git_version
 	check_is_git_project
@@ -1218,6 +1196,18 @@ action_pull() {
 	set_deployed_sha1
 	handle_fetch
 	git merge $MERGE_ARGS $LOCAL_SHA1
+}
+
+action_snapshot() {
+	
+    check_lftp_available
+    init_new_repository
+	set_remotes
+	remote_lock
+	download_remote_updates
+	release_remote_lock
+    commit_cloning
+
 }
 
 action_add_scope() {

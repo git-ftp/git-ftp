@@ -31,6 +31,11 @@ Another advantage is Git-ftp only handles files which are tracked with [Git].
 `catchup` 
 :	Uploads the .git-ftp.log file only. We have already uploaded the files to remote host with a different program and want to remember its state by uploading the .git-ftp.log file.
 
+`snapshot`
+:   Downloads files into a new Git repository.
+    Takes an additional argument as local destination directory. Example:
+        \`git-ftp snapshot ftp://example.com/public_html projects/example\`
+
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
@@ -290,6 +295,15 @@ There are a bunch of different error codes and their corresponding error message
 
 `8`
 :	Not a Git project
+
+`9`
+:  Error crating new directory
+
+`10`
+:   Directory not empty
+
+`11`
+:   Error while changing directory
 
 # KNOWN ISSUES & BUGS
 
