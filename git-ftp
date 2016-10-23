@@ -401,7 +401,6 @@ upload_file() {
 
 	set_default_curl_options
 	CURL_ARGS+=(-T "$SRC_FILE")
-    CURL_ARGS+=(--no-epsv)
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
