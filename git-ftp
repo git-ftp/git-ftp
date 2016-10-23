@@ -317,7 +317,7 @@ get_config() {
 }
 
 set_deployed_sha1_file() {
-	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
+	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file $DEPLOYED_SHA1_FILE)"
 }
 
 # Simple log func
