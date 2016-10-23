@@ -50,7 +50,7 @@ CURRENT_BRANCH=""
 SCOPE=""
 KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
-DEPLOYED_SHA1_FILE=".git-ftp.log"
+DEPLOYED_SHA1_FILE=".git-ftp-log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
@@ -146,10 +146,10 @@ ACTIONS
 	. remove-scope
 		Completely remove a scope.
 
-    . snapshot
-        Downloads files into a new Git repository.
-        Takes an additional argument as local destination directory. Example:
-             \`git-ftp snapshot ftp://example.com/public_html projects/example\`
+        . snapshot
+            Downloads files into a new Git repository.
+            Takes an additional argument as local destination directory. Example:
+                \`git-ftp snapshot ftp://example.com/public_html projects/example\`
 
 	. help
 		Shows this help screen.
