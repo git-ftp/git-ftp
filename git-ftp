@@ -752,8 +752,14 @@ submodule_catchup() {
 }
 
 set_submodule_args() {
-	# Duplicate the current required parameters
-	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
+	# Duplicate the current required parameters if set
+	args="" 
+	if [ -z "$REMOTE_USER" ]; then
+		args+=(--user "$REMOTE_USER")
+	fi
+	if [ -z "$REMOTE_PASSWD" ]; then
+		args+=(--passwd "$REMOTE_PASSWD")
+	fi
 
 	# Do not ask any questions for submodules
 	args+=(--force)
