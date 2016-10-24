@@ -773,8 +773,17 @@ submodule_catchup() {
 }
 
 set_submodule_args() {
-	# Duplicate the current required parameters
-	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
+	# Empty array args
+	args=()
+	
+	# If no REMOTE_USER or no REMOTE_PASS then don't add parameters
+	# Probabably using .netrc 
+	if [ ! -z "$REMOTE_USER" ]; then
+		args+=(--user "$REMOTE_USER")
+	fi
+	if [ ! -z "$REMOTE_PASSWD" ]; then
+		args+=(--passwd "$REMOTE_PASSWD")
+	fi
 
 	# Do not ask any questions for submodules
 	args+=(--force)
