@@ -35,7 +35,7 @@ before_script:
 script:
   - tests/git-ftp-test.sh
   - >
-    if grep -n -C 1 '^  ' git-ftp; then
+    if grep -H -n -C 1 '^  ' "git-ftp" "tests/git-ftp-test.sh"; then
       echo 'Lines starting with spaces instead of tabs found!'
       false
     fi
