@@ -59,6 +59,7 @@ CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
 TMP_DIR=""
+SNAPSHOT_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
 TMP_GITFTP_UPLOAD=""
@@ -84,7 +85,9 @@ readonly ERROR_DOWNLOAD=5
 readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
-
+readonly ERROR_MKDIR=9
+readonly ERROR_NOT_EMPTY_DIR=10
+readonly ERROR_CDDIR=11
 # ------------------------------------------------------------
 # Functions
 # ------------------------------------------------------------
@@ -142,6 +145,11 @@ ACTIONS
 
 	. remove-scope
 		Completely remove a scope.
+
+        . snapshot
+            Downloads files into a new Git repository.
+            Takes an additional argument as local destination directory. Example:
+                \`git-ftp snapshot ftp://example.com/public_html projects/example\`
 
 	. help
 		Shows this help screen.
@@ -309,7 +317,7 @@ get_config() {
 }
 
 set_deployed_sha1_file() {
-	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
+	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file $DEPLOYED_SHA1_FILE)"
 }
 
 # Simple log func
@@ -811,6 +819,29 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
+init_new_repository() {
+    
+    [ -z "$URL" ] && print_error_and_die "Error: give a url to snapshot." "$ERROR_USAGE"
+    [ -z "$SNAPSHOT_DIR" ] && SNAPSHOT_DIR="$(basename "$URL")"   # empty string, "clone" into folder with the same name as in the server
+    
+    if [ -d "$SNAPSHOT_DIR" ]; then    # if directory already exists (including . ) check for emptiness
+        if [ "$(ls -A $SNAPSHOT_DIR)" ]; then
+            print_error_and_die "Directorty $SNAPSHOT_DIR is not empty. In order to initialize a git repository the folder has to be empty." "$ERROR_NOT_EMPTY_DIR"
+        fi
+    else
+        mkdir -p $SNAPSHOT_DIR || print_error_and_die "Error creating directory $SNAPSHOT_DIR. Aborting." "$ERROR_MKDIR"
+    fi
+
+    cd $SNAPSHOT_DIR || print_error_and_die "Error entering new folder. Aborting." "$ERROR_CDDIR"
+    git init
+}
+
+commit_cloning() {
+    git add . > /dev/null || print_error_and_die "Git: error adding changed files" "$ERROR_GIT"
+    git commit -m "Download $URL with git-ftp" -q  > /dev/null || print_error_and_die "Git: error commiting the changes" "$ERROR_GIT"
+	action_catchup
+}
+
 handle_action() {
 	case "$ACTION" in
 		init)
@@ -831,9 +862,12 @@ handle_action() {
 		download)
 			action_download
 			;;
-		pull)
+        pull)
 			action_pull
 			;;
+        snapshot)
+            action_snapshot
+            ;;
 		add-scope)
 			action_add_scope
 			;;
@@ -1082,6 +1116,7 @@ handle_fetch() {
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
+
 action_init() {
 	check_git_version
 	check_is_git_project
@@ -1160,6 +1195,18 @@ action_pull() {
 	set_deployed_sha1
 	handle_fetch
 	git merge $MERGE_ARGS $LOCAL_SHA1
+}
+
+action_snapshot() {
+	
+    check_lftp_available
+    init_new_repository
+	set_remotes
+	remote_lock
+	download_remote_updates
+	release_remote_lock
+    commit_cloning
+
 }
 
 action_add_scope() {
@@ -1253,7 +1300,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1519,8 +1566,16 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
-			;;
+            if [ -n "$1" ]; then
+                if [ -z "$URL" ]; then
+                    URL="$1"
+                elif [ "$ACTION" == "snapshot" -a -z "$SNAPSHOT_DIR" ]; then
+                    SNAPSHOT_DIR="$1"
+                else
+                    print_error_and_die "Unrecognised option: $1" "$ERROR_MISSING_ARGUMENTS"
+                fi
+            fi
+            ;;
 	esac
 	shift
 done
