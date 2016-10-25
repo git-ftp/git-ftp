@@ -54,6 +54,7 @@ DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
+SNAPSHOT_DIR=""
 CURL_PROTOCOL=""
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
@@ -87,6 +88,7 @@ readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
 readonly ERROR_HOOK=9
+readonly ERROR_FILESYSTEM=10
 
 # ------------------------------------------------------------
 # Functions
@@ -142,6 +144,11 @@ ACTIONS
 
 	. remove-scope
 		Completely remove a scope.
+
+	. snapshot
+		Downloads files into a new Git repository.
+		Takes an additional argument as local destination directory. Example:
+		\`git-ftp snapshot ftp://example.com/public_html projects/example\`
 
 	. help
 		Shows this help screen.
@@ -825,6 +832,33 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
 }
 
+init_new_repository() {
+	[ -z "$URL" ] && print_error_and_die "Error: give a url to snapshot." "$ERROR_USAGE"
+
+	# Use the last part of the URL as destination directory by default
+	[ -z "$SNAPSHOT_DIR" ] && SNAPSHOT_DIR="$(basename "$URL")"
+
+	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		print_error_and_die "Commit found. $URL is managed by another Git repository already. If you want to start using a new repository, then delete $DEPLOYED_SHA1_FILE first. The old repository will not be able to deploy to this remote any more. Aborting." "$ERROR_USAGE"
+	fi
+
+	# Make sure the destination directory exists
+	mkdir -p "$SNAPSHOT_DIR" || print_error_and_die "Error creating directory '$SNAPSHOT_DIR'. Aborting." "$ERROR_FILESYSTEM"
+
+	if [ "$(ls -A "$SNAPSHOT_DIR")" ]; then
+		print_error_and_die "Error: The destination directory '$SNAPSHOT_DIR' is not empty. Aborting." "$ERROR_FILESYSTEM"
+	fi
+
+	cd "$SNAPSHOT_DIR" || print_error_and_die "Error entering '$SNAPSHOT_DIR'. Aborting." "$ERROR_FILESYSTEM"
+	git init
+}
+
+commit_cloning() {
+	git add . > /dev/null || print_error_and_die "Git: error adding changed files" "$ERROR_GIT"
+	git commit -m "Download $URL with git-ftp" -q  > /dev/null || print_error_and_die "Git: error committing the changes" "$ERROR_GIT"
+}
+
 handle_action() {
 	case "$ACTION" in
 		init)
@@ -847,6 +881,9 @@ handle_action() {
 			;;
 		pull)
 			action_pull
+			;;
+		snapshot)
+			action_snapshot
 			;;
 		add-scope)
 			action_add_scope
@@ -972,7 +1009,7 @@ urlencode() {
 		c=${string:$pos:1}
 		case "$c" in
 			$keepset ) o="${c}" ;;
-			* )        printf -v o '%%%02x' "'$c"
+			* ) printf -v o '%%%02x' "'$c"
 		esac
 		encoded+="${o}"
 	done
@@ -1176,6 +1213,15 @@ action_pull() {
 	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
+action_snapshot() {
+	check_lftp_available
+	set_remotes
+	init_new_repository
+	download_remote_updates
+	commit_cloning
+	action_catchup
+}
+
 action_add_scope() {
 	check_is_git_project
 	set_scope
@@ -1269,7 +1315,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1325,20 +1371,20 @@ do
 			;;
 		-b|--branch*)
 			case "$#,$1" in
-			    *,*=*)
-				BRANCH=$(expr 'z$1' : 'z-[^=]*=\(.*\)')
-				;;
-			    1,*)
-				print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
-				;;
-			    *)
-				if ! echo "$2" | egrep -q '^-'; then
-				    BRANCH="$2"
-				    shift
-				else
-				    print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
-				fi
-				;;
+				*,*=*)
+					BRANCH=$(expr 'z$1' : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						BRANCH="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
 			esac
 			;;
 		--syncroot*)
@@ -1539,7 +1585,15 @@ do
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
+			if [ -n "$1" ]; then
+				if [ -z "$URL" ]; then
+					URL="$1"
+				elif [ "$ACTION" == "snapshot" -a -z "$SNAPSHOT_DIR" ]; then
+					SNAPSHOT_DIR="$1"
+				else
+					print_error_and_die "Unrecognised option: $1" "$ERROR_MISSING_ARGUMENTS"
+				fi
+			fi
 			;;
 	esac
 	shift

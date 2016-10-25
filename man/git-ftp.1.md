@@ -48,6 +48,11 @@ different and handles only those files. That saves time and bandwidth.
 	and merges that into your current branch.
 	This feature needs lftp to be installed.
 
+`snapshot` (EXPERIMENTAL)
+:	Downloads files into a new Git repository.
+	Takes an additional argument as local destination directory. Example:
+	\`git-ftp snapshot ftp://example.com/public_html projects/example\`
+
 `show`
 :	Downloads last uploaded SHA1 from log and hooks \`git show\`.
 
@@ -478,6 +483,9 @@ At the time of this writing, the exit codes are:
 
 `9`
 :	The `pre-ftp-push` hook failed
+
+`10`
+:	A local file operation like `cd` or `mkdir` failed
 
 # KNOWN ISSUES & BUGS
 
