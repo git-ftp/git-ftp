@@ -44,19 +44,19 @@ Usage
 
 ``` sh
 $ cd my_git_tracked_project
-$ git ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
+$ git-ftp push --user <user> --passwd <password> ftp://host.example.com/public_html
 ```
 
 For interactive password prompt use `-P`:
 
 ``` sh
-$ git ftp push -u <user> -P ftp://host.example.com/public_html
+$ git-ftp push -u <user> -P ftp://host.example.com/public_html
 ```
 
 Pushing for the first time:
 
 ``` sh
-$ git ftp init -u <user> -P ftp://host.example.com/public_html
+$ git-ftp init -u <user> -P ftp://host.example.com/public_html
 ```
 
 See [man page](man/git-ftp.1.md) for more options, features and examples!
