@@ -840,7 +840,11 @@ init_new_repository() {
 
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	if [ "$DEPLOYED_SHA1" != "" ]; then
-		print_error_and_die "Commit found. $URL is managed by another Git repository already. If you want to start using a new repository, then delete $DEPLOYED_SHA1_FILE first. The old repository will not be able to deploy to this remote any more. Aborting." "$ERROR_USAGE"
+		print_error_and_die "Commit found at $URL/$DEPLOYED_SHA1_FILE.
+
+The remote directory is managed by another Git repository already. If you want
+to start using a new repository, then delete $DEPLOYED_SHA1_FILE first. The old
+repository will not be able to deploy to this remote any more. Aborting." "$ERROR_USAGE"
 	fi
 
 	# Make sure the destination directory exists
@@ -1039,7 +1043,8 @@ download_remote_updates () {
 		ignore=`grep -v ^# .git-ftp-ignore | awk 'NF' | sed 's/^/--exclude /'`
 		ignore=`echo $ignore | tr -d '\r'`
 	fi
-	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
+	out="$(lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore . $SYNCROOT && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}" 2>&1)"
+	print_info "$out"
 }
 
 set_scope() {

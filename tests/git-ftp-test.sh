@@ -50,7 +50,9 @@ setUp() {
 	fi
 	GIT_PROJECT_NAME="$(basename $GIT_PROJECT_PATH)"
 
-	GIT_FTP_URL="ftp://$GIT_FTP_HOST$GIT_FTP_PORT/$GIT_FTP_ROOT/$GIT_PROJECT_NAME"
+	REMOTE_BASE_URL="ftp://$GIT_FTP_HOST$GIT_FTP_PORT"
+	REMOTE_PATH="$GIT_FTP_ROOT/$GIT_PROJECT_NAME"
+	GIT_FTP_URL="$REMOTE_BASE_URL/$REMOTE_PATH"
 
 	[ -n "$GIT_FTP_USER" ] && CURL_ARGS=" -u $GIT_FTP_USER:$GIT_FTP_PASSWD"
 	CURL="curl $CURL_ARGS"
@@ -910,6 +912,21 @@ test_pull_stash() {
 	assertEquals 1 "$stash_count"
 	assertFalse 'internal.txt appeared' "[ -f internal.txt ]"
 	assertEquals '' "$(git log -- 'internal.txt')"
+}
+
+test_snapshot_fail() {
+	skip_without lftp
+	$GIT_FTP init -n
+	$GIT_FTP snapshot -n
+	assertEquals 2 $?
+}
+
+test_snapshot() {
+	skip_without lftp
+	$GIT_FTP init -n
+	$CURL -s -Q "-*DELE $REMOTE_PATH/.git-ftp.log" "$REMOTE_BASE_URL" > /dev/null
+	$GIT_FTP snapshot -n
+	assertEquals 0 $?
 }
 
 test_submodule() {
