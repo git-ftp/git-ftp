@@ -43,9 +43,15 @@ different and handles only those files. That saves time and bandwidth.
 	WARNING: It can delete local untracked files that are not listed in
 	your .git-ftp-ignore file.
 
-`pull`
+`pull` (EXPERIMENTAL)
 :	Downloads changes from the remote host into a separate commit
 	and merges that into your current branch.
+	This feature needs lftp to be installed.
+
+`snapshot` (EXPERIMENTAL)
+:	Downloads files into a new Git repository. Takes an additional
+	argument as local destination directory. Example:
+	\`git-ftp snapshot ftp://example.com/public_html projects/example\`
 	This feature needs lftp to be installed.
 
 `show`
@@ -481,6 +487,9 @@ At the time of this writing, the exit codes are:
 
 `9`
 :	The `pre-ftp-push` hook failed
+
+`10`
+:	A local file operation like `cd` or `mkdir` failed
 
 # KNOWN ISSUES & BUGS
 

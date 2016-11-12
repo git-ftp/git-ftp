@@ -3,45 +3,44 @@ os:
   - osx
 
 env:
-  - LFTP_SUPPORT=1
   - LFTP_SUPPORT=0
+  - LFTP_SUPPORT=1
 
 language: sh
 
 install:
-  - sudo mkdir -p /var/ftp/pub
-  - sudo chmod a+rwx /var/ftp/pub
+  - mkdir -p /tmp/vsftpd/empty
+  - mkdir -p /tmp/ftp/pub
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      sudo apt-get update -y
-      sudo apt-get install -y vsftpd
-      echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_umask=000 | sudo tee -a /etc/vsftpd.conf
-      echo anon_other_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-      echo anon_root=/var/ftp | sudo tee -a /etc/vsftpd.conf
-      sudo service vsftpd restart
+      ./tests/vsftpd-3.0.3.debian7 tests/vsftpd.conf &
       if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
     fi
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      echo "chroot GUEST /var/ftp" | sudo tee -a /etc/ftpd.conf
-      echo "modify guest MKD" | sudo tee -a /etc/ftpd.conf
-      echo "modify guest RMD" | sudo tee -a /etc/ftpd.conf
-      sudo -s launchctl load -w /System/Library/LaunchDaemons/ftp.plist
-      if [ "$LFTP_SUPPORT" -eq 1 ]; then brew install lftp; fi
+      ./tests/vsftpd-3.0.3.el_capitan tests/vsftpd.conf &
+      if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo installer -pkg tests/lftp-4.6.0-0.pkg -target /; fi
     fi
 
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - export GIT_FTP_ROOT=localhost/pub
+  - export GIT_FTP_HOST=localhost
+  - export GIT_FTP_PORT=:2121
+  - export GIT_FTP_ROOT=pub
   - export GIT_FTP_USER=ftp
   - export GIT_FTP_PASSWD=ftp
+  #- export TEST_CASES="test_inits test_push_nothing test_file_with_unicode"
 
 script:
   - tests/git-ftp-test.sh
+  - >
+    if grep -H -n -C 1 '^  ' "git-ftp" "tests/git-ftp-test.sh"; then
+      echo 'Lines starting with spaces instead of tabs found!'
+      false
+    fi
 
 after_failure:
-  - ls -la /var/ftp/pub/*
+  - cat /tmp/ftp.log
+  - ls -la /tmp/ftp/pub
+  - ls -la /tmp/ftp/pub/*
