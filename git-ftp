@@ -851,7 +851,8 @@ init_new_repository() {
 	fi
 
 	cd "$SNAPSHOT_DIR" || print_error_and_die "Error entering '$SNAPSHOT_DIR'. Aborting." "$ERROR_FILESYSTEM"
-	git init
+	info="$(git init)" || print_error_and_die "Error initialising Git repository." "$ERROR_GIT"
+	print_info "$info"
 }
 
 commit_snapshot() {
@@ -1091,13 +1092,13 @@ remove_scope() {
 }
 
 set_current_branch() {
-	local current=$( (git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null) | sed "s#^refs/heads/##")
+	local current="$( (git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null) | sed "s#^refs/heads/##")"
 	if [ "$?" -ne "0" ]; then
 		set_local_sha1
-		current=$LOCAL_SHA1
+		current="$LOCAL_SHA1"
 	fi
 	write_log "currently on branch $current"
-	CURRENT_BRANCH=$current
+	CURRENT_BRANCH="$current"
 }
 
 fetch_remote() {
@@ -1119,7 +1120,7 @@ handle_fetch() {
 	fetch_remote
 	release_remote_lock
 	[ "$stash" != 'No local changes to save' ] && git stash pop
-	git checkout $CURRENT_BRANCH 2> /dev/null
+	git checkout "$CURRENT_BRANCH" 2> /dev/null
 	if [ $DRY_RUN -ne 1 ] && [ $old_sha1 != $LOCAL_SHA1 ]; then
 		print_info "From $REMOTE_HOST/$REMOTE_PATH"
 		print_info "   $old_sha1..$LOCAL_SHA1"
