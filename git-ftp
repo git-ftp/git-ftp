@@ -69,7 +69,7 @@ TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
-declare -i PULL_CHANGED_ONLY=0
+declare -i DOWNLOAD_CHANGED_ONLY=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
@@ -185,7 +185,7 @@ OPTIONS
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
-	--changed-only	During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
+	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--version		Prints version.
@@ -356,7 +356,7 @@ print_error_and_die() {
 # Simple info printer
 print_info() {
 	if [ $VERBOSE -eq 0 ]; then
-		echo -e "$1"
+		echo "$1"
 	else
 		write_log "$1"
 	fi
@@ -1044,17 +1044,17 @@ download_remote_updates () {
 	include=""
 	ignoreall=""
 	# Mirror only the files from the diff between the FTP commit and the current branch/commit
-	if [ "$PULL_CHANGED_ONLY" -eq 1 ] && [ -n "$CURRENT_BRANCH" ]; then
+	if [ "$DOWNLOAD_CHANGED_ONLY" -eq 1 ] && [ -n "$CURRENT_BRANCH" ]; then
 		delete=""
 		ignoreall=" --exclude '.*' --exclude '.*/'"
-		include="$(git diff "$CURRENT_BRANCH" --name-only | awk 'NF' | sed 's/$/"/' | sed 's/^/ --include "/' | tr -d '\r\n')"
+		include="$(git diff "$CURRENT_BRANCH" --name-only | sed 's/^\(.*\)$/ --include "\1"/' | tr -d '\r\n')"
 		filenames="$(git diff $CURRENT_BRANCH --name-only | sed 's/^/\t/')"
 		write_log "Only pulling diff files:$'\n'$filenames"
 	fi
 
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^/ --exclude /' | tr -d '\r\n')"
+		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/ --exclude "\1"/' | tr -d '\r\n')"
 	fi
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
@@ -1592,8 +1592,8 @@ do
 			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
 			;;
 		--changed-only)
-			PULL_CHANGED_ONLY=1
-			write_log "Pulling only changed files."
+			DOWNLOAD_CHANGED_ONLY=1
+			write_log "Downloading only changed files."
 			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then
