@@ -778,10 +778,10 @@ set_submodule_args() {
 	
 	# If no REMOTE_USER or no REMOTE_PASS then don't add parameters
 	# Probabably using .netrc 
-	if [ ! -z "$REMOTE_USER" ]; then
+	if [ -n "$REMOTE_USER" ]; then
 		args+=(--user "$REMOTE_USER")
 	fi
-	if [ ! -z "$REMOTE_PASSWD" ]; then
+	if [ -n "$REMOTE_PASSWD" ]; then
 		args+=(--passwd "$REMOTE_PASSWD")
 	fi
 
