@@ -927,7 +927,7 @@ test_pull_changedonly() {
 	$GIT_FTP init -n
 	echo 'own content local modification' > locally_modified.txt
 	echo 'own content\nforeign content' > locallyremotely_modified.txt
-	curl -T locallyremotely_modified.txt "$CURL_URL/" 2> /dev/null
+	$CURL -s -T "locallyremotely_modified.txt" "$CURL_URL/"
 	echo 'local modification\nown content' > locallyremotely_modified.txt
 	git add . > /dev/null 2>&1
 	git commit -a -m "local modification" -q

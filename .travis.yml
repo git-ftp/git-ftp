@@ -9,17 +9,15 @@ env:
 language: sh
 
 install:
-  - mkdir -p /tmp/vsftpd/empty
-  - mkdir -p /tmp/ftp/pub
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       ./tests/vsftpd-3.0.3.debian7 tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo apt-get install -y lftp; fi
+      if [ "$LFTP_SUPPORT" = "1" ]; then sudo apt-get install -y lftp; fi
     fi
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
       ./tests/vsftpd-3.0.3.el_capitan tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" -eq 1 ]; then sudo installer -pkg tests/lftp-4.6.0-0.pkg -target /; fi
+      if [ "$LFTP_SUPPORT" = "1" ]; then sudo installer -pkg tests/lftp-4.6.0-0.pkg -target /; fi
     fi
 
 before_script:
@@ -29,7 +27,8 @@ before_script:
   - export GIT_FTP_PORT=:2121
   - export GIT_FTP_ROOT=pub
   - export GIT_FTP_USER=ftp
-  - export GIT_FTP_PASSWD=ftp
+  - export GIT_FTP_PASSWD="git-ftp@example.org"
+  - echo "$GIT_FTP_PASSWD" > /tmp/vsftpd.email_passwords
   #- export TEST_CASES="test_inits test_push_nothing test_file_with_unicode"
 
 script:
@@ -41,6 +40,6 @@ script:
     fi
 
 after_failure:
-  - cat /tmp/ftp.log
-  - ls -la /tmp/ftp/pub
-  - ls -la /tmp/ftp/pub/*
+  - cat /tmp/vsftpd.log
+  - ls -la /tmp
+  - ls -la /tmp/pub/*
