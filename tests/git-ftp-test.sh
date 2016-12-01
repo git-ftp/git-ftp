@@ -973,6 +973,26 @@ test_submodule() {
 	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
 }
 
+test_submodule_netrc() {
+	submodule='sub'
+	file='file.txt'
+	mkdir "$submodule"
+	cd "$submodule"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd ..
+	git submodule -q add "/$submodule" > /dev/null
+	echo "machine localhost login $GIT_FTP_USER password $GIT_FTP_PASSWD" > .netrc
+	chmod 600 .netrc
+	git add .
+	git commit -m 'adding submodule' -q
+	# Setting $HOME to look for .netrc file
+	init="$(HOME="$(pwd)" $GIT_FTP_CMD init "$GIT_FTP_URL")"
+	assertTrue "test failed: $file not there as expected" "remote_file_exists '$submodule/$file'"
+}
+
 test_submodule_catchup() {
 	submodule='sub'
 	file='file.txt'
