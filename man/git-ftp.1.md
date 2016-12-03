@@ -1,6 +1,6 @@
 % GIT-FTP(1) git-ftp User Manual
-% Rene Moser <mail@renemoser.net>
-% 2015-02-08
+%
+% 2016-12-03
 
 # NAME
 
@@ -12,11 +12,11 @@ Git-ftp - Git powered FTP client written as shell script.
 
 # DESCRIPTION
 
-Git-ftp is a FTP client using [Git] to determine which local files to upload or
+Git-ftp is an FTP client using [Git] to determine which local files to upload or
 which files to delete on the remote host.
 
-It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file.
-There is no need for Git to be installed on the remote host.
+It saves the deployed state by uploading the SHA1 hash in the `.git-ftp.log`
+file. There is no need for Git to be installed on the remote host.
 
 Even if you play with different branches, git-ftp knows which files are
 different and handles only those files. That saves time and bandwidth.
@@ -25,10 +25,11 @@ different and handles only those files. That saves time and bandwidth.
 
 `init`
 :	Uploads all git-tracked non-ignored files to the remote server and
-	creates the .git-ftp.log file containing the SHA1 of the latest commit.
+	creates the `.git-ftp.log` file containing the SHA1 of the latest
+	commit.
 
 `catchup`
-:	Creates or updates the .git-ftp.log file on the remote host.
+:	Creates or updates the `.git-ftp.log` file on the remote host.
 	It assumes that you uploaded all other files already.
 	You might have done that with another program.
 
@@ -41,7 +42,7 @@ different and handles only those files. That saves time and bandwidth.
 	This feature needs lftp to be installed and does not use any power of
 	Git.
 	WARNING: It can delete local untracked files that are not listed in
-	your .git-ftp-ignore file.
+	your `.git-ftp-ignore` file.
 
 `pull` (EXPERIMENTAL)
 :	Downloads changes from the remote host into a separate commit
@@ -102,7 +103,7 @@ different and handles only those files. That saves time and bandwidth.
 :	Enable remote locking.
 
 `-D`, `--dry-run`
-:	Does not upload or delete anything, but tries to get the .git-ftp.log
+:	Does not upload or delete anything, but tries to get the `.git-ftp.log`
 	file from remote host.
 
 `-f`, `--force`
@@ -151,7 +152,8 @@ different and handles only those files. That saves time and bandwidth.
 :	Stop while merging downloaded changes during the pull action.
 
 `--changed-only`
-: During the ftp mirror operation during a pull command, consider only the files changed since the deployed commit.
+:	During the ftp mirror operation during a pull command, consider only
+	the files changed since the deployed commit.
 
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
@@ -323,7 +325,7 @@ And it will not delete files from that directory if local files are deleted.
 # DOWNLOADING FILES (EXPERIMENTAL)
 
 **WARNING:** It can delete local untracked files that are not listed in your
-.git-ftp-ignore file.
+`.git-ftp-ignore` file.
 
 You can use git-ftp to download from the remote host into your repository.
 You will need to install the lftp command line tool for that.
@@ -496,3 +498,9 @@ At the time of this writing, the exit codes are:
 The upstream BTS can be found at <https://github.com/git-ftp/git-ftp/issues>.
 
 [Git]: http://git-scm.org
+
+# AUTHORS
+
+Git-ftp was started by Rene Moser and is currently maintained by Maikel Linke.
+Numerous conributions have come from Github users.
+See the AUTHORS file for an incomplete list of contributors.

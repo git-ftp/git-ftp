@@ -1,3 +1,8 @@
+Version 1.3.1
+=============
+
+* Fixed man file to avoid pandoc bug resulting in missing content
+
 Version 1.3.0
 =============
 
