@@ -1,3 +1,17 @@
+Version 1.3.0
+=============
+
+* FTPES support for submodules
+* Fix submodule bugs by quoting argument correctly
+* Include algorithm is now independent of ignore list
+* Include algorithm reads leading `/` as root of the repository like Git
+* Support for `pre-ftp-push` and `post-ftp-push` hooks
+* Performance improvements in generating file list
+* Allow file names to start with `-`
+* New `--changed-only` parameter for pull action
+* New "snapshot" action
+* Improved test setup comes with vsftpd configuration file
+
 Version 1.2.0-rc.1
 ==================
 
@@ -14,7 +28,6 @@ Submodules:
 New features:
 * Pull feature
 * Download feature using lftp
-
 
 Version 1.1.0-rc.1
 ==================
