@@ -420,11 +420,11 @@ fire_upload_buffer() {
 	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
 
 	if [ $VERBOSE -eq 0 ]; then
-	    CURL_ARGS+=(--progress-bar)
-    	curl "${CURL_ARGS[@]}" 2> >(print_progress $BUFFERED_ITEMS) > /dev/null; test ${PIPESTATUS[0]} -eq 0
-    else
-        curl "${CURL_ARGS[@]}"
-    fi
+		CURL_ARGS+=(--progress-bar)
+		curl "${CURL_ARGS[@]}" 2> >(print_progress $BUFFERED_ITEMS) > /dev/null; test ${PIPESTATUS[0]} -eq 0
+	else
+		curl "${CURL_ARGS[@]}"
+	fi
 
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 }
@@ -433,10 +433,10 @@ print_progress() {
     local BUFFERED_ITEMS="$1"
     local UPLOADED=0
     while IFS= read -r line
-      do
+    do
         UPLOADED=$(($UPLOADED+1))
         echo -ne "\rProgress: $UPLOADED/$BUFFERED_ITEMS"
-      done
+    done
     echo -ne " (Done)\n"
 }
 
