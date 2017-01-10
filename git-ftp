@@ -412,12 +412,32 @@ fire_upload_buffer() {
 	if [ ! -f "$TMP_CURL_UPLOAD_FILE" ]; then
 		return 0
 	fi
-	print_info "Uploading ..."
+	local BUFFERED_ITEMS="$1"
+	print_info "Uploading $BUFFERED_ITEMS files..."
+	REMOTE_CMD_OPTIONS=""
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
-	curl "${CURL_ARGS[@]}"
+
+	if [ $VERBOSE -eq 0 ]; then
+	    CURL_ARGS+=(--progress-bar)
+    	curl "${CURL_ARGS[@]}" 2> >(print_progress $BUFFERED_ITEMS) > /dev/null; test ${PIPESTATUS[0]} -eq 0
+    else
+        curl "${CURL_ARGS[@]}"
+    fi
+
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
+}
+
+print_progress() {
+    local BUFFERED_ITEMS="$1"
+    local UPLOADED=0
+    while IFS= read -r line
+      do
+        UPLOADED=$(($UPLOADED+1))
+        echo -ne "\rProgress: $UPLOADED/$BUFFERED_ITEMS"
+      done
+    echo -ne " (Done)\n"
 }
 
 delete_file() {
@@ -715,6 +735,7 @@ handle_file_sync() {
 	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
 	# Calculate total file count
 	local DONE_ITEMS=0
+	local BUFFERED_ITEMS=0
 	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' | wc -c)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
@@ -726,9 +747,10 @@ handle_file_sync() {
 			handle_submodule_sync "${FILE_NAME#$SYNCROOT}"
 		elif [ $DRY_RUN -ne 1 ]; then
 			upload_file_buffered "$FILE_NAME"
+			BUFFERED_ITEMS=$((BUFFERED_ITEMS+1))
 		fi
 	done < "$TMP_GITFTP_UPLOAD"
-	fire_upload_buffer
+	fire_upload_buffer $BUFFERED_ITEMS
 
 	while IFS= read -r -d '' FILE_NAME; do
 		(( DONE_ITEMS++ ))
