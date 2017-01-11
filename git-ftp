@@ -430,14 +430,14 @@ fire_upload_buffer() {
 }
 
 print_progress() {
-    local BUFFERED_ITEMS="$1"
-    local UPLOADED=0
-    while IFS= read -r line
-    do
-        UPLOADED=$(($UPLOADED+1))
-        echo -ne "\rProgress: $UPLOADED/$BUFFERED_ITEMS"
-    done
-    echo -ne " (Done)\n"
+	local BUFFERED_ITEMS="$1"
+	local UPLOADED=0
+	while IFS= read -r line
+	do
+		UPLOADED=$(($UPLOADED+1))
+		echo -ne "\rProgress: $UPLOADED/$BUFFERED_ITEMS"
+	done
+	echo -ne " (Done)\n"
 }
 
 delete_file() {
