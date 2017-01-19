@@ -40,7 +40,7 @@ REMOTE_ROOT=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
-REMOTE_CMD_OPTIONS="-s"
+REMOTE_CMD_OPTIONS=("-s")
 LFTP_OPTIONS=""
 ACTION=""
 LOG_CACHE=""
@@ -371,7 +371,7 @@ cleanup() {
 set_default_curl_options() {
 	OIFS="$IFS"
 	IFS=" "
-	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
+	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
 	if [ -z "$REMOTE_USER" ]; then
@@ -427,7 +427,7 @@ delete_file() {
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_BASE_URL")
-	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
+	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
@@ -449,7 +449,7 @@ fire_delete_buffer() {
 	echo "url = $REMOTE_BASE_URL" >> "$TMP_CURL_DELETE_FILE"
 	set_default_curl_options
 	CURL_ARGS+=(-K "$TMP_CURL_DELETE_FILE")
-	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
+	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
@@ -840,17 +840,17 @@ handle_remote_protocol_options() {
 	# Check for using cacert
 	if [ "$REMOTE_PROTOCOL" = "ftpes" -o "$REMOTE_PROTOCOL" = "ftps" ] && \
 	[ -n "$REMOTE_CACERT" -a -r "$REMOTE_CACERT" ]; then
-		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --cacert $REMOTE_CACERT"
+		REMOTE_CMD_OPTIONS+=("--cacert" "$REMOTE_CACERT")
 	fi
 
 	# Options for curl if using FTPES
 	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
 		CURL_PROTOCOL="ftp"
-		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl"
+		REMOTE_CMD_OPTIONS+=("--ssl")
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
+	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS+=("-k")
 }
 
 init_new_repository() {
@@ -1523,17 +1523,17 @@ do
 			;;
 		-n|--silent)
 			VERBOSE=-1
-			REMOTE_CMD_OPTIONS="-s"
+			REMOTE_CMD_OPTIONS=("-s")
 			;;
 		-v|--verbose)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
-			REMOTE_CMD_OPTIONS=""
+			REMOTE_CMD_OPTIONS=()
 			;;
 		-vv)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
-			REMOTE_CMD_OPTIONS="-v"
+			REMOTE_CMD_OPTIONS=("-v")
 			LFTP_OPTIONS="-d"
 			;;
 		-f|--force)
