@@ -81,10 +81,11 @@ brew install git-ftp
 
 ## Windows
 
-There are at least two ways to install git-ftp on Windows.
+There are at least three ways to install git-ftp on Windows.
 
 - Using cygwin
 - Using msysgit (recommended)
+- Uning Git Bash (Verified)
 
 ### cygwin
 
@@ -121,3 +122,24 @@ change to:
     none / cygdrive binary,posix=0,user 0 0
 
 After this, close all console windows and try again.
+
+### Git Bash
+Step 1
+Begin with downloading git for Windows.
+Click on the link below to download https://git-for-windows.github.io/
+It may take a while to download and install.
+Step 2
+Open Git Bash you located in “C:\Program Files (x86)\Git” (Run as administrator)
+Then simply run the following commands one-by-one:
+cd ~
+git clone https://github.com/git-ftp/git-ftp git-ftp.git
+cd git-ftp.git && chmod +x git-ftp
+cp ~/git-ftp.git/git-ftp /bin/git-ftp
+--------------------------
+End of installation 
+close this window
+To use git-ftp click here: 
+https://github.com/git-ftp/git-ftp/blob/master/README.md
+-----------------------
+
+
