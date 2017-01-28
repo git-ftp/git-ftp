@@ -950,7 +950,7 @@ set_sftp_config() {
 
 set_tmp() {
 	if command -v mktemp > /dev/null 2>&1; then
-		TMP_DIR="$(mktemp -d -t git-ftp-XXXX)"
+		TMP_DIR="$(mktemp -d -t git-ftp-XXXXXX)"
 	else
 		TMP_DIR="$(pwd)/.git/git-ftp-tmp"
 		mkdir -p "$TMP_DIR"
