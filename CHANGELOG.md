@@ -1,3 +1,9 @@
+Version 1.3.2
+=============
+
+* Use longer `mktmp` pattern to support busybox
+* Update Windows installation instructions
+
 Version 1.3.1
 =============
 
