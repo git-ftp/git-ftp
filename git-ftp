@@ -77,6 +77,7 @@ declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
 declare -a GIT_SUBMODULES
+declare -i AUTO_INIT=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -188,6 +189,7 @@ OPTIONS
 	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
 
 
@@ -1148,6 +1150,23 @@ handle_fetch() {
 	fi
 }
 
+auto_init_if_needed() {
+	if [ "$AUTO_INIT" = 1 ]; then
+		check_remote_access
+		# check_deployed_sha1
+		write_log "Check if auto-init is needed at $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH ."
+		DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
+		if [ "$DEPLOYED_SHA1" != "" ]; then
+			# skip
+			write_log "Skipping Auto init..."
+		else
+			# run init
+			write_log "Running Init..."
+			action_init
+		fi
+	fi
+}
+
 # ------------------------------------------------------------
 # Actions
 # ------------------------------------------------------------
@@ -1176,6 +1195,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	auto_init_if_needed
 	set_deployed_sha1
 	set_local_sha1
 	set_changed_files
@@ -1608,6 +1628,12 @@ do
 		--no-verify)
 			EXECUTE_HOOKS=0
 			shift
+			;;
+		--auto-init)
+			if [ $AUTO_INIT -eq 0 ]; then
+				AUTO_INIT=1
+				write_log "Auto init if needed."
+			fi
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
