@@ -136,6 +136,30 @@ test_inits_and_pushes() {
 	assertEquals 0 $rtrn
 }
 
+test_auto_init() {
+	cd $GIT_PROJECT_PATH
+
+	# this should pass
+	push=$($GIT_FTP push --auto-init)
+	rtrn=$?
+	assertEquals 0 $rtrn
+
+	# this should pass
+	init2=$($GIT_FTP init 2>&1)
+	rtrn=$?
+	assertEquals 2 $rtrn
+	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
+
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+
+	# this should pass
+	push=$($GIT_FTP push --auto-init)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
 test_pushes_and_fails() {
 	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP push 2>&1)"
