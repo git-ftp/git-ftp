@@ -105,7 +105,7 @@ chmod 755 /bin/git-ftp
 ```
 
 *Note: the `/bin` directory is an alias.
-By default this is the same as `C:\Program Files (x86)\Git\bin`.*
+By default this is the same as `C:\Program Files (x86)\Git\usr\bin`.*
 
 ### cygwin
 
