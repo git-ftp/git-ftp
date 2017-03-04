@@ -589,6 +589,19 @@ set_deployed_sha1() {
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
 }
 
+set_deployed_sha1_for_push() {
+	if [ "$AUTO_INIT" = 1 ]; then
+		set_deployed_sha1_failable
+		if [ "$DEPLOYED_SHA1" = "" ]; then
+			check_remote_access
+			write_log "Uploading all files since no commit was found at $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH."
+			IGNORE_DEPLOYED=1
+		fi
+	else
+		set_deployed_sha1
+	fi
+}
+
 set_changed_files() {
 	set_tmp
 	# Get raw list of files
@@ -1182,18 +1195,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
-	# Check for auto-init
-	if [ "$AUTO_INIT" = 1 ]; then
-		check_remote_access
-		set_deployed_sha1_failable
-		if [ "$DEPLOYED_SHA1" == "" ]; then
-			write_log "Running init since no commit was found at $REMOTE_BASE_URL_DISPLAY:$REMOTE_PATH ."
-			# Make sure if sync all files if no sha1 was found
-			IGNORE_DEPLOYED=1
-		fi
-	else
-		set_deployed_sha1
-	fi
+	set_deployed_sha1_for_push
 	set_local_sha1
 	set_changed_files
 	pre_push_hook
