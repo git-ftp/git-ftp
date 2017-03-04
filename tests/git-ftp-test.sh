@@ -17,6 +17,8 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
+readonly VERSION='1.3.3'
+
 suite() {
 	for testcase in ${TEST_CASES}; do
 		suite_addTest "$testcase"
@@ -94,7 +96,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals "git-ftp version 1.3.2"  "$version"
+	assertEquals "git-ftp version $VERSION" "$version"
 }
 
 test_inits() {
