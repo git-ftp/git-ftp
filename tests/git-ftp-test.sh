@@ -17,6 +17,8 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
+readonly VERSION='1.3.3'
+
 suite() {
 	for testcase in ${TEST_CASES}; do
 		suite_addTest "$testcase"
@@ -94,7 +96,7 @@ test_displays_usage() {
 
 test_prints_version() {
 	version=$($GIT_FTP_CMD 2>&1 --version)
-	assertEquals "git-ftp version 1.3.2"  "$version"
+	assertEquals "git-ftp version $VERSION" "$version"
 }
 
 test_inits() {
@@ -134,6 +136,24 @@ test_inits_and_pushes() {
 	push=$($GIT_FTP push)
 	rtrn=$?
 	assertEquals 0 $rtrn
+}
+
+test_auto_init() {
+	push="$($GIT_FTP push --auto-init)"
+	assertEquals 0 $?
+	assertTrue ' upload "test 1.txt"' "remote_file_equals 'test 1.txt'"
+
+	init2="$($GIT_FTP init 2>&1)"
+	assertEquals 2 $?
+	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
+
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+
+	push="$($GIT_FTP push --auto-init)"
+	assertEquals 0 $?
+	assertTrue ' upload "test 1.txt"' "remote_file_equals 'test 1.txt'"
 }
 
 test_pushes_and_fails() {

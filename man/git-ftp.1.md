@@ -158,6 +158,9 @@ different and handles only those files. That saves time and bandwidth.
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
 
+`--auto-init`
+:	Automatically run init action when running push action
+
 `--version`
 :	Prints version.
 
