@@ -1,3 +1,9 @@
+Version 1.3.3
+=============
+
+* Add --auto-init for push action
+* Improved installation instructions for Windows
+
 Version 1.3.2
 =============
 
