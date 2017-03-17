@@ -830,7 +830,11 @@ handle_remote_protocol_options() {
 				CURL_PUBLIC_KEY="$CURL_PRIVATE_KEY.pub"
 			fi
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
-			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
+			if [ "$CURL_INSECURE" = "1" ] && [ ! -f "$CURL_PUBLIC_KEY" ]; then
+				REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY"
+			else
+				REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
+			fi
 		fi
 
 		# SFTP uses a different remove command and uses absolute paths
