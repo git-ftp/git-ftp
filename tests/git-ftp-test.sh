@@ -466,6 +466,22 @@ test_ignore_wildcard_files() {
 	done;
 }
 
+test_ignore_git_files() {
+	echo ".gitignore" >> .git-ftp-ignore
+	echo "*/.gitkeep" >> .git-ftp-ignore
+	echo ".git-ftp-ignore" >> .git-ftp-ignore
+
+	echo "Please keep this directory." > "dir 1/.gitkeep"
+
+	git add .
+	git commit -m "Ignoring Git files" -q
+
+	init="$($GIT_FTP init)"
+
+	assertRemoteFileMissing ".git-ftp-ignore"
+	assertRemoteFileMissing "dir 1/.gitkeep"
+}
+
 test_include_init() {
 	echo 'unversioned' > unversioned.txt
 	echo 'unversioned.txt' >> .gitignore
@@ -1112,6 +1128,16 @@ remote_file_equals() {
 	local remote="$2"
 	[ -z "$remote" ] && remote="$file"
 	$CURL -s "$CURL_URL/$remote" | diff - -- "$file" > /dev/null
+}
+
+assertRemoteFileExists() {
+	local file="$1"
+	assertTrue " File '$file' does not exist on remote." "remote_file_exists '$file'"
+}
+
+assertRemoteFileMissing() {
+	local file="$1"
+	assertFalse " File '$file' exists on remote." "remote_file_exists '$file'"
 }
 
 assertContains() {
