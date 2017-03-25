@@ -830,6 +830,9 @@ handle_remote_protocol_options() {
 		if [ -n "$CURL_PUBLIC_KEY" ]; then
 			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
 			REMOTE_CMD_OPTIONS+=("--pubkey" "$CURL_PUBLIC_KEY")
+		elif [ -f "${CURL_PRIVATE_KEY}.pub" -a -r "${CURL_PRIVATE_KEY}.pub" ]; then
+			write_log "Automatically using ssh public key file ${CURL_PRIVATE_KEY}.pub"
+			REMOTE_CMD_OPTIONS+=("--pubkey" "${CURL_PRIVATE_KEY}.pub")
 		fi
 
 		# SFTP uses a different remove command and uses absolute paths
