@@ -1,3 +1,8 @@
+Version 1.3.4
+=============
+
+* De-couple --key and --pubkey options
+
 Version 1.3.3
 =============
 
