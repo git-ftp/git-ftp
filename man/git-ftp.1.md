@@ -316,15 +316,24 @@ file will be triggered.
 	css/style.css:scss/style.scss
 	css/style.css:scss/mixins.scss
 
-If a local untracked file is deleted, a paired tracked file will trigger the
-deletion of the remote file on the server.
+If a local untracked file is deleted, any change of a paired tracked file will
+trigger the deletion of the remote file on the server.
 
-When using the `--syncroot` option, all paths are relative to the set syncroot.
-If your source file is outside the syncroot, add a / and define a path relative
-to the Git working directory.
+All paths are usually relative to the Git working directory.
+When using the `--syncroot` option, paths of tracked files
+(right side of the colon) are relative to the set syncroot.
+Example:
+
+	# upload "html/style.css" triggered by html/style.scss
+	# with syncroot "html"
+	html/style.css:style.scss
+
+If your *source* file is outside the syncroot,
+prefix it with a / and define a path relative
+to the Git working directory. For example:
 
 	# upload "dist/style.css" with syncroot "dist"
-	style.css:/style.scss
+	dist/style.css:/src/style.scss
 
 It is also possible to upload whole directories.
 For example, if you use a package manager like composer, you can upload all
