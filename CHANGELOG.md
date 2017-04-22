@@ -2,6 +2,7 @@ Version 1.3.4
 =============
 
 * De-couple --key and --pubkey options
+* Correct and extend documentation of .git-ftp-include
 
 Version 1.3.3
 =============
