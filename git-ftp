@@ -641,6 +641,7 @@ list_changed_files() {
 		if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 			print_info "Aborting..."
 			cleanup
+			test "$ANSWER_STATE" == "" && exit "$ERROR_USAGE"
 			exit 0
 		fi
 		write_log "Taking all files.";
