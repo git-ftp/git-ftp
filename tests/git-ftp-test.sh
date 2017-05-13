@@ -17,7 +17,7 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
-readonly VERSION='1.3.4-UNRELEASED'
+readonly VERSION='1.4.0-UNRELEASED'
 
 suite() {
 	for testcase in ${TEST_CASES}; do
@@ -164,15 +164,6 @@ test_pushes_and_fails() {
 	assertEquals 5 $rtrn
 }
 
-test_push_unknown_commit() {
-	$GIT_FTP init > /dev/null
-	echo '000000000' | $CURL -s -T - $CURL_URL/.git-ftp.log
-	push="$($GIT_FTP push 0>&- 2>&1)"
-	assertEquals 0 $?
-	assertContains 'Unknown SHA1 object' "$push"
-	assertContains 'Do you want to ignore' "$push"
-}
-
 test_push_nothing() {
 	init=$($GIT_FTP init)
 	# make some changes
@@ -214,32 +205,54 @@ test_push_twice() {
 	assertTrue "$push" "echo \"$push\" | grep 'Everything up-to-date.'"
 }
 
-test_push_unknown_sha1() {
-	cd $GIT_PROJECT_PATH
-	init=$($GIT_FTP init)
+test_push_unknown_commit_say_nothing() {
+	$GIT_FTP init > /dev/null
+
+	# change remote SHA1
+	echo '000000000' | $CURL -s -T - $CURL_URL/.git-ftp.log
+
 	# make some changes
 	echo "1" >> "./test 1.txt"
 	git commit -a -m "change" > /dev/null 2>&1
-	# change remote SHA1
-	echo '000000000' | $CURL -T - $CURL_URL/.git-ftp.log 2> /dev/null
-	push=$(echo 'N' | $GIT_FTP push)
-	assertEquals 0 $?
-	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
+
+	push="$(echo '' | $GIT_FTP push)"
+	assertEquals 2 $?
+	assertContains 'Unknown SHA1 object' "$push"
+	assertContains 'Do you want to ignore' "$push"
 	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
-test_push_unknown_sha1_Y() {
-	cd $GIT_PROJECT_PATH
-	init=$($GIT_FTP init)
+test_push_unknown_commit_say_no() {
+	$GIT_FTP init > /dev/null
+
+	# change remote SHA1
+	echo '000000000' | $CURL -s -T - $CURL_URL/.git-ftp.log
+
 	# make some changes
 	echo "1" >> "./test 1.txt"
 	git commit -a -m "change" > /dev/null 2>&1
+
+	push="$(echo 'N' | $GIT_FTP push)"
+	assertEquals 0 $?
+	assertContains 'Unknown SHA1 object' "$push"
+	assertContains 'Do you want to ignore' "$push"
+	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
+}
+
+test_push_unknown_commit_say_yes() {
+	$GIT_FTP init > /dev/null
+
 	# change remote SHA1
-	echo '000000000' | $CURL -T - $CURL_URL/.git-ftp.log 2> /dev/null
-	push=$(echo 'Y' | $GIT_FTP push)
+	echo '000000000' | $CURL -s -T - $CURL_URL/.git-ftp.log
+
+	# make some changes
+	echo "1" >> "./test 1.txt"
+	git commit -a -m "change" > /dev/null 2>&1
+
+	push="$(echo 'Y' | $GIT_FTP push)"
 	assertEquals 0 $?
-	echo "$push" | grep 'Unknown SHA1 object' > /dev/null
-	assertEquals 0 $?
+	assertContains 'Unknown SHA1 object' "$push"
+	assertContains 'Do you want to ignore' "$push"
 	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 

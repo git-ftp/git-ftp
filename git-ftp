@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.3.4-UNRELEASED'
+readonly VERSION='1.4.0-UNRELEASED'
 
 # ------------------------------------------------------------
 # Defaults
@@ -641,6 +641,7 @@ list_changed_files() {
 		if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 			print_info "Aborting..."
 			cleanup
+			test "$ANSWER_STATE" == "" && exit "$ERROR_USAGE"
 			exit 0
 		fi
 		write_log "Taking all files.";
