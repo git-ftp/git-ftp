@@ -130,7 +130,7 @@ different and handles only those files. That saves time and bandwidth.
 	root path.
 
 `--key`
-:	SSH private key file name.
+:	SSH private key file name for SFTP.
 
 `--pubkey`
 :	SSH public key file name. Used with --key option.
@@ -188,6 +188,26 @@ But, there is not just FTP. Supported protocols are:
 
 `ftpes://...`
 :	FTP over explicit SSL (FTPES) protocol
+
+# EXAMPLES
+
+Upload your files to an FTP server the first time:
+
+	$ git ftp init -u "$USER" -P "ftp://example.com/public_html"
+
+It will authenticate with the username stored in `$USER` and ask for the
+password. Using SFTP is a much better option. But be aware of the different
+handling of relative and absolute paths. If the directory `public_html` is in
+the home directory on the server, then upload like this:
+
+	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
+
+Otherwise it will use an absolute path, for example:
+
+	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
+
+It is quite common to deactivate server certificate checking with the
+`--insecure` option.
 
 # DEFAULTS
 
