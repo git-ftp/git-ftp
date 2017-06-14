@@ -209,6 +209,14 @@ Otherwise it will use an absolute path, for example:
 It is quite common to deactivate server certificate checking with the
 `--insecure` option.
 
+Git-ftp guesses the path of the public key file corresponding to your private
+key file. If you just have a private key, for example a .pem file, you need
+Git-ftp version 1.3.4 and Curl version 7.39.0 or newer.
+If you have an older version of Git-ftp or Curl, you can
+create the public key with the ssh-keygen command:
+
+	$ ssh-keygen -y -f key.pem > key.pem.pub
+
 # DEFAULTS
 
 Don't repeat yourself. Setting config defaults for git-ftp in .git/config
