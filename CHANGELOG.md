@@ -1,8 +1,12 @@
-Version 1.3.4
+Version 1.4.0
 =============
 
+* Improve test coverage
+* Fail in scripts if remote commit is unknown
+* Correct and extend documentation of .git-ftp-include file
 * De-couple --key and --pubkey options
-* Correct and extend documentation of .git-ftp-include
+* Handling --cacert option safely
+* Extend documentation of .git-ftp-ignore file
 
 Version 1.3.3
 =============
