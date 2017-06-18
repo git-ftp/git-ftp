@@ -214,6 +214,21 @@ test_push_twice() {
 	assertTrue "$push" "echo \"$push\" | grep 'Everything up-to-date.'"
 }
 
+test_push_different_branches() {
+	init="$($GIT_FTP init)"
+	git checkout master -b branch1 -q
+	echo "1" >> "test 1.txt"
+	git commit -a -m "change 1" -q
+	push="$($GIT_FTP push)"
+	git checkout master -b branch2 -q
+	echo "2" >> "test 2.txt"
+	git commit -a -m "change 2" -q
+	push="$($GIT_FTP push)"
+	assertTrue "$push" "echo \"$push\" | grep '2 files to sync:'"
+	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
+	assertTrue ' test 2.txt uploaded' "remote_file_equals 'test 2.txt'"
+}
+
 test_push_unknown_sha1() {
 	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
