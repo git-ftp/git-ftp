@@ -1,6 +1,6 @@
-% GIT-FTP(1) git-ftp User Manual
+% GIT-FTP(1) Git-ftp 1.3.4
 %
-% 2016-12-03
+% 2017-06-18
 
 # NAME
 

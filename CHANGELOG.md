@@ -1,3 +1,11 @@
+Version 1.3.4
+=============
+
+* Improve test coverage
+* Correct and extend documentation of .git-ftp-include file
+* Handling --cacert option safely
+* Extend documentation of .git-ftp-ignore file
+
 Version 1.3.3
 =============
 
