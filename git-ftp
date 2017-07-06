@@ -183,6 +183,8 @@ OPTIONS
 	-vv			Very verbose or debug mode.
 	--remote-root		Specifies remote root directory
 	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
+	--key			SSH private key file name for SFTP.
+	--pubkey		SSH public key file name. Used with --key option.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
