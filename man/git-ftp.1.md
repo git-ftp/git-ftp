@@ -90,7 +90,9 @@ different and handles only those files. That saves time and bandwidth.
 :	Uploads all files of current Git checkout.
 
 `-A`, `--active`
-:	Uses FTP active mode.
+:	Uses FTP active mode. This works only if you have either no firewall
+	and a direct connection to the server or an FTP aware firewall. If you
+	don't know what it means, you probably won't need it.
 
 `-b [branch]`, `--branch [branch]`
 :	Push a specific branch
@@ -196,7 +198,14 @@ Upload your files to an FTP server the first time:
 	$ git ftp init -u "john" -P "ftp://example.com/public_html"
 
 It will authenticate with the username `john` and ask for the
-password. Using SFTP is a much better option. But be aware of the different
+password. By default, it tries to transfer data in EPSV mode.
+Depending on the network and server configuration, that may fail.
+You can try to add the `--disable-epsv` option to use the IPv4 passive FTP
+connection (PASV). In rare circumstances, you can use `--active` for the
+original FTP transfer mode. These options do not apply to SFTP.
+
+You are less likely to face connection problems with SFTP.
+But be aware of the different
 handling of relative and absolute paths. If the directory `public_html` is in
 the home directory on the server, then upload like this:
 
@@ -206,8 +215,10 @@ Otherwise it will use an absolute path, for example:
 
 	$ git ftp init -u "john" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
 
-It is quite common to deactivate server certificate checking with the
-`--insecure` option.
+On some systems Git-ftp fails to verify the server's fingerprint.
+You can then use the `--insecure` option to skip the verification.
+That will leave you vulnerable to man-in-the-middle attacks, but is still more
+secure than plain FTP.
 
 Git-ftp guesses the path of the public key file corresponding to your private
 key file. If you just have a private key, for example a .pem file, you need
