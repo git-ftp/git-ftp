@@ -193,18 +193,18 @@ But, there is not just FTP. Supported protocols are:
 
 Upload your files to an FTP server the first time:
 
-	$ git ftp init -u "$USER" -P "ftp://example.com/public_html"
+	$ git ftp init -u "john" -P "ftp://example.com/public_html"
 
-It will authenticate with the username stored in `$USER` and ask for the
+It will authenticate with the username `john` and ask for the
 password. Using SFTP is a much better option. But be aware of the different
 handling of relative and absolute paths. If the directory `public_html` is in
 the home directory on the server, then upload like this:
 
-	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
+	$ git ftp init -u "john" --key "$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
 
 Otherwise it will use an absolute path, for example:
 
-	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
+	$ git ftp init -u "john" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
 
 It is quite common to deactivate server certificate checking with the
 `--insecure` option.
