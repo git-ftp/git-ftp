@@ -34,6 +34,9 @@ git ftp push
 # Last deployment changed to ded01b27e5c785fb251150805308d3d0f8117387.
 ```
 
+If you encounter any problems, add the `-v` or `-vv` option to see more output.
+The manual may answer some of your questions as well.
+
 Further Reading
 ---------------
 
