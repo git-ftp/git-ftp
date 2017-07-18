@@ -1,0 +1,10 @@
+---
+engines:
+  fixme:
+    enabled: true
+  markdownlint:
+    enabled: true
+  shellcheck:
+    enabled: true
+exclude_paths:
+- tests/

@@ -1,27 +1,37 @@
+os:
+  - linux
+  - osx
+
+env:
+  - LFTP_SUPPORT=0
+  - LFTP_SUPPORT=1
+
 language: sh
 
 install:
-  - sudo apt-get install -y vsftpd parallel
+
+
 
 before_script:
   - git config --global user.email "you@example.com"
   - git config --global user.name "Your Name"
-  - echo write_enable=YES | sudo tee -a /etc/vsftpd.conf
-  - echo anon_upload_enable=YES | sudo tee -a /etc/vsftpd.conf
-  - echo anon_mkdir_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-  - echo anon_umask=000 | sudo tee -a /etc/vsftpd.conf
-  - echo anon_other_write_enable=YES | sudo tee -a /etc/vsftpd.conf
-  - echo anon_root=/var/ftp | sudo tee -a /etc/vsftpd.conf
-  - sudo mkdir -p /var/ftp/pub
-  - sudo chmod a+rwx /var/ftp/pub
-  - sudo service vsftpd restart
-  - export GIT_FTP_ROOT=localhost/pub
+  - export GIT_FTP_HOST=localhost
+  - export GIT_FTP_PORT=:2121
+  - export GIT_FTP_ROOT=pub
   - export GIT_FTP_USER=ftp
-  - export GIT_FTP_PASSWD=ftp
+  - export GIT_FTP_PASSWD="git-ftp@example.org"
+  - echo "$GIT_FTP_PASSWD" > /tmp/vsftpd.email_passwords
+  #- export TEST_CASES="test_inits test_push_nothing test_file_with_unicode"
 
 script:
   - tests/git-ftp-test.sh
+  - >
+    if grep -H -n -C 1 '^  ' "git-ftp" "tests/git-ftp-test.sh"; then
+      echo 'Lines starting with spaces instead of tabs found!'
+      false
+    fi
 
 after_failure:
-  - ls -la /var/ftp/pub/*
-  - cat /etc/vsftpd.conf
+  - cat /tmp/vsftpd.log
+  - ls -la /tmp
+  - ls -la /tmp/pub/*
