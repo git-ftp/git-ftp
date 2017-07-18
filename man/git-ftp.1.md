@@ -1,6 +1,6 @@
-% GIT-FTP(1) git-ftp User Manual
-% Rene Moser <mail@renemoser.net>
-% 2015-02-08
+% GIT-FTP(1) Git-ftp 1.4.0
+%
+% 2017-06-18
 
 # NAME
 
@@ -12,11 +12,11 @@ Git-ftp - Git powered FTP client written as shell script.
 
 # DESCRIPTION
 
-Git-ftp is a FTP client using [Git] to determine which local files to upload or
+Git-ftp is an FTP client using [Git] to determine which local files to upload or
 which files to delete on the remote host.
 
-It saves the deployed state by uploading the SHA1 hash in the .git-ftp.log file.
-There is no need for Git to be installed on the remote host.
+It saves the deployed state by uploading the SHA1 hash in the `.git-ftp.log`
+file. There is no need for Git to be installed on the remote host.
 
 Even if you play with different branches, git-ftp knows which files are
 different and handles only those files. That saves time and bandwidth.
@@ -25,10 +25,11 @@ different and handles only those files. That saves time and bandwidth.
 
 `init`
 :	Uploads all git-tracked non-ignored files to the remote server and
-	creates the .git-ftp.log file containing the SHA1 of the latest commit.
+	creates the `.git-ftp.log` file containing the SHA1 of the latest
+	commit.
 
 `catchup`
-:	Creates or updates the .git-ftp.log file on the remote host.
+:	Creates or updates the `.git-ftp.log` file on the remote host.
 	It assumes that you uploaded all other files already.
 	You might have done that with another program.
 
@@ -41,11 +42,17 @@ different and handles only those files. That saves time and bandwidth.
 	This feature needs lftp to be installed and does not use any power of
 	Git.
 	WARNING: It can delete local untracked files that are not listed in
-	your .git-ftp-ignore file.
+	your `.git-ftp-ignore` file.
 
-`pull`
+`pull` (EXPERIMENTAL)
 :	Downloads changes from the remote host into a separate commit
 	and merges that into your current branch.
+	This feature needs lftp to be installed.
+
+`snapshot` (EXPERIMENTAL)
+:	Downloads files into a new Git repository. Takes an additional
+	argument as local destination directory. Example:
+	\`git-ftp snapshot ftp://example.com/public_html projects/example\`
 	This feature needs lftp to be installed.
 
 `show`
@@ -96,7 +103,7 @@ different and handles only those files. That saves time and bandwidth.
 :	Enable remote locking.
 
 `-D`, `--dry-run`
-:	Does not upload or delete anything, but tries to get the .git-ftp.log
+:	Does not upload or delete anything, but tries to get the `.git-ftp.log`
 	file from remote host.
 
 `-f`, `--force`
@@ -123,7 +130,7 @@ different and handles only those files. That saves time and bandwidth.
 	root path.
 
 `--key`
-:	SSH private key file name.
+:	SSH private key file name for SFTP.
 
 `--pubkey`
 :	SSH public key file name. Used with --key option.
@@ -144,8 +151,15 @@ different and handles only those files. That saves time and bandwidth.
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
 
+`--changed-only`
+:	During the ftp mirror operation during a pull command, consider only
+	the files changed since the deployed commit.
+
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
+
+`--auto-init`
+:	Automatically run init action when running push action
 
 `--version`
 :	Prints version.
@@ -174,6 +188,34 @@ But, there is not just FTP. Supported protocols are:
 
 `ftpes://...`
 :	FTP over explicit SSL (FTPES) protocol
+
+# EXAMPLES
+
+Upload your files to an FTP server the first time:
+
+	$ git ftp init -u "$USER" -P "ftp://example.com/public_html"
+
+It will authenticate with the username stored in `$USER` and ask for the
+password. Using SFTP is a much better option. But be aware of the different
+handling of relative and absolute paths. If the directory `public_html` is in
+the home directory on the server, then upload like this:
+
+	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
+
+Otherwise it will use an absolute path, for example:
+
+	$ git ftp init -u "$USER" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
+
+It is quite common to deactivate server certificate checking with the
+`--insecure` option.
+
+Git-ftp guesses the path of the public key file corresponding to your private
+key file. If you just have a private key, for example a .pem file, you need
+Git-ftp version 1.3.4 and Curl version 7.39.0 or newer.
+If you have an older version of Git-ftp or Curl, you can
+create the public key with the ssh-keygen command:
+
+	$ ssh-keygen -y -f key.pem > key.pem.pub
 
 # DEFAULTS
 
@@ -252,9 +294,11 @@ Deleting scopes is easy using the `remove-scope` action.
 # IGNORING FILES TO BE SYNCED
 
 Add patterns to `.git-ftp-ignore` and all matching file names will be ignored.
-The patterns are interpreted as shell glob patterns.
+The patterns are interpreted as shell glob patterns since version 1.1.0.
+Before version 1.1.0, patterns were interpreted as regular expressions.
+Here are some glob pattern examples:
 
-For example, ignoring everything in a directory named `config`:
+Ignoring everything in a directory named `config`:
 
 	config/*
 
@@ -265,6 +309,15 @@ Ignoring all files having extension `.txt`:
 Ignoring a single file called `foobar.txt`:
 
 	foobar.txt
+
+Ignoring Git related files:
+
+	.gitignore
+	*/.gitignore      # ignore files in sub directories
+	*/.gitkeep
+	.git-ftp-ignore
+	.git-ftp-include
+	.gitlab-ci.yml
 
 # SYNCING UNTRACKED FILES
 
@@ -291,15 +344,24 @@ file will be triggered.
 	css/style.css:scss/style.scss
 	css/style.css:scss/mixins.scss
 
-If a local untracked file is deleted, a paired tracked file will trigger the
-deletion of the remote file on the server.
+If a local untracked file is deleted, any change of a paired tracked file will
+trigger the deletion of the remote file on the server.
 
-When using the `--syncroot` option, all paths are relative to the set syncroot.
-If your source file is outside the syncroot, add a / and define a path relative
-to the Git working directory.
+All paths are usually relative to the Git working directory.
+When using the `--syncroot` option, paths of tracked files
+(right side of the colon) are relative to the set syncroot.
+Example:
+
+	# upload "html/style.css" triggered by html/style.scss
+	# with syncroot "html"
+	html/style.css:style.scss
+
+If your *source* file is outside the syncroot,
+prefix it with a / and define a path relative
+to the Git working directory. For example:
 
 	# upload "dist/style.css" with syncroot "dist"
-	style.css:/style.scss
+	dist/style.css:/src/style.scss
 
 It is also possible to upload whole directories.
 For example, if you use a package manager like composer, you can upload all
@@ -314,7 +376,7 @@ And it will not delete files from that directory if local files are deleted.
 # DOWNLOADING FILES (EXPERIMENTAL)
 
 **WARNING:** It can delete local untracked files that are not listed in your
-.git-ftp-ignore file.
+`.git-ftp-ignore` file.
 
 You can use git-ftp to download from the remote host into your repository.
 You will need to install the lftp command line tool for that.
@@ -479,8 +541,17 @@ At the time of this writing, the exit codes are:
 `9`
 :	The `pre-ftp-push` hook failed
 
+`10`
+:	A local file operation like `cd` or `mkdir` failed
+
 # KNOWN ISSUES & BUGS
 
 The upstream BTS can be found at <https://github.com/git-ftp/git-ftp/issues>.
 
 [Git]: http://git-scm.org
+
+# AUTHORS
+
+Git-ftp was started by Rene Moser and is currently maintained by Maikel Linke.
+Numerous conributions have come from Github users.
+See the AUTHORS file for an incomplete list of contributors.

@@ -1,3 +1,44 @@
+Version 1.4.0
+=============
+
+* Improve test coverage
+* Fail in scripts if remote commit is unknown
+* Correct and extend documentation of .git-ftp-include file
+* De-couple --key and --pubkey options
+* Handling --cacert option safely
+* Extend documentation of .git-ftp-ignore file
+
+Version 1.3.3
+=============
+
+* Add --auto-init for push action
+* Improved installation instructions for Windows
+
+Version 1.3.2
+=============
+
+* Use longer `mktmp` pattern to support busybox
+* Update Windows installation instructions
+
+Version 1.3.1
+=============
+
+* Fixed man file to avoid pandoc bug resulting in missing content
+
+Version 1.3.0
+=============
+
+* FTPES support for submodules
+* Fix submodule bugs by quoting argument correctly
+* Include algorithm is now independent of ignore list
+* Include algorithm reads leading `/` as root of the repository like Git
+* Support for `pre-ftp-push` and `post-ftp-push` hooks
+* Performance improvements in generating file list
+* Allow file names to start with `-`
+* New `--changed-only` parameter for pull action
+* New "snapshot" action
+* Improved test setup comes with vsftpd configuration file
+
 Version 1.2.0-rc.1
 ==================
 
@@ -14,7 +55,6 @@ Submodules:
 New features:
 * Pull feature
 * Download feature using lftp
-
 
 Version 1.1.0-rc.1
 ==================
