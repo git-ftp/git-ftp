@@ -28,7 +28,7 @@ GIT_DIR="$(git rev-parse --git-dir)"
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.3.0-UNRELEASED'
+readonly VERSION='1.4.0'
 
 # ------------------------------------------------------------
 # Defaults
@@ -44,7 +44,7 @@ REMOTE_ROOT=""
 REMOTE_PATH=""
 REMOTE_CACERT=""
 REMOTE_DELETE_CMD="-*DELE "
-REMOTE_CMD_OPTIONS="-s"
+REMOTE_CMD_OPTIONS=("-s")
 LFTP_OPTIONS=""
 ACTION=""
 LOG_CACHE=""
@@ -58,6 +58,7 @@ DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
+SNAPSHOT_DIR=""
 CURL_PROTOCOL=""
 CURL_INSECURE=""
 CURL_PUBLIC_KEY=""
@@ -74,6 +75,7 @@ TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
+declare -i DOWNLOAD_CHANGED_ONLY=0
 declare -i DRY_RUN=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
@@ -81,6 +83,7 @@ declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
 declare -a GIT_SUBMODULES
+declare -i AUTO_INIT=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -93,6 +96,7 @@ readonly ERROR_UNKNOWN_PROTOCOL=6
 readonly ERROR_REMOTE_LOCKED=7
 readonly ERROR_GIT=8
 readonly ERROR_HOOK=9
+readonly ERROR_FILESYSTEM=10
 
 # ------------------------------------------------------------
 # Functions
@@ -133,9 +137,14 @@ ACTIONS
 		WARNING: It can delete local untracked files that are not
 		listed in your .git-ftp-ignore file.
 
-	. pull
+	. pull (EXPERIMENTAL)
 		Downloads changes from the remote server into a separate commit
 		and merges them into your current branch.
+
+	. snapshot (EXPERIMENTAL)
+		Downloads files into a new Git repository. Takes an additional
+		optional argument as local destination directory. Example:
+		\`git-ftp snapshot ftp://example.com/public_html projects/example\`
 
 	. show
 		Downloads last uploaded SHA1 from log and hooks \`git show\`.
@@ -180,11 +189,15 @@ OPTIONS
 	-vv			Very verbose or debug mode.
 	--remote-root		Specifies remote root directory
 	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
+	--key			SSH private key file name for SFTP.
+	--pubkey		SSH public key file name. Used with --key option.
 	--insecure		Don't verify server's certificate.
 	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
 
 
@@ -210,7 +223,7 @@ SET DEFAULTS
 	. git config git-ftp.keychain user@example.com
 
 
-SET SCOPE DEFAULTS 
+SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
 
@@ -366,7 +379,7 @@ cleanup() {
 set_default_curl_options() {
 	OIFS="$IFS"
 	IFS=" "
-	CURL_ARGS=(${REMOTE_CMD_OPTIONS[@]})
+	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
 	if [ -z "$REMOTE_USER" ]; then
@@ -422,7 +435,7 @@ delete_file() {
 	set_default_curl_options
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_BASE_URL")
-	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
+	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
@@ -444,7 +457,7 @@ fire_delete_buffer() {
 	echo "url = $REMOTE_BASE_URL" >> "$TMP_CURL_DELETE_FILE"
 	set_default_curl_options
 	CURL_ARGS+=(-K "$TMP_CURL_DELETE_FILE")
-	if [ "${REMOTE_CMD_OPTIONS:0:2}" = "-v" ]; then
+	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
 		curl "${CURL_ARGS[@]}"
 	else
 		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
@@ -568,7 +581,7 @@ set_remote_path() {
 	fi
 }
 
-set_deployed_sha1() {
+set_deployed_sha1_failable() {
 	# Return if commit is set by user interaction using --commit
 	if [ -n "$DEPLOYED_SHA1" ]; then
 		return
@@ -576,8 +589,25 @@ set_deployed_sha1() {
 	# Get the last commit (SHA) we deployed if not ignored or not found
 	write_log "Retrieving last commit from $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH."
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
+}
+
+set_deployed_sha1() {
+	set_deployed_sha1_failable
 	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
+}
+
+set_deployed_sha1_for_push() {
+	if [ "$AUTO_INIT" = 1 ]; then
+		set_deployed_sha1_failable
+		if [ "$DEPLOYED_SHA1" = "" ]; then
+			check_remote_access
+			write_log "Uploading all files since no commit was found at $REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH."
+			IGNORE_DEPLOYED=1
+		fi
+	else
+		set_deployed_sha1
+	fi
 }
 
 set_changed_files() {
@@ -619,6 +649,7 @@ list_changed_files() {
 		if [ "$ANSWER_STATE" != "y" ] && [ "$ANSWER_STATE" != "Y" ]; then
 			print_info "Aborting..."
 			cleanup
+			test "$ANSWER_STATE" == "" && exit "$ERROR_USAGE"
 			exit 0
 		fi
 		write_log "Taking all files.";
@@ -712,7 +743,7 @@ handle_file_sync() {
 	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
 	# Calculate total file count
 	local DONE_ITEMS=0
-	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' |wc -c)
+	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' | wc -c)
 	TOTAL_ITEMS=$((TOTAL_ITEMS+0)) # trims whitespaces produced by wc
 	print_info "$TOTAL_ITEMS file$([ $TOTAL_ITEMS -ne 1 ] && echo 's') to sync:"
 
@@ -800,17 +831,19 @@ set_submodule_args() {
 handle_remote_protocol_options() {
 	if [ "$REMOTE_PROTOCOL" = "sftp" ]; then
 		set_sftp_config
-		
-		if [ ! -z "$CURL_PRIVATE_KEY" ]; then
+
+		if [ -n "$CURL_PRIVATE_KEY" ]; then
 			write_log "Using ssh private key file $CURL_PRIVATE_KEY"
-			if [ -z "$CURL_PUBLIC_KEY" ]; then
-				# If public key is not specified, use private key with .pub extension
-				CURL_PUBLIC_KEY="$CURL_PRIVATE_KEY.pub"
-			fi
-			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
-			REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --key $CURL_PRIVATE_KEY --pubkey $CURL_PUBLIC_KEY"
+			REMOTE_CMD_OPTIONS+=("--key" "$CURL_PRIVATE_KEY")
 		fi
-		
+		if [ -n "$CURL_PUBLIC_KEY" ]; then
+			write_log "Using ssh public key file $CURL_PUBLIC_KEY"
+			REMOTE_CMD_OPTIONS+=("--pubkey" "$CURL_PUBLIC_KEY")
+		elif [ -f "${CURL_PRIVATE_KEY}.pub" -a -r "${CURL_PRIVATE_KEY}.pub" ]; then
+			write_log "Automatically using ssh public key file ${CURL_PRIVATE_KEY}.pub"
+			REMOTE_CMD_OPTIONS+=("--pubkey" "${CURL_PRIVATE_KEY}.pub")
+		fi
+
 		# SFTP uses a different remove command and uses absolute paths
 		REMOTE_DELETE_CMD="rm /"
 	fi
@@ -818,17 +851,49 @@ handle_remote_protocol_options() {
 	# Check for using cacert
 	if [ "$REMOTE_PROTOCOL" = "ftpes" -o "$REMOTE_PROTOCOL" = "ftps" ] && \
 	[ -n "$REMOTE_CACERT" -a -r "$REMOTE_CACERT" ]; then
-		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --cacert $REMOTE_CACERT"
+		REMOTE_CMD_OPTIONS+=("--cacert" "$REMOTE_CACERT")
 	fi
 
 	# Options for curl if using FTPES
 	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
 		CURL_PROTOCOL="ftp"
-		REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS --ssl"
+		REMOTE_CMD_OPTIONS+=("--ssl")
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS="$REMOTE_CMD_OPTIONS -k"
+	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS+=("-k")
+}
+
+init_new_repository() {
+	[ -z "$URL" ] && print_error_and_die "Error: give a URL to snapshot." "$ERROR_USAGE"
+
+	# Use the last part of the URL as destination directory by default
+	[ -z "$SNAPSHOT_DIR" ] && SNAPSHOT_DIR="$(basename "$URL")"
+
+	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
+	if [ "$DEPLOYED_SHA1" != "" ]; then
+		print_error_and_die "Commit found at $URL/$DEPLOYED_SHA1_FILE.
+
+The remote directory is managed by another Git repository already. If you want
+to start using a new repository, then delete $DEPLOYED_SHA1_FILE first. The old
+repository will not be able to deploy to this remote any more. Aborting." "$ERROR_USAGE"
+	fi
+
+	# Make sure the destination directory exists
+	mkdir -p "$SNAPSHOT_DIR" || print_error_and_die "Error creating directory '$SNAPSHOT_DIR'. Aborting." "$ERROR_FILESYSTEM"
+
+	if [ "$(ls -A "$SNAPSHOT_DIR")" ]; then
+		print_error_and_die "Error: The destination directory '$SNAPSHOT_DIR' is not empty. Aborting." "$ERROR_FILESYSTEM"
+	fi
+
+	cd "$SNAPSHOT_DIR" || print_error_and_die "Error entering '$SNAPSHOT_DIR'. Aborting." "$ERROR_FILESYSTEM"
+	info="$(git init)" || print_error_and_die "Error initialising Git repository." "$ERROR_GIT"
+	print_info "$info"
+}
+
+commit_snapshot() {
+	git add . > /dev/null || print_error_and_die "Git: error adding changed files" "$ERROR_GIT"
+	git commit -m "Download $URL with git-ftp" -q  > /dev/null || print_error_and_die "Git: error committing the changes" "$ERROR_GIT"
 }
 
 handle_action() {
@@ -853,6 +918,9 @@ handle_action() {
 			;;
 		pull)
 			action_pull
+			;;
+		snapshot)
+			action_snapshot
 			;;
 		add-scope)
 			action_add_scope
@@ -882,19 +950,19 @@ set_remote_password() {
 }
 
 set_branch() {
-    [ -z $BRANCH ] && BRANCH="$(get_config branch)"
-    if [ ! -z $BRANCH ]; then
-        set_current_branch
-	write_log "Checkout on branch $BRANCH"
-	git checkout $BRANCH > /dev/null 2>&1 || print_error_and_die "'$BRANCH' is not a valid branch! Exiting..." "ERROR_GIT"
-    fi
+	: "${BRANCH:=$(get_config branch)}"
+	if [ -n "$BRANCH" ]; then
+		set_current_branch
+		write_log "Checkout on branch $BRANCH"
+		git checkout "$BRANCH" > /dev/null 2>&1 || print_error_and_die "'$BRANCH' is not a valid branch! Exiting..." "ERROR_GIT"
+	fi
 }
 
 unset_branch() {
-    if [ ! -z $CURRENT_BRANCH ]; then
-	write_log "Checkout on branch $CURRENT_BRANCH"
-	git checkout $CURRENT_BRANCH > /dev/null 2>&1
-    fi
+	if [ -n "$CURRENT_BRANCH" ]; then
+		write_log "Checkout on branch $CURRENT_BRANCH"
+		git checkout "$CURRENT_BRANCH" > /dev/null 2>&1
+	fi
 }
 
 set_syncroot() {
@@ -912,7 +980,7 @@ set_sftp_config() {
 
 set_tmp() {
 	if command -v mktemp > /dev/null 2>&1; then
-		TMP_DIR="$(mktemp -d -t git-ftp-XXXX)"
+		TMP_DIR="$(mktemp -d -t git-ftp-XXXXXX)"
 	else
 		TMP_DIR="$GIT_DIR/git-ftp-tmp"
 		mkdir -p "$TMP_DIR"
@@ -936,7 +1004,7 @@ set_remotes() {
 		write_log "No password is set."
 	else
 		write_log "Password is set."
-	fi 
+	fi
 
 	local REMOTE_LOGIN=''
 	local DISPLAY_LOGIN=''
@@ -962,7 +1030,7 @@ set_remotes() {
 
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
-	
+
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 }
@@ -978,7 +1046,7 @@ urlencode() {
 		c=${string:$pos:1}
 		case "$c" in
 			$keepset ) o="${c}" ;;
-			* )        printf -v o '%%%02x' "'$c"
+			* ) printf -v o '%%%02x' "'$c"
 		esac
 		encoded+="${o}"
 	done
@@ -1002,17 +1070,9 @@ download_remote_updates () {
 		mirror_options="$mirror_options -v"
 	fi
 
-	ignore="$(lftp_exclude_options)"
-	lftp $LFTP_OPTIONS -e "set ftp:list-options -a && mirror$mirror_options $ignore --delete --exclude=\.git/?$ --exclude=\.git-ftp\.log$ --exclude=\.git-ftp-ignore$ . '$GIT_WORK_TREE/$SYNCROOT' && wait all && exit" -u "${REMOTE_USER},${REMOTE_PASSWD}" ${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}
-}
 
-lftp_exclude_options() {
-	if [ -f "$IGNORE_PATTERN_FILE" ]; then
-		grep -v '^#' "$IGNORE_PATTERN_FILE" | awk 'NF' | sed "s|^/?|--exclude-glob '$GIT_WORK_TREE/'|" | tr -d '\r'
-	fi
-}
 
-set_scope() {
+set_scope() 
 	[ -z "$SCOPE" ] && print_error_and_die "Missing scope argument." "$ERROR_MISSING_ARGUMENTS"
 	[ -z "$URL" ] && print_error_and_die "Missing URL." "$ERROR_MISSING_ARGUMENTS"
 
@@ -1062,13 +1122,13 @@ remove_scope() {
 }
 
 set_current_branch() {
-	local current=$( (git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null) | sed "s#^refs/heads/##")
+	local current="$( (git symbolic-ref HEAD 2> /dev/null || git rev-parse HEAD 2> /dev/null) | sed "s#^refs/heads/##")"
 	if [ "$?" -ne "0" ]; then
 		set_local_sha1
-		current=$LOCAL_SHA1
+		current="$LOCAL_SHA1"
 	fi
 	write_log "currently on branch $current"
-	CURRENT_BRANCH=$current
+	CURRENT_BRANCH="$current"
 }
 
 fetch_remote() {
@@ -1090,7 +1150,7 @@ handle_fetch() {
 	fetch_remote
 	release_remote_lock
 	[ "$stash" != 'No local changes to save' ] && git stash pop
-	git checkout $CURRENT_BRANCH 2> /dev/null
+	git checkout "$CURRENT_BRANCH" 2> /dev/null
 	if [ $DRY_RUN -ne 1 ] && [ $old_sha1 != $LOCAL_SHA1 ]; then
 		print_info "From $REMOTE_HOST/$REMOTE_PATH"
 		print_info "   $old_sha1..$LOCAL_SHA1"
@@ -1125,7 +1185,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
-	set_deployed_sha1
+	set_deployed_sha1_for_push
 	set_local_sha1
 	set_changed_files
 	pre_push_hook
@@ -1182,6 +1242,15 @@ action_pull() {
 	set_deployed_sha1
 	handle_fetch
 	git merge $MERGE_ARGS $LOCAL_SHA1
+}
+
+action_snapshot() {
+	check_lftp_available
+	set_remotes
+	init_new_repository
+	download_remote_updates
+	commit_snapshot
+	action_catchup
 }
 
 action_add_scope() {
@@ -1277,7 +1346,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log)
+		init|push|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
@@ -1333,20 +1402,20 @@ do
 			;;
 		-b|--branch*)
 			case "$#,$1" in
-			    *,*=*)
-				BRANCH=$(expr 'z$1' : 'z-[^=]*=\(.*\)')
-				;;
-			    1,*)
-				print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
-				;;
-			    *)
-				if ! echo "$2" | egrep -q '^-'; then
-				    BRANCH="$2"
-				    shift
-				else
-				    print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
-				fi
-				;;
+				*,*=*)
+					BRANCH=$(expr 'z$1' : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						BRANCH="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --branch." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
 			esac
 			;;
 		--syncroot*)
@@ -1444,17 +1513,17 @@ do
 			;;
 		-n|--silent)
 			VERBOSE=-1
-			REMOTE_CMD_OPTIONS="-s"
+			REMOTE_CMD_OPTIONS=("-s")
 			;;
 		-v|--verbose)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
-			REMOTE_CMD_OPTIONS=""
+			REMOTE_CMD_OPTIONS=()
 			;;
 		-vv)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
-			REMOTE_CMD_OPTIONS="-v"
+			REMOTE_CMD_OPTIONS=("-v")
 			LFTP_OPTIONS="-d"
 			;;
 		-f|--force)
@@ -1531,6 +1600,10 @@ do
 			MERGE_ARGS="$MERGE_ARGS --no-commit"
 			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
 			;;
+		--changed-only)
+			DOWNLOAD_CHANGED_ONLY=1
+			write_log "Downloading only changed files."
+			;;
 		--disable-epsv)
 			if [ $ACTIVE_MODE -eq 0 ]; then
 				CURL_DISABLE_EPSV=1
@@ -1545,9 +1618,23 @@ do
 			EXECUTE_HOOKS=0
 			shift
 			;;
+		--auto-init)
+			if [ $AUTO_INIT -eq 0 ]; then
+				AUTO_INIT=1
+				write_log "Auto init if needed."
+			fi
+			;;
 		*)
 			# Pass thru anything that may be meant for fetch.
-			[ -n "$1" ] && URL=$1
+			if [ -n "$1" ]; then
+				if [ -z "$URL" ]; then
+					URL="$1"
+				elif [ "$ACTION" == "snapshot" -a -z "$SNAPSHOT_DIR" ]; then
+					SNAPSHOT_DIR="$1"
+				else
+					print_error_and_die "Unrecognised option: $1" "$ERROR_MISSING_ARGUMENTS"
+				fi
+			fi
 			;;
 	esac
 	shift
