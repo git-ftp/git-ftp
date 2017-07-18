@@ -9,16 +9,8 @@ env:
 language: sh
 
 install:
-  - >
-    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-      ./tests/vsftpd-3.0.3.debian7 tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" = "1" ]; then sudo apt-get install -y lftp; fi
-    fi
-  - >
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      ./tests/vsftpd-3.0.3.el_capitan tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" = "1" ]; then sudo installer -pkg tests/lftp-4.6.0-0.pkg -target /; fi
-    fi
+
+
 
 before_script:
   - git config --global user.email "you@example.com"
