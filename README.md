@@ -14,9 +14,9 @@ an older version.
 
 ```sh
 # Setup
-git config git-ftp.url ftp.example.net
-git config git-ftp.user ftp-user
-git config git-ftp.password secr3t
+git config git-ftp.url "ftp://ftp.example.net:21/public_html"
+git config git-ftp.user "ftp-user"
+git config git-ftp.password "secr3t"
 
 # Upload all files
 git ftp init
@@ -33,6 +33,9 @@ git ftp push
 # Uploading ...
 # Last deployment changed to ded01b27e5c785fb251150805308d3d0f8117387.
 ```
+
+If you encounter any problems, add the `-v` or `-vv` option to see more output.
+The manual may answer some of your questions as well.
 
 Further Reading
 ---------------
