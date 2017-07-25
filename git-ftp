@@ -1009,6 +1009,12 @@ set_remotes() {
 		DISPLAY_LOGIN="$ENC_USER":'***'@
 	fi
 
+	set_remote_cacert
+	write_log "CACert is '$REMOTE_CACERT'."
+
+	set_curl_insecure
+	write_log "Insecure is '$CURL_INSECURE'."
+
 	set_remote_protocol
 	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
@@ -1021,12 +1027,6 @@ set_remotes() {
 
 	set_deployed_sha1_file
 	write_log "The remote sha1 is saved in file '$DEPLOYED_SHA1_FILE'."
-
-	set_remote_cacert
-	write_log "CACert is '$REMOTE_CACERT'."
-
-	set_curl_insecure
-	write_log "Insecure is '$CURL_INSECURE'."
 }
 
 # Original implementation http://stackoverflow.com/a/10660730/3377535
