@@ -1078,7 +1078,7 @@ download_remote_updates () {
 
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude "\1" /' | tr -d '\r\n')"
+		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n')"
 	fi
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
