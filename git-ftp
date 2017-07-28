@@ -623,7 +623,7 @@ set_changed_files() {
 }
 
 list_all_files() {
-	git ls-files -z -- "$SYNCROOT" > "$TMP_GITFTP_UPLOAD"
+	git ls-files -z -- "${SYNCROOT:-.}" > "$TMP_GITFTP_UPLOAD"
 	touch "$TMP_GITFTP_DELETE"
 }
 
