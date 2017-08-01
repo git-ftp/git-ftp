@@ -234,7 +234,7 @@ usage() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"
+	GIT_SUBMODULES="$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{$1=$NF=""; print substr($0, 2, length($0) - 2)}')"
 }
 
 is_submodule() {
@@ -371,7 +371,7 @@ cleanup() {
 }
 
 set_default_curl_options() {
-	OIFS="$IFS"
+	local OIFS="$IFS"
 	IFS=" "
 	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
@@ -789,13 +789,14 @@ submodule_catchup() {
 	set_submodule_args
 	url="$(git config git-ftp.url)"
 	print_info "Submodules are $GIT_SUBMODULES"
+	local OIFS="$IFS"
+	IFS=$'\n'
 	for submodule in ${GIT_SUBMODULES[@]}
 	do
 		print_info "Catching up submodule $submodule."
-		local module="$(pwd)"
-		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
-		cd $module
+		(cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule")
 	done
+	IFS="$OIFS"
 }
 
 set_submodule_args() {
