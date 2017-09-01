@@ -17,7 +17,7 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
-readonly VERSION='1.4.0'
+readonly VERSION='1.4.1-UNRELEASED'
 
 suite() {
 	for testcase in ${TEST_CASES}; do
