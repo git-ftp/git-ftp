@@ -89,6 +89,9 @@ different and handles only those files. That saves time and bandwidth.
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
 
+`-c`, `--commit`
+:	Sets SHA1 hash of last deployed commit by option.
+
 `-A`, `--active`
 :	Uses FTP active mode. This works only if you have either no firewall
 	and a direct connection to the server or an FTP aware firewall. If you
@@ -193,6 +196,8 @@ But, there is not just FTP. Supported protocols are:
 
 # EXAMPLES
 
+## FIRST UPLOADS
+
 Upload your files to an FTP server the first time:
 
 	$ git ftp init -u "john" -P "ftp://example.com/public_html"
@@ -227,6 +232,34 @@ If you have an older version of Git-ftp or Curl, you can
 create the public key with the ssh-keygen command:
 
 	$ ssh-keygen -y -f key.pem > key.pem.pub
+
+## RESET THE UPLOADED STATE
+
+Many people already uploaded their files to the server.
+If you want to mark the uploaded version as the same as your local branch:
+
+	$ git ftp catchup
+
+This example omits options like `--user`, `--password` and `url`.
+See DEFAULTS below to learn how to store your configuration so that you don't
+need to repeat it.
+
+After you stored the commit id of the uploaded commit via `init` or
+`catchup`, you can then upload any new commits:
+
+	$ git ftp push
+
+If you discovered a bug in the last uploaded version and you want to go back
+by three commits:
+
+	$ git checkout HEAD~3
+	$ git ftp push
+
+Or maybe some files got changed on the server and you want to upload all
+changes between branch `master` and branch `develop`:
+
+	$ git checkout develop         # This is the version which is uploaded.
+	$ git ftp push --commit master # Upload changes compared to master.
 
 # DEFAULTS
 
