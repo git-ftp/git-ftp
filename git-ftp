@@ -1048,7 +1048,8 @@ urlencode() {
 }
 
 set_curl_insecure() {
-	[ "x$CURL_INSECURE" = "x0" ] && CURL_INSECURE="$(get_config insecure)"
+	local config=$(get_config insecure)
+	! [ -z $config ] && CURL_INSECURE=$config
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
