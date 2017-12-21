@@ -52,6 +52,7 @@ KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
+PREV_DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 SNAPSHOT_DIR=""
@@ -479,6 +480,7 @@ upload_local_sha1() {
 		check_exit_status "Could not upload." "$ERROR_UPLOAD"
 	fi
 	print_info "Last deployment changed from $DEPLOYED_SHA1 to $LOCAL_SHA1.";
+	PREV_DEPLOYED_SHA1="$DEPLOYED_SHA1"
 	DEPLOYED_SHA1="$LOCAL_SHA1"
 }
 
@@ -495,8 +497,8 @@ post_push_hook() {
 	hook='.git/hooks/post-ftp-push'
 	if [ -e "$hook" ]; then
 		scope="${SCOPE:-$REMOTE_HOST}"
-		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $PREV_DEPLOYED_SHA1"
+		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$PREV_DEPLOYED_SHA1"
 	fi
 }
 
