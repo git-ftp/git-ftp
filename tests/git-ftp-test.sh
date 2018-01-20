@@ -1136,6 +1136,39 @@ test_post_push() {
 	assertEquals "$message" "$out"
 }
 
+test_post_push_arguments_first() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
+	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
+	# TODO: the remote URL is missing
+	url=""
+	local_commit="$(git log -n 1 --pretty=format:%H)"
+	remote_commit=""
+	expected="arguments: $scope $url $local_commit $remote_commit"
+	chmod +x "$hook"
+	out="$($GIT_FTP init -n)"
+	assertEquals "$expected" "$out"
+}
+
+test_post_push_arguments_repeated() {
+	first_commit="$(git log -n 1 --pretty=format:%H)"
+	$GIT_FTP init -n
+	touch newfile
+	git add . > /dev/null 2>&1
+	git commit -m 'Second commit' -q
+	hook=".git/hooks/post-ftp-push"
+	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
+	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
+	# TODO: the remote URL is missing
+	url=""
+	local_commit="$(git log -n 1 --pretty=format:%H)"
+	remote_commit="$first_commit"
+	expected="arguments: $scope $url $local_commit $remote_commit"
+	chmod +x "$hook"
+	out="$($GIT_FTP push -n)"
+	assertEquals "$expected" "$out"
+}
+
 disabled_test_file_named_dash() {
 	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
