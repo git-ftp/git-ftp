@@ -71,6 +71,12 @@ See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50
 
 ## MacOS
 
+First, ensure you have installed Xcode and command line tools. Command line tools can be download at https://developer.apple.com/download/more/ or via command: 
+
+```
+xcode-select --install
+```
+
 Using homebrew:
 
 ```sh
