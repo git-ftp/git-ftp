@@ -5,7 +5,7 @@ You can find instructions for:
 - [Linux/Unix based systems using make](#linuxunix-based-systems-using-make)
 - [Debian, Ubuntu and others using apt](#debian-ubuntu-and-others-using-apt)
 - [ArchLinux](#archlinux-aur-unofficial)
-- [Mac OS X](#mac-os-x)
+- [MacOS](#macos)
 - [Windows](#windows)
 
 
@@ -13,7 +13,7 @@ You can find instructions for:
 
 Note: Make sure Git and cURL are installed.
 
-This should work on Mac OS X, Debian, Ubuntu, Fedora, RedHat, etc.
+This should work on MacOS, Debian, Ubuntu, Fedora, RedHat, etc.
 
 The easiest way is to use Git for installing:
 
@@ -69,7 +69,7 @@ apt-get update
 See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go
 
 
-## Mac OS X
+## MacOS
 
 Using homebrew:
 
