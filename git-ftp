@@ -77,6 +77,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
+declare -i DISABLE_PPE=1
 declare -a GIT_SUBMODULES
 declare -i AUTO_INIT=0
 
@@ -191,6 +192,7 @@ OPTIONS
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
+	--enable-post-errors	Fails if post-ftp-push hook raises an error
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
@@ -500,7 +502,7 @@ post_push_hook() {
 		local scope="${SCOPE:-$REMOTE_HOST}"
 		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
 		write_log "Trigger post-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $PREV_DEPLOYED_SHA1"
-		$hook "$scope" "$url" "$LOCAL_SHA1" "$PREV_DEPLOYED_SHA1"
+		$hook "$scope" "$url" "$LOCAL_SHA1" "$PREV_DEPLOYED_SHA1" || [ "$DISABLE_PPE" -eq 1 ] || exit "$ERROR_HOOK"
 	fi
 }
 
@@ -1650,6 +1652,10 @@ do
 			;;
 		--no-verify)
 			EXECUTE_HOOKS=0
+			shift
+			;;
+		--enable-post-errors)
+			DISABLE_PPE=0
 			shift
 			;;
 		--auto-init)
