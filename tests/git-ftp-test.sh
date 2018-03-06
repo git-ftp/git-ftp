@@ -1140,8 +1140,7 @@ test_post_push_arguments_first() {
 	hook=".git/hooks/post-ftp-push"
 	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
 	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
-	# TODO: the remote URL is missing
-	url=""
+	url="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT/$REMOTE_PATH/"
 	local_commit="$(git log -n 1 --pretty=format:%H)"
 	remote_commit=""
 	expected="arguments: $scope $url $local_commit $remote_commit"
@@ -1159,8 +1158,7 @@ test_post_push_arguments_repeated() {
 	hook=".git/hooks/post-ftp-push"
 	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
 	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
-	# TODO: the remote URL is missing
-	url=""
+	url="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT/$REMOTE_PATH/"
 	local_commit="$(git log -n 1 --pretty=format:%H)"
 	remote_commit="$first_commit"
 	expected="arguments: $scope $url $local_commit $remote_commit"
