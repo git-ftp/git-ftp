@@ -36,6 +36,11 @@ different and handles only those files. That saves time and bandwidth.
 `push`
 :	Uploads files that have changed and
 	deletes files that have been deleted since the last upload.
+	If you are using GIT LFS, this uploads LFS link files, 
+	not large files (stored on LFS server). 
+	To upload the LFS tracked files, run `git lfs pull`
+	before `git ftp push`: LFS link files will be replaced with 
+	large files so they can be uploaded.  
 
 `download` (EXPERIMENTAL)
 :	Downloads changes from the remote host into your working tree.
