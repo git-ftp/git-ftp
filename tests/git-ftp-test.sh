@@ -1146,6 +1146,8 @@ test_post_push_arguments_first() {
 	expected="arguments: $scope $url $local_commit $remote_commit"
 	chmod +x "$hook"
 	out="$($GIT_FTP init -n)"
+	rtrn=$?
+	assertEquals 0 $rtrn
 	assertEquals "$expected" "$out"
 }
 
@@ -1164,7 +1166,27 @@ test_post_push_arguments_repeated() {
 	expected="arguments: $scope $url $local_commit $remote_commit"
 	chmod +x "$hook"
 	out="$($GIT_FTP push -n)"
+	rtrn=$?
+	assertEquals 0 $rtrn
 	assertEquals "$expected" "$out"
+}
+
+test_post_push_no_fail() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'exit 99' > "$hook"
+	chmod +x "$hook"
+	$GIT_FTP init -n
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
+test_post_push_no_fail() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'exit 99' > "$hook"
+	chmod +x "$hook"
+	$GIT_FTP init -n --enable-post-errors
+	rtrn=$?
+	assertEquals 9 $rtrn
 }
 
 disabled_test_file_named_dash() {
