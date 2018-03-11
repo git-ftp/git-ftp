@@ -1185,6 +1185,7 @@ action_init() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	check_remote_access
 	check_deployed_sha1
 	set_local_sha1
@@ -1204,6 +1205,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1_for_push
 	set_local_sha1
 	set_changed_files
@@ -1221,6 +1223,7 @@ action_catchup() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_local_sha1
 	upload_local_sha1
 	submodule_catchup
@@ -1229,6 +1232,7 @@ action_catchup() {
 
 action_show() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git show "$DEPLOYED_SHA1"
@@ -1236,6 +1240,7 @@ action_show() {
 
 action_log() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git log "$DEPLOYED_SHA1"
@@ -1247,6 +1252,7 @@ action_download() {
 	check_is_dirty_repository
 	check_for_untracked_files
 	set_remotes
+	check_curl_access
 	remote_lock
 	download_remote_updates
 	release_remote_lock
@@ -1258,6 +1264,7 @@ action_pull() {
 	check_is_dirty_repository
 	set_current_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1
 	handle_fetch
 	git merge $MERGE_ARGS $LOCAL_SHA1
@@ -1266,6 +1273,7 @@ action_pull() {
 action_snapshot() {
 	check_lftp_available
 	set_remotes
+	check_curl_access
 	init_new_repository
 	download_remote_updates
 	commit_snapshot
@@ -1284,6 +1292,13 @@ action_remove_scope() {
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
+check_curl_access() {
+	write_log "Check if curl is functional."
+	command -v curl >/dev/null 2>&1
+	check_exit_status "curl is not available" "$ERROR_DOWNLOAD"
+	curl --version|grep "Protocols"|grep -qw "$REMOTE_PROTOCOL"
+	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
+}
 check_remote_access() {
 	write_log "Check if $REMOTE_BASE_URL_DISPLAY is accessible."
 	set_default_curl_options
