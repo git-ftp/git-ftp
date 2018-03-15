@@ -54,7 +54,7 @@ DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
 PREV_DEPLOYED_SHA1=""
 LOCAL_SHA1=""
-SYNCROOT="."
+SYNCROOT=""
 SNAPSHOT_DIR=""
 CURL_PROTOCOL=""
 CURL_INSECURE="0"
@@ -965,6 +965,7 @@ unset_branch() {
 
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
+	[ -z "$SYNCROOT" ] && SYNCROOT="."
 	if [ "$SYNCROOT" ]; then
 		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." "$ERROR_GIT"
 		SYNCROOT="$(echo "$SYNCROOT" | sed 's#/*$##')/"

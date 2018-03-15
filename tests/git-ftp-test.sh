@@ -813,6 +813,16 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 
+test_syncroot_config() {
+	syncroot='foo bar'
+	mkdir "$syncroot" && echo "test" > "$syncroot/syncroot.txt"
+	git add . > /dev/null 2>&1
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	git config git-ftp.syncroot "$syncroot"
+	init="$($GIT_FTP init)"
+	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
+}
+
 test_download() {
 	skip_without lftp
 	cd $GIT_PROJECT_PATH
