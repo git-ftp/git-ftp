@@ -81,7 +81,8 @@ Using homebrew:
 
 ```sh
 brew install git
-brew install curl --with-ssl --with-libssh2
+brew install curl --with-libssh2
+brew install brotli
 brew install git-ftp
 ```
 
