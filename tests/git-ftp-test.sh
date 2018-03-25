@@ -1180,7 +1180,7 @@ test_post_push_no_fail() {
 	assertEquals 0 $rtrn
 }
 
-test_post_push_no_fail() {
+test_post_push_fail() {
 	hook=".git/hooks/post-ftp-push"
 	echo 'exit 99' > "$hook"
 	chmod +x "$hook"
