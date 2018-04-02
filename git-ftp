@@ -1087,7 +1087,7 @@ download_remote_updates () {
 	if [ -f '.git-ftp-ignore' ]; then
 		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n')"
 	fi
-	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
+	ignore+=" --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
 	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
 	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}" 2>&1)"
