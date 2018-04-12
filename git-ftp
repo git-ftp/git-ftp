@@ -61,6 +61,7 @@ CURL_INSECURE="0"
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
+CURL_PROXY=""
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
@@ -196,6 +197,7 @@ OPTIONS
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
+	-x, --proxy		Use the specified proxy.
 
 
 EXAMPLES
@@ -379,6 +381,9 @@ set_default_curl_options() {
 	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
+	if [ -n "$CURL_PROXY" ]; then
+		CURL_ARGS+=(--proxy "$CURL_PROXY")
+	fi
 	if [ -z "$REMOTE_USER" ]; then
 		CURL_ARGS+=(--netrc)
 	fi
@@ -1022,6 +1027,9 @@ set_remotes() {
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 
+	set_curl_proxy
+	write_log "Proxy is '$CURL_PROXY'."
+
 	set_remote_protocol
 	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
@@ -1056,6 +1064,10 @@ urlencode() {
 
 set_curl_insecure() {
 	[ -z "$CURL_INSECURE" ] && CURL_INSECURE="$(get_config insecure)"
+}
+set_curl_proxy() {
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(get_config proxy)"
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
 }
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
@@ -1664,6 +1676,24 @@ do
 				AUTO_INIT=1
 				write_log "Auto init if needed."
 			fi
+			;;
+		-x|--proxy*)
+			case "$#,$1" in
+				*,*=*)
+					CURL_PROXY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						CURL_PROXY="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
+			esac
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.

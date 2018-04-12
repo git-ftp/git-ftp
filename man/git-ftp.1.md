@@ -177,6 +177,9 @@ different and handles only those files. That saves time and bandwidth.
 `--version`
 :	Prints version.
 
+`-x, --proxy`
+:	Use the specified proxy.
+
 # URL
 
 The scheme of an URL is what you would expect
