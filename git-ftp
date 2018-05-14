@@ -1064,7 +1064,7 @@ urlencode() {
 
 set_curl_insecure() {
 	local config="$(get_config insecure)"
-	! [ -z "$config" ] && CURL_INSECURE="$config"
+	[ -n "$config" ] && CURL_INSECURE="$config"
 }
 
 set_curl_proxy() {
