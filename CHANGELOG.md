@@ -1,3 +1,8 @@
+Version 1.5.1-UNRELEASED
+=============
+
+* Add new option `--proxy`
+
 Version 1.5.0
 =============
 
