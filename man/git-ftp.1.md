@@ -177,6 +177,10 @@ different and handles only those files. That saves time and bandwidth.
 `--version`
 :	Prints version.
 
+`-x [protocol://]host[:port]`, `--proxy [protocol://]host[:port]`
+:	Use the specified proxy. This option is passed to curl.
+	See the curl manual for more information.
+
 # URL
 
 The scheme of an URL is what you would expect
