@@ -99,6 +99,28 @@ test_prints_version() {
 	assertEquals "git-ftp version $VERSION" "$version"
 }
 
+test_unknown_protocol() {
+	output="$($GIT_FTP_CMD init badProtocol://localhost/ 2>&1)"
+	assertEquals 6 $?
+	assertEquals "fatal: Protocol unknown 'badProtocol://'." "$output"
+}
+
+test_supported_protocol_ftp() {
+	output="$($GIT_FTP_CMD init ftp://localhost/ 2>&1)"
+	status=$?
+	assertNotEquals 6 $status
+	assertNotEquals "fatal: Protocol unknown 'ftp://'." "$output"
+	assertNotEquals "fatal: Protocol 'ftp' not supported by curl, exiting..." "$output"
+}
+
+test_supported_protocol_ftpes() {
+	output="$($GIT_FTP_CMD init ftpes://localhost/ 2>&1)"
+	status=$?
+	assertNotEquals 6 $status
+	assertNotEquals "fatal: Protocol unknown 'ftpes://'." "$output"
+	assertNotEquals "fatal: Protocol 'ftpes' not supported by curl, exiting..." "$output"
+}
+
 test_inits() {
 	init=$($GIT_FTP init)
 	assertEquals 0 $?

@@ -1314,7 +1314,15 @@ check_curl_access() {
 	write_log "Check if curl is functional."
 	command -v curl >/dev/null 2>&1
 	check_exit_status "curl is not available" "$ERROR_DOWNLOAD"
-	curl --version|grep "Protocols"|grep -qw "$REMOTE_PROTOCOL"
+
+	local curl_protocol="$REMOTE_PROTOCOL"
+	# The ftpes protocol is FTP + SSL
+	if [ "$curl_protocol" == "ftpes" ]; then
+		curl_protocol="ftp"
+		curl --version | grep "^Features: " | grep -qw "SSL"
+		check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
+	fi
+	curl --version | grep "^Protocols: " | grep -qw "$curl_protocol"
 	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
 }
 check_remote_access() {
