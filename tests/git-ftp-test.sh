@@ -1146,6 +1146,25 @@ test_post_push() {
 	assertEquals "$message" "$out"
 }
 
+test_insecure_defaults_value() {
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '0'"
+	assertEquals 0 $?
+}
+
+test_insecure_from_config() {
+	git config git-ftp.insecure 1
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '1'"
+	assertEquals 0 $?
+}
+
+test_insecure_options() {
+	out="$($GIT_FTP --insecure init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '1'"
+	assertEquals 0 $?
+}
+
 test_post_push_arguments_first() {
 	hook=".git/hooks/post-ftp-push"
 	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"

@@ -1063,12 +1063,15 @@ urlencode() {
 }
 
 set_curl_insecure() {
-	[ -z "$CURL_INSECURE" ] && CURL_INSECURE="$(get_config insecure)"
+	local config="$(get_config insecure)"
+	[ -n "$config" ] && CURL_INSECURE="$config"
 }
+
 set_curl_proxy() {
 	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(get_config proxy)"
 	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
 }
+
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
