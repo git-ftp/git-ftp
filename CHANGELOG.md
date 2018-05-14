@@ -2,6 +2,7 @@ Version 1.5.1-UNRELEASED
 =============
 
 * Add new option `--proxy`
+* The `--insecure` option is also read from the git config
 
 Version 1.5.0
 =============
