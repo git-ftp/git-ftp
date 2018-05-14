@@ -17,7 +17,7 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
-readonly VERSION='1.4.1-UNRELEASED'
+readonly VERSION='1.5.1-UNRELEASED'
 
 suite() {
 	for testcase in ${TEST_CASES}; do
@@ -813,6 +813,16 @@ test_syncroot() {
 	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
 }
 
+test_syncroot_config() {
+	syncroot='foo bar'
+	mkdir "$syncroot" && echo "test" > "$syncroot/syncroot.txt"
+	git add . > /dev/null 2>&1
+	git commit -a -m "syncroot test" > /dev/null 2>&1
+	git config git-ftp.syncroot "$syncroot"
+	init="$($GIT_FTP init)"
+	assertTrue 'test failed: syncroot.txt not there as expected' "remote_file_exists 'syncroot.txt'"
+}
+
 test_download() {
 	skip_without lftp
 	cd $GIT_PROJECT_PATH
@@ -1153,6 +1163,59 @@ test_insecure_options() {
 	out="$($GIT_FTP --insecure init -v 2>/dev/null)"
 	echo "$out" | grep -v "Insecure is '1'" >/dev/null
 	assertEquals 1 $?
+}
+
+test_post_push_arguments_first() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
+	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
+	url="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT/$REMOTE_PATH/"
+	local_commit="$(git log -n 1 --pretty=format:%H)"
+	remote_commit=""
+	expected="arguments: $scope $url $local_commit $remote_commit"
+	chmod +x "$hook"
+	out="$($GIT_FTP init -n)"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertEquals "$expected" "$out"
+}
+
+test_post_push_arguments_repeated() {
+	first_commit="$(git log -n 1 --pretty=format:%H)"
+	$GIT_FTP init -n
+	touch newfile
+	git add . > /dev/null 2>&1
+	git commit -m 'Second commit' -q
+	hook=".git/hooks/post-ftp-push"
+	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
+	scope="$GIT_FTP_HOST$GIT_FTP_PORT"
+	url="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT/$REMOTE_PATH/"
+	local_commit="$(git log -n 1 --pretty=format:%H)"
+	remote_commit="$first_commit"
+	expected="arguments: $scope $url $local_commit $remote_commit"
+	chmod +x "$hook"
+	out="$($GIT_FTP push -n)"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertEquals "$expected" "$out"
+}
+
+test_post_push_no_fail() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'exit 99' > "$hook"
+	chmod +x "$hook"
+	$GIT_FTP init -n
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
+test_post_push_fail() {
+	hook=".git/hooks/post-ftp-push"
+	echo 'exit 99' > "$hook"
+	chmod +x "$hook"
+	$GIT_FTP init -n --enable-post-errors
+	rtrn=$?
+	assertEquals 9 $rtrn
 }
 
 disabled_test_file_named_dash() {

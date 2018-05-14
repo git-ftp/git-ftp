@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.4.1-UNRELEASED'
+readonly VERSION='1.5.1-UNRELEASED'
 
 # ------------------------------------------------------------
 # Defaults
@@ -52,6 +52,7 @@ KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
+PREV_DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 SNAPSHOT_DIR=""
@@ -60,6 +61,7 @@ CURL_INSECURE="0"
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV=0
+CURL_PROXY=""
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
@@ -76,6 +78,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
+declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -a GIT_SUBMODULES
 declare -i AUTO_INIT=0
 
@@ -190,9 +193,11 @@ OPTIONS
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
+	--enable-post-errors	Fails if post-ftp-push hook raises an error
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
+	-x, --proxy		Use the specified proxy.
 
 
 EXAMPLES
@@ -376,6 +381,9 @@ set_default_curl_options() {
 	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
+	if [ -n "$CURL_PROXY" ]; then
+		CURL_ARGS+=(--proxy "$CURL_PROXY")
+	fi
 	if [ -z "$REMOTE_USER" ]; then
 		CURL_ARGS+=(--netrc)
 	fi
@@ -479,24 +487,27 @@ upload_local_sha1() {
 		check_exit_status "Could not upload." "$ERROR_UPLOAD"
 	fi
 	print_info "Last deployment changed from $DEPLOYED_SHA1 to $LOCAL_SHA1.";
+	PREV_DEPLOYED_SHA1="$DEPLOYED_SHA1"
 	DEPLOYED_SHA1="$LOCAL_SHA1"
 }
 
 pre_push_hook() {
-	hook='.git/hooks/pre-ftp-push'
+	local hook='.git/hooks/pre-ftp-push'
 	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
-		scope="${SCOPE:-$REMOTE_HOST}"
-		write_log "Trigger pre-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		print_status | $hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1" || exit "$ERROR_HOOK"
+		local scope="${SCOPE:-$REMOTE_HOST}"
+		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
+		write_log "Trigger pre-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $DEPLOYED_SHA1"
+		print_status | $hook "$scope" "$url" "$LOCAL_SHA1" "$DEPLOYED_SHA1" || exit "$ERROR_HOOK"
 	fi
 }
 
 post_push_hook() {
-	hook='.git/hooks/post-ftp-push'
+	local hook='.git/hooks/post-ftp-push'
 	if [ -e "$hook" ]; then
-		scope="${SCOPE:-$REMOTE_HOST}"
-		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+		local scope="${SCOPE:-$REMOTE_HOST}"
+		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
+		write_log "Trigger post-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $PREV_DEPLOYED_SHA1"
+		$hook "$scope" "$url" "$LOCAL_SHA1" "$PREV_DEPLOYED_SHA1" || [ "$ENABLE_POST_HOOK_ERRORS" -eq 0 ] || exit "$ERROR_HOOK"
 	fi
 }
 
@@ -961,6 +972,7 @@ unset_branch() {
 
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
+	[ -z "$SYNCROOT" ] && SYNCROOT="."
 	if [ "$SYNCROOT" ]; then
 		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." "$ERROR_GIT"
 		SYNCROOT="$(echo "$SYNCROOT" | sed 's#/*$##')/"
@@ -1015,6 +1027,9 @@ set_remotes() {
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
 
+	set_curl_proxy
+	write_log "Proxy is '$CURL_PROXY'."
+
 	set_remote_protocol
 	set_remote_path
 	write_log "Path is '$REMOTE_PATH'."
@@ -1052,6 +1067,11 @@ set_curl_insecure() {
 	! [ -z "$config" ] && CURL_INSECURE="$config"
 }
 
+set_curl_proxy() {
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(get_config proxy)"
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
+}
+
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
@@ -1082,7 +1102,7 @@ download_remote_updates () {
 	if [ -f '.git-ftp-ignore' ]; then
 		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n')"
 	fi
-	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
+	ignore+=" --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
 	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
 	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}" 2>&1)"
@@ -1183,6 +1203,7 @@ action_init() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	check_remote_access
 	check_deployed_sha1
 	set_local_sha1
@@ -1202,6 +1223,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1_for_push
 	set_local_sha1
 	set_changed_files
@@ -1219,6 +1241,7 @@ action_catchup() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_local_sha1
 	upload_local_sha1
 	submodule_catchup
@@ -1227,6 +1250,7 @@ action_catchup() {
 
 action_show() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git show "$DEPLOYED_SHA1"
@@ -1234,6 +1258,7 @@ action_show() {
 
 action_log() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git log "$DEPLOYED_SHA1"
@@ -1245,6 +1270,7 @@ action_download() {
 	check_is_dirty_repository
 	check_for_untracked_files
 	set_remotes
+	check_curl_access
 	remote_lock
 	download_remote_updates
 	release_remote_lock
@@ -1256,6 +1282,7 @@ action_pull() {
 	check_is_dirty_repository
 	set_current_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1
 	handle_fetch
 	git merge $MERGE_ARGS $LOCAL_SHA1
@@ -1264,6 +1291,7 @@ action_pull() {
 action_snapshot() {
 	check_lftp_available
 	set_remotes
+	check_curl_access
 	init_new_repository
 	download_remote_updates
 	commit_snapshot
@@ -1282,6 +1310,13 @@ action_remove_scope() {
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
+check_curl_access() {
+	write_log "Check if curl is functional."
+	command -v curl >/dev/null 2>&1
+	check_exit_status "curl is not available" "$ERROR_DOWNLOAD"
+	curl --version|grep "Protocols"|grep -qw "$REMOTE_PROTOCOL"
+	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
+}
 check_remote_access() {
 	write_log "Check if $REMOTE_BASE_URL_DISPLAY is accessible."
 	set_default_curl_options
@@ -1635,11 +1670,33 @@ do
 			EXECUTE_HOOKS=0
 			shift
 			;;
+		--enable-post-errors)
+			ENABLE_POST_HOOK_ERRORS=1
+			shift
+			;;
 		--auto-init)
 			if [ $AUTO_INIT -eq 0 ]; then
 				AUTO_INIT=1
 				write_log "Auto init if needed."
 			fi
+			;;
+		-x|--proxy*)
+			case "$#,$1" in
+				*,*=*)
+					CURL_PROXY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						CURL_PROXY="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
+			esac
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.

@@ -5,7 +5,7 @@ You can find instructions for:
 - [Linux/Unix based systems using make](#linuxunix-based-systems-using-make)
 - [Debian, Ubuntu and others using apt](#debian-ubuntu-and-others-using-apt)
 - [ArchLinux](#archlinux-aur-unofficial)
-- [Mac OS X](#mac-os-x)
+- [MacOS](#macos)
 - [Windows](#windows)
 
 
@@ -13,7 +13,7 @@ You can find instructions for:
 
 Note: Make sure Git and cURL are installed.
 
-This should work on Mac OS X, Debian, Ubuntu, Fedora, RedHat, etc.
+This should work on MacOS, Debian, Ubuntu, Fedora, RedHat, etc.
 
 The easiest way is to use Git for installing:
 
@@ -69,13 +69,20 @@ apt-get update
 See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go
 
 
-## Mac OS X
+## MacOS
+
+First, ensure you have installed Xcode and command line tools. Command line tools can be download at https://developer.apple.com/download/more/ or via command: 
+
+```
+xcode-select --install
+```
 
 Using homebrew:
 
 ```sh
 brew install git
-brew install curl --with-ssl --with-libssh2
+brew install curl --with-libssh2
+brew install brotli
 brew install git-ftp
 ```
 

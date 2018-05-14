@@ -1,6 +1,6 @@
-% GIT-FTP(1) Git-ftp 1.4.1-UNRELEASED
+% GIT-FTP(1) Git-ftp 1.5.1-UNRELEASED
 %
-% 2017-09-01
+% 2018-05-14
 
 # NAME
 
@@ -36,6 +36,11 @@ different and handles only those files. That saves time and bandwidth.
 `push`
 :	Uploads files that have changed and
 	deletes files that have been deleted since the last upload.
+	If you are using GIT LFS, this uploads LFS link files, 
+	not large files (stored on LFS server). 
+	To upload the LFS tracked files, run `git lfs pull`
+	before `git ftp push`: LFS link files will be replaced with 
+	large files so they can be uploaded.  
 
 `download` (EXPERIMENTAL)
 :	Downloads changes from the remote host into your working tree.
@@ -163,11 +168,18 @@ different and handles only those files. That saves time and bandwidth.
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
 
+`--enable-post-errors`
+:	Fails if post-ftp-push raises an error.
+
 `--auto-init`
 :	Automatically run init action when running push action
 
 `--version`
 :	Prints version.
+
+`-x [protocol://]host[:port]`, `--proxy [protocol://]host[:port]`
+:	Use the specified proxy. This option is passed to curl.
+	See the curl manual for more information.
 
 # URL
 
@@ -265,7 +277,7 @@ changes between branch `master` and branch `develop`:
 
 Don't repeat yourself. Setting config defaults for git-ftp in .git/config
 
-	$ git config git-ftp.<(url|user|password|syncroot|cacert|keychain)> <value>
+	$ git config git-ftp.<(url|user|password|syncroot|cacert|keychain|...)> <value>
 
 Everyone likes examples:
 
@@ -278,6 +290,7 @@ Everyone likes examples:
 	$ git config git-ftp.insecure 1
 	$ git config git-ftp.key ~/.ssh/id_rsa
 	$ git config git-ftp.keychain user@example.com
+	$ git config git-ftp.remote-root htdocs
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
