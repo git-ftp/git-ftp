@@ -1,6 +1,7 @@
 Version 1.5.1-UNRELEASED
 =============
 
+* Fix FTPES support
 * Add new option `--proxy`
 * The `--insecure` option is also read from the git config
 
