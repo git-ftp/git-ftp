@@ -1,4 +1,4 @@
-Version 1.5.1-UNRELEASED
+Version 1.5.1
 =============
 
 * Fix FTPES support
