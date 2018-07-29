@@ -445,6 +445,36 @@ test_delete() {
 #	assertFalse 'test failed: dir still exists' "remote_file_exists 'dir 1/'"
 }
 
+test_mapped_upload_paths() {
+	echo "1/3.txt:2/3.txt" > .git-ftp-map
+	echo "2/:3/" >> .git-ftp-map
+
+	mkdir 1 2
+	touch 1/3.txt 2/1.txt 2/2.txt
+
+	git add .
+	git commit -m "Mapping paths" -q
+
+	init="$($GIT_FTP init)"
+
+	assertRemoteFileExists "3/1.txt"
+	assertRemoteFileExists "3/2.txt"
+	assertRemoteFileExists "3/3.txt"
+}
+
+test_mapped_delete_paths() {
+	test_mapped_upload_paths
+
+	rm 2/2.txt
+
+	git add .
+	git commit -m "Delete file" -q
+
+	push="$($GIT_FTP push)"
+
+	assertRemoteFileMissing "3/2.txt"
+}
+
 test_ignore_single_file() {
 	cd $GIT_PROJECT_PATH
 	echo "test 1.txt" > .git-ftp-ignore

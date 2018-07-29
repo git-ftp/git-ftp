@@ -430,6 +430,24 @@ But keep in mind that this will upload all files in the vendor folder, even
 those that are on the server already.
 And it will not delete files from that directory if local files are deleted.
 
+# MAPPING REMOTE FILE PATHS
+
+The `.git-ftp-map` file allows you to modify the path of a file or
+folder to one that is accessible on the remote server.
+To do so, add the name of the file, followed by a colon and the new path.
+For folders, **the directory separator must be appended** to the local and
+remote path.
+
+For example, if you have a folder called `public/css` and you would like it to
+be uploaded to `public/assets` instead, then add the following line:
+
+	public/css/:public/assets/
+
+And for a file called `all.js` in the `js` folder to be uploaded to the
+`assets` folder:
+
+	js/all.js:assets/all.js
+
 # DOWNLOADING FILES (EXPERIMENTAL)
 
 **WARNING:** It can delete local untracked files that are not listed in your

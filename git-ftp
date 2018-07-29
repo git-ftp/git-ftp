@@ -669,6 +669,30 @@ list_changed_files() {
 	fi
 }
 
+map_ftp_paths() {
+	[ -f '.git-ftp-map' ] || return
+	map_upload_paths
+	map_delete_paths
+}
+
+map_upload_paths() {
+	[ -f "$TMP_CURL_UPLOAD_FILE" ] || return
+
+	sed -i "" "/.git-ftp-map/d" $TMP_CURL_UPLOAD_FILE
+
+	while IFS=':' read -r FIND REPLACE || [ -n "$FIND" -a -n "$REPLACE" ]; do
+		sed -i "" "/^url = /s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_UPLOAD_FILE
+	done < .git-ftp-map
+}
+
+map_delete_paths() {
+	[ -f "$TMP_CURL_DELETE_FILE" ] || return
+
+	while IFS=':' read -r FIND REPLACE || [ -n "$FIND" -a -n "$REPLACE" ]; do
+		sed -i "" "s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_DELETE_FILE
+	done < .git-ftp-map
+}
+
 add_include_files() {
 	[ -f '.git-ftp-include' ] || return
 	local tmp_include_sources="$TMP_DIR/include_sources_tmp"
@@ -739,7 +763,7 @@ glob_filter() {
 	done
 }
 
-handle_file_sync() {
+prepare_file_sync() {
 	if [ ! -s "$TMP_GITFTP_UPLOAD" ] && [ ! -s "$TMP_GITFTP_DELETE" ]; then
 		print_info "There are no files to sync."
 		return
@@ -761,7 +785,6 @@ handle_file_sync() {
 			upload_file_buffered "$FILE_NAME"
 		fi
 	done < "$TMP_GITFTP_UPLOAD"
-	fire_upload_buffer
 
 	while IFS= read -r -d '' FILE_NAME; do
 		(( DONE_ITEMS++ ))
@@ -771,6 +794,10 @@ handle_file_sync() {
 			delete_file_buffered "$file"
 		fi
 	done < "$TMP_GITFTP_DELETE"
+}
+
+handle_file_sync() {
+	fire_upload_buffer
 	fire_delete_buffer
 }
 
@@ -1209,6 +1236,8 @@ action_init() {
 	set_local_sha1
 	set_changed_files
 	pre_push_hook
+	prepare_file_sync
+	map_ftp_paths
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
@@ -1228,6 +1257,8 @@ action_push() {
 	set_local_sha1
 	set_changed_files
 	pre_push_hook
+	prepare_file_sync
+	map_ftp_paths
 	remote_lock
 	handle_file_sync
 	upload_local_sha1
