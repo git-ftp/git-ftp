@@ -678,10 +678,12 @@ map_ftp_paths() {
 map_upload_paths() {
 	[ -f "$TMP_CURL_UPLOAD_FILE" ] || return
 
-	sed -i "" "/.git-ftp-map/d" $TMP_CURL_UPLOAD_FILE
+	sed "/.git-ftp-map/d" $TMP_CURL_UPLOAD_FILE > $TMP_CURL_UPLOAD_FILE.tmp
+	mv $TMP_CURL_UPLOAD_FILE.tmp $TMP_CURL_UPLOAD_FILE
 
 	while IFS=':' read -r FIND REPLACE || [ -n "$FIND" -a -n "$REPLACE" ]; do
-		sed -i "" "/^url = /s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_UPLOAD_FILE
+		sed "/^url = /s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_UPLOAD_FILE > $TMP_CURL_UPLOAD_FILE.tmp
+		mv $TMP_CURL_UPLOAD_FILE.tmp $TMP_CURL_UPLOAD_FILE
 	done < .git-ftp-map
 }
 
@@ -689,7 +691,8 @@ map_delete_paths() {
 	[ -f "$TMP_CURL_DELETE_FILE" ] || return
 
 	while IFS=':' read -r FIND REPLACE || [ -n "$FIND" -a -n "$REPLACE" ]; do
-		sed -i "" "s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_DELETE_FILE
+		sed "s/${FIND//\//\\/}/${REPLACE//\//\\/}/" $TMP_CURL_DELETE_FILE > $TMP_CURL_DELETE_FILE.tmp
+		mv $TMP_CURL_DELETE_FILE.tmp $TMP_CURL_DELETE_FILE
 	done < .git-ftp-map
 }
 
