@@ -96,12 +96,13 @@ There are at least two ways to install git-ftp on Windows.
 ### Git for Windows, former msysgit (recommended)
 
 Install [Git for Windows](https://git-for-windows.github.io/).
-It comes with curl installed, but it doesn't support SFTP by default.
+~~It comes with curl installed, but it doesn't support SFTP by default.
 In order to use SFTP, [download curl](http://curl.haxx.se/download.html) for
 Windows with SFTP support.
 Win32 2000/XP MSI or Win64 2000/XP x86_64 MSI is recommended.
 If you installed curl, then remove `bin/curl.exe` from your Git for Windows
-installation directory. It will fall back to the newly installed version.
+installation directory. It will fall back to the newly installed version.~~
+Windows 10 comes now preinstalled with the correct cURL version.
 
 Finally, open the Git Bash which is located in `C:\Program Files (x86)\Git`
 by default.
