@@ -32,7 +32,7 @@ readonly VERSION='1.5.1'
 CURL_PATH=`git config git-ftp.curlpath`
 if [ -z "$CURL_PATH" ]
 then
-	CURL_PATH = "curl"
+	CURL_PATH="curl"
 fi
 URL=""
 REMOTE_PROTOCOL=""
