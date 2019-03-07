@@ -104,7 +104,7 @@ If you installed curl, then remove `bin/curl.exe` from your Git for Windows
 installation directory. It will fall back to the newly installed version.
 
 Finally, open the Git Bash which is located in `C:\Program Files (x86)\Git`
-by default.
+by default. Note that you may need to right-click and "Run as Administrator".
 
 ```bash
 curl https://raw.githubusercontent.com/git-ftp/git-ftp/master/git-ftp > /bin/git-ftp
