@@ -1326,6 +1326,18 @@ check_curl_access() {
 	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
 }
 check_remote_access() {
+	
+	#-- little hack --#
+	set_default_curl_options
+        touch create_dir
+        CURL_ARGS_TMP+=("$CURL_ARGS")
+        CURL_ARGS_TMP+=(--ftp-create-dirs)
+	CURL_ARGS_TMP+=(--upload-file create_dir)
+        CURL_ARGS_TMP+=("$REMOTE_BASE_URL/$REMOTE_PATH")
+        curl "${CURL_ARGS_TMP[@]}"  > /dev/null
+        rm -f create_dir
+        delete_file 'create_dir'
+
 	write_log "Check if $REMOTE_BASE_URL_DISPLAY is accessible."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
