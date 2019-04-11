@@ -492,7 +492,12 @@ upload_local_sha1() {
 }
 
 pre_push_hook() {
-	local hook='.git/hooks/pre-ftp-push'
+       local hooks_dir="$(git config core.hooksPath)/"
+        if [ -z "$hooks_dir" ];then
+                hooks_dir=".git/hooks"
+        fi
+        local hook="$hooks_dir/pre-ftp-push"
+
 	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
 		local scope="${SCOPE:-$REMOTE_HOST}"
 		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
@@ -502,7 +507,12 @@ pre_push_hook() {
 }
 
 post_push_hook() {
-	local hook='.git/hooks/post-ftp-push'
+        local hooks_dir="$(git config core.hooksPath)/"
+        if [ -z "$hooks_dir" ];then
+                hooks_dir=".git/hooks"
+        fi
+        local hook="$hooks_dir/post-ftp-push"
+
 	if [ -e "$hook" ]; then
 		local scope="${SCOPE:-$REMOTE_HOST}"
 		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
