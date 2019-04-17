@@ -492,7 +492,7 @@ upload_local_sha1() {
 }
 
 pre_push_hook() {
-	local hooks_dir="$(git config core.hooksPath)/"
+	local hooks_dir="$(git config core.hooksPath)"
 	if [ -z "$hooks_dir" ];then
 		hooks_dir=".git/hooks"
 	fi
@@ -507,7 +507,7 @@ pre_push_hook() {
 }
 
 post_push_hook() {
-	local hooks_dir="$(git config core.hooksPath)/"
+	local hooks_dir="$(git config core.hooksPath)"
 	if [ -z "$hooks_dir" ];then
 		hooks_dir=".git/hooks"
 	fi
