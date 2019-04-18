@@ -1,3 +1,11 @@
+Version 1.5.2
+=============
+
+* Use core.hooksPath configuration
+* Updated INSTALL.md with clearer and more up-to-date instructions for Windows
+* Fix configuration of `.git-ftp.log` file name
+* Fix typos in manual
+
 Version 1.5.1
 =============
 

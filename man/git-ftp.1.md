@@ -1,6 +1,6 @@
-% GIT-FTP(1) Git-ftp 1.5.1
+% GIT-FTP(1) Git-ftp 1.5.2
 %
-% 2018-05-15
+% 2019-04-18
 
 # NAME
 
