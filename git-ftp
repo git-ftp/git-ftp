@@ -1340,7 +1340,15 @@ check_remote_access() {
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
-	curl "${CURL_ARGS[@]}" > /dev/null
+	if [ "$REMOTE_PROTOCOL" == "sftp" ]; then
+		curl "${CURL_ARGS[@]}" > /dev/null
+		if [ $? -eq 78 ]; then
+			write_log "Create $REMOTE_PATH"
+			curl "${CURL_ARGS[@]}" -Q "MKDIR $REMOTE_PATH" > /dev/null
+		fi
+	else
+		curl "${CURL_ARGS[@]}" > /dev/null
+	fi
 	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
 }
 
