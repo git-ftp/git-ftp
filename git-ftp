@@ -29,6 +29,11 @@ readonly VERSION='1.5.2'
 # ------------------------------------------------------------
 # Defaults
 # ------------------------------------------------------------
+CURL_PATH=`git config git-ftp.curlpath`
+if [ -z "$CURL_PATH" ]
+then
+	CURL_PATH="curl"
+fi
 URL=""
 REMOTE_PROTOCOL=""
 REMOTE_HOST=""
@@ -220,6 +225,7 @@ SET DEFAULTS
 	. git config git-ftp.deployedsha1file mySHA1File
 	. git config git-ftp.insecure 1
 	. git config git-ftp.keychain user@example.com
+	. git config git-ftp.curlpath path_of_curl
 
 
 SET SCOPE DEFAULTS
@@ -408,7 +414,7 @@ upload_file() {
 	CURL_ARGS+=(-T "$SRC_FILE")
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
-	curl "${CURL_ARGS[@]}"
+	"${CURL_PATH}" "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." "$ERROR_UPLOAD"
 }
 
@@ -428,7 +434,7 @@ fire_upload_buffer() {
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=(-K "$TMP_CURL_UPLOAD_FILE")
-	curl "${CURL_ARGS[@]}"
+	"${CURL_PATH}" "${CURL_ARGS[@]}"
 	check_exit_status "Could not upload files." "$ERROR_UPLOAD"
 }
 
@@ -438,9 +444,9 @@ delete_file() {
 	CURL_ARGS+=(-Q "${REMOTE_DELETE_CMD}${REMOTE_PATH}${FILENAME}")
 	CURL_ARGS+=("$REMOTE_BASE_URL")
 	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		"${CURL_PATH}" "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		"${CURL_PATH}" "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_log "WARNING: Could not delete ${REMOTE_PATH}${FILENAME}, continuing..."
@@ -460,9 +466,9 @@ fire_delete_buffer() {
 	set_default_curl_options
 	CURL_ARGS+=(-K "$TMP_CURL_DELETE_FILE")
 	if [ "${REMOTE_CMD_OPTIONS[0]}" = "-v" ]; then
-		curl "${CURL_ARGS[@]}"
+		"${CURL_PATH}" "${CURL_ARGS[@]}"
 	else
-		curl "${CURL_ARGS[@]}" > /dev/null 2>&1
+		"${CURL_PATH}" "${CURL_ARGS[@]}" > /dev/null 2>&1
 	fi
 	if [ $? -ne 0 ]; then
 		write_log "WARNING: Some files and/or directories could not be deleted."
@@ -473,7 +479,7 @@ get_file_content() {
 	local SRC_FILE="$1"
 	set_default_curl_options
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${SRC_FILE}")
-	curl "${CURL_ARGS[@]}"
+	"${CURL_PATH}" "${CURL_ARGS[@]}"
 }
 
 set_local_sha1() {
@@ -1322,17 +1328,17 @@ action_remove_scope() {
 # ------------------------------------------------------------
 check_curl_access() {
 	write_log "Check if curl is functional."
-	command -v curl >/dev/null 2>&1
+	command -v "${CURL_PATH}" >/dev/null 2>&1
 	check_exit_status "curl is not available" "$ERROR_DOWNLOAD"
 
 	local curl_protocol="$REMOTE_PROTOCOL"
 	# The ftpes protocol is FTP + SSL
 	if [ "$curl_protocol" == "ftpes" ]; then
 		curl_protocol="ftp"
-		curl --version | grep "^Features: " | grep -qw "SSL"
+		"${CURL_PATH}" --version | grep "^Features: " | grep -qw "SSL"
 		check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
 	fi
-	curl --version | grep "^Protocols: " | grep -qw "$curl_protocol"
+	"${CURL_PATH}" --version | grep "^Protocols: " | grep -qw "$curl_protocol"
 	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
 }
 check_remote_access() {
@@ -1340,7 +1346,7 @@ check_remote_access() {
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
-	curl "${CURL_ARGS[@]}" > /dev/null
+	"${CURL_PATH}" "${CURL_ARGS[@]}" > /dev/null
 	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
 }
 
