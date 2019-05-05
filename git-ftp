@@ -1340,16 +1340,17 @@ check_remote_access() {
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
-	if [ "$REMOTE_PROTOCOL" == "sftp" ]; then
-		curl "${CURL_ARGS[@]}" > /dev/null
-		if [ $? -eq 78 ]; then
-			write_log "Create $REMOTE_PATH"
-			curl "${CURL_ARGS[@]}" -Q "MKDIR $REMOTE_PATH" > /dev/null
-		fi
-	else
-		curl "${CURL_ARGS[@]}" > /dev/null
+	curl "${CURL_ARGS[@]}" > /dev/null
+	
+	local EXIT_CODE=$?
+	if [ "$REMOTE_PROTOCOL" == "sftp" ] && [ $EXIT_CODE -eq 78 ]; then
+		write_log "Create $REMOTE_PATH"
+		curl "${CURL_ARGS[@]}" -Q "MKDIR $REMOTE_PATH" > /dev/null
+		EXIT_CODE=$?
 	fi
-	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
+	if [ $EXIT_CODE -ne 0 ]; then
+		print_error_and_die "Can't access remote '$REMOTE_BASE_URL_DISPLAY', exiting..." "$ERROR_UPLOAD"
+	fi
 }
 
 check_deployed_sha1() {
