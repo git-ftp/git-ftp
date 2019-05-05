@@ -987,6 +987,7 @@ set_syncroot() {
 		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." "$ERROR_GIT"
 		SYNCROOT="$(echo "$SYNCROOT" | sed 's#/*$##')/"
 	fi
+	write_log "Syncroot is '$SYNCROOT'."
 }
 
 set_sftp_config() {
@@ -1046,9 +1047,6 @@ set_remotes() {
 
 	REMOTE_BASE_URL="$CURL_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST"
 	REMOTE_BASE_URL_DISPLAY="$REMOTE_PROTOCOL://$DISPLAY_LOGIN$REMOTE_HOST"
-
-	set_syncroot
-	write_log "Syncroot is '$SYNCROOT'."
 
 	set_deployed_sha1_file
 	write_log "The remote sha1 is saved in file '$DEPLOYED_SHA1_FILE'."
@@ -1407,6 +1405,7 @@ check_lftp_available() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_syncroot
 	cache_git_submodules
 	handle_action
 	cleanup
