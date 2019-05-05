@@ -832,6 +832,7 @@ set_submodule_args() {
 		fi
 	fi
 
+	[ $CURL_INSECURE -eq 1 ] && args+=(--insecure)
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
