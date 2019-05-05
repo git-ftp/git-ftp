@@ -84,8 +84,10 @@ tearDown() {
 	tmpfiles=$(ls .git-ftp*-tmp 2> /dev/null)
 	assertEquals '' "$tmpfiles"
 	rm -rf $GIT_PROJECT_PATH
+	# delete project from server
+	GIT_FTP_PARENT_URL="$REMOTE_BASE_URL/$GIT_FTP_ROOT"
 	command -v lftp >/dev/null 2>&1 && {
-		lftp -u "$GIT_FTP_USER,$GIT_FTP_PASSWD" "$GIT_FTP_URL" -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2>&1
+		lftp -u "$GIT_FTP_USER,$GIT_FTP_PASSWD" "$GIT_FTP_PARENT_URL" -e "set ftp:list-options -a; rm -rf '$GIT_PROJECT_NAME'; exit" > /dev/null 2>&1
 	}
 }
 
