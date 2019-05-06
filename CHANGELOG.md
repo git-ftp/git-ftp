@@ -1,3 +1,9 @@
+Version 1.6.0-UNRELEASED
+=============
+
+* Change exit code when remote cannot be accessed from 5 (ERROR_DOWNLOAD) to 4 (ERROR_UPLOAD)
+* Fix directory creation with SFTP
+
 Version 1.5.2
 =============
 
