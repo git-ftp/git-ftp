@@ -19,6 +19,19 @@
 
 readonly VERSION='1.5.2'
 
+# ------------------------------------------------------------
+# Constant Exit Error Codes
+# ------------------------------------------------------------
+readonly ERROR_USAGE=2
+readonly ERROR_MISSING_ARGUMENTS=3
+readonly ERROR_UPLOAD=4
+readonly ERROR_DOWNLOAD=5
+readonly ERROR_UNKNOWN_PROTOCOL=6
+readonly ERROR_REMOTE_LOCKED=7
+readonly ERROR_GIT=8
+readonly ERROR_HOOK=9
+readonly ERROR_FILESYSTEM=10
+
 suite() {
 	for testcase in ${TEST_CASES}; do
 		suite_addTest "$testcase"
@@ -130,7 +143,7 @@ test_inits() {
 
 test_init_fails() {
 	init=$($GIT_FTP_CMD -v -u wrong_user -p wrong_passwd $GIT_FTP_URL init 2>&1)
-	assertEquals 5 $?
+	assertEquals $ERROR_UPLOAD $?
 	# Not all servers respond correctly
 	#error_count=$(echo "$init" | grep -F 'Access denied' | wc -l)
 	#assertEquals 1 $error_count
