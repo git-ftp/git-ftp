@@ -2,6 +2,12 @@ os:
   - linux
   - osx
 
+addons:
+  homebrew:
+    packages:
+    - lftp
+    update: true
+
 env:
   - LFTP_SUPPORT=0
   - LFTP_SUPPORT=1
