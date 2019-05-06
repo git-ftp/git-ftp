@@ -6,7 +6,6 @@ addons:
   homebrew:
     packages:
     - lftp
-    update: true
 
 env:
   - LFTP_SUPPORT=0
@@ -23,7 +22,6 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
       ./tests/vsftpd-3.0.3.el_capitan tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" = "1" ]; then sudo installer -pkg tests/lftp-4.6.0-0.pkg -target /; fi
     fi
 
 before_script:
