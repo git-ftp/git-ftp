@@ -2,14 +2,23 @@ os:
   - linux
   - osx
 
-addons:
-  homebrew:
-    packages:
-    - lftp
-
 env:
   - LFTP_SUPPORT=0
-  - LFTP_SUPPORT=1
+
+jobs:
+  include:
+    - os: linux
+      env: LFTP_SUPPORT=1
+      addons:
+        apt:
+          packages:
+            - lftp
+    - os: osx
+      env: LFTP_SUPPORT=1
+      addons:
+        homebrew:
+          packages:
+            - lftp
 
 language: sh
 
@@ -17,7 +26,6 @@ install:
   - >
     if [ "$TRAVIS_OS_NAME" = "linux" ]; then
       ./tests/vsftpd-3.0.3.debian7 tests/vsftpd.conf &
-      if [ "$LFTP_SUPPORT" = "1" ]; then sudo apt-get install -y lftp; fi
     fi
   - >
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
