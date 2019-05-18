@@ -1432,8 +1432,8 @@ do
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
 				SCOPE="$2"
-				if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
-					print_error_and_die "Invalid scope name." "$ERROR_USAGE"
+				if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_/]*$' ; then
+					print_error_and_die "Invalid scope name. Only these characters are allowed: 0-9 a-z A-Z - _ /" "$ERROR_USAGE"
 				fi
 				shift
 			fi
@@ -1476,8 +1476,8 @@ do
 					fi
 					;;
 			esac
-			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
-				print_error_and_die "Invalid scope name." "$ERROR_USAGE"
+			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_/]*$' ; then
+				print_error_and_die "Invalid scope name '${SCOPE}'." "$ERROR_USAGE"
 			fi
 			write_log "Using scope $SCOPE if available"
 			;;
