@@ -668,7 +668,7 @@ set_deployed_sha1_failable() {
 
 set_deployed_sha1() {
 	set_deployed_sha1_failable
-	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
+	check_curl_exit_status $? "Could not get last commit. Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
 }
 
@@ -1438,9 +1438,8 @@ check_remote_access() {
 		curl "${CURL_ARGS[@]}" -Q "MKDIR $REMOTE_PATH" > /dev/null
 		EXIT_CODE=$?
 	fi
-	if [ $EXIT_CODE -ne 0 ]; then
-		print_error_and_die "Can't access remote '$REMOTE_BASE_URL_DISPLAY', exiting..." "$ERROR_UPLOAD"
-	fi
+
+	check_curl_exit_status "$EXIT_CODE" "" "$ERROR_UPLOAD"
 }
 
 check_deployed_sha1() {
