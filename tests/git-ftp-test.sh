@@ -379,11 +379,11 @@ test_scopes() {
 test_invalid_scope_name() {
 	out=$($GIT_FTP_CMD init -s invalid:scope 2>&1)
 	assertEquals 2 $?
-	assertEquals 'fatal: Invalid scope name.' "$out"
+	assertEquals "fatal: Invalid scope name 'invalid:scope'." "$out"
 
 	out=$($GIT_FTP_CMD add-scope invalid:scope 2>&1)
 	assertEquals 2 $?
-	assertEquals 'fatal: Invalid scope name.' "$out"
+	assertEquals 'fatal: Invalid scope name. Only these characters are allowed: 0-9 a-z A-Z - _ /' "$out"
 }
 
 test_scopes_using_branchname_as_scope() {
@@ -392,6 +392,21 @@ test_scopes_using_branchname_as_scope() {
 	git config git-ftp.production.password $GIT_FTP_PASSWD
 	git config git-ftp.production.url $GIT_FTP_URL
 	git checkout -b production > /dev/null 2>&1
+
+	init=$($GIT_FTP_CMD init -s)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
+test_scopes_using_nested_branchname() {
+	add=$($GIT_FTP_CMD add-scope nested/branch ftp://localhost/ 2>&1)
+	assertEquals 0 $?
+
+	cd $GIT_PROJECT_PATH
+	git config git-ftp.nested/branch.user $GIT_FTP_USER
+	git config git-ftp.nested/branch.password $GIT_FTP_PASSWD
+	git config git-ftp.nested/branch.url $GIT_FTP_URL
+	git checkout -b nested/branch > /dev/null 2>&1
 
 	init=$($GIT_FTP_CMD init -s)
 	rtrn=$?
