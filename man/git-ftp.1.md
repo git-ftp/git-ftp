@@ -565,6 +565,13 @@ to authenticate.
 	login john
 	password SECRET
 
+With git-ftp the credentials stored in this file are used if no username is set.
+For example, if you set up your .netrc file like this you can just call
+
+	git ftp init ftp.example.com
+
+Of course this can be combined with the [defaults feature](#defaults) to set config defaults for other options as well.
+
 # EXIT CODES
 
 There are a bunch of different error codes and their corresponding error
