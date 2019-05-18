@@ -87,7 +87,7 @@ different and handles only those files. That saves time and bandwidth.
 :	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
-:	FTP password. See `-P` for interactive password prompt.
+:	FTP password. See `-P` for interactive password prompt. ([note](#passwords))
 
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
@@ -300,6 +300,8 @@ Everyone likes examples:
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 	$ git ftp push
+
+If you run into issues with setting up your password please check this [note](#passwords).
 
 # SCOPES
 
@@ -559,7 +561,19 @@ hook. This hook is **not** bypassed by the --no-verify option.
 It is meant primarily for notification and its exit status does not have any
 effect.
 
-# NETRC
+# PASSWORDS
+
+If your password contains special characters you have to take it with care. In most cases it is a good idea to quote passwords with single quotes:
+
+	--passwd '#my$fancy!secret'
+
+Mostly `--ask-passwd` works even if `--passwd` does not work. So maybe you can give this a try.
+
+Quoting also works if setting the [default](#defaults) with `git config`:
+
+	$ git config git-ftp.password '#my$fancy!secret'
+
+## NETRC
 
 In the backend, Git-ftp uses curl.
 This means `~/.netrc` could be used beside the other options of Git-ftp
