@@ -60,7 +60,7 @@ CURL_PROTOCOL=""
 CURL_INSECURE="0"
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
-CURL_DISABLE_EPSV=0
+CURL_DISABLE_EPSV="0"
 CURL_PROXY=""
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
@@ -391,7 +391,7 @@ set_default_curl_options() {
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		CURL_ARGS+=(-P "-")
 	else
-		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
+		if [ "$CURL_DISABLE_EPSV" != "0" ]; then
 			CURL_ARGS+=(--disable-epsv)
 		fi
 	fi
@@ -829,7 +829,7 @@ set_submodule_args() {
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		args+=(--active)
 	else
-		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
+		if [ "$CURL_DISABLE_EPSV" != "0" ]; then
 			args+=(--disable-epsv)
 		fi
 	fi
@@ -1040,6 +1040,9 @@ set_remotes() {
 
 	set_curl_insecure
 	write_log "Insecure is '$CURL_INSECURE'."
+	
+	set_curl_disable_epsv
+	[ "$CURL_DISABLE_EPSV" != "0" ] && write_log "Disable EPSV is '$CURL_DISABLE_EPSV'."
 
 	set_curl_proxy
 	write_log "Proxy is '$CURL_PROXY'."
@@ -1076,6 +1079,11 @@ urlencode() {
 set_curl_insecure() {
 	local config="$(get_config insecure)"
 	[ -n "$config" ] && CURL_INSECURE="$config"
+}
+
+set_curl_disable_epsv() {
+	local config="$(get_config disable-epsv)"
+	[ -n "$config" ] && CURL_DISABLE_EPSV="$config"
 }
 
 set_curl_proxy() {
