@@ -246,6 +246,20 @@ is_submodule() {
 	echo "${GIT_SUBMODULES[@]}" | grep -Fxq -- "$1"
 }
 
+boolean() {
+	case "$1" in
+		"true")
+			echo "1"
+			;;
+		"false")
+			echo "0"
+			;;
+		*)
+			echo $1
+			;;
+	esac
+}
+
 ask_for_passwd() {
 	echo -n "Password: "
 	stty -echo > /dev/null 2>&1
@@ -1078,12 +1092,12 @@ urlencode() {
 
 set_curl_insecure() {
 	local config="$(get_config insecure)"
-	[ -n "$config" ] && CURL_INSECURE="$config"
+	[ -n "$config" ] && CURL_INSECURE="$(boolean $config)"
 }
 
 set_curl_disable_epsv() {
 	local config="$(get_config disable-epsv)"
-	[ -n "$config" ] && CURL_DISABLE_EPSV="$config"
+	[ -n "$config" ] && CURL_DISABLE_EPSV="$(boolean $config)"
 }
 
 set_curl_proxy() {
