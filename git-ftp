@@ -282,11 +282,14 @@ get_keychain_password () {
 		fi
 
 		[ -z "$KEYCHAIN_USER" ] && print_error_and_die "Missing keychain account." "$ERROR_MISSING_ARGUMENTS"
-		CURL_ARGS=(-a "$KEYCHAIN_USER")
-		[ -n "$KEYCHAIN_HOST" ] && CURL_ARGS+=(-s "$KEYCHAIN_HOST")
+		
+		local KEYCHAIN_ARGS=(-a "$KEYCHAIN_USER")
+		[ -n "$KEYCHAIN_HOST" ] && KEYCHAIN_ARGS+=(-s "$KEYCHAIN_HOST")
+
+		write_log "Read password from keychain."
 
 		local pass
-		if pass="$(security find-internet-password "${CURL_ARGS[@]}" -g 2>&1 > /dev/null)"; then
+		if pass="$(security find-internet-password "${KEYCHAIN_ARGS[@]}" -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
