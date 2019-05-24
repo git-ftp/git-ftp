@@ -1202,6 +1202,25 @@ test_insecure_options() {
 	assertEquals 0 $?
 }
 
+test_insecure_submodule() {
+	submodule='sub'
+	file='file.txt'
+	mkdir "$submodule"
+	cd "$submodule"
+	touch "$file"
+	git init -q
+	git add .
+	git commit -m 'initial submodule commit' -q
+	cd ..
+	git submodule -q add "/$submodule" > /dev/null
+	git commit -m 'adding submodule' -q
+	out="$($GIT_FTP init --insecure -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '1'"
+	assertEquals 0 $?
+	count=$(echo "$out" | grep --count "Insecure is '1'")
+	assertEquals 2 $count
+}
+
 test_post_push_arguments_first() {
 	hook=".git/hooks/post-ftp-push"
 	echo 'echo "arguments: $1 $2 $3 $4"' > "$hook"
