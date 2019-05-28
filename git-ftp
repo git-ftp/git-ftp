@@ -469,7 +469,6 @@ upload_file() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." "$ERROR_UPLOAD"
 }
 
 upload_file_buffered() {
@@ -544,7 +543,7 @@ upload_local_sha1() {
 	write_log "Uploading commit log to $REMOTE_BASE_URL_DISPLAY/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$LOCAL_SHA1" | upload_file - "$DEPLOYED_SHA1_FILE"
-		check_exit_status "Could not upload." "$ERROR_UPLOAD"
+		check_curl_exit_status $? "Could not upload." "$ERROR_UPLOAD"
 	fi
 	print_info "Last deployment changed from $DEPLOYED_SHA1 to $LOCAL_SHA1.";
 	PREV_DEPLOYED_SHA1="$DEPLOYED_SHA1"

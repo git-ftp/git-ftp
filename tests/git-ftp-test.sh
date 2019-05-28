@@ -343,6 +343,17 @@ test_push_unknown_commit_say_yes() {
 	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
 }
 
+test_catchup_invalid_credentials() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init -n
+	push=$($GIT_FTP push)
+	init="$($GIT_FTP_CMD catchup -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal: Could not upload. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals 4 $rtrn
+}
+
 test_defaults() {
 	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
