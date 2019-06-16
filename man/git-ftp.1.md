@@ -2,6 +2,10 @@
 %
 % 2019-05-06
 
+This is the manual for version 1.6.0-UNRELEASED.
+Please consider the [changelog](../CHANGELOG.md) or select your version from
+the _Branch > Tags_ select above to see the manual for another version.
+
 # NAME
 
 Git-ftp - Git powered FTP client written as shell script.

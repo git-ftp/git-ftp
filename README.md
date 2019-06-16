@@ -42,6 +42,7 @@ Further Reading
 
 * Read the [manual](man/git-ftp.1.md) for more options, features and examples.
 * See the [installation instructions](INSTALL.md) for your system.
+* Ceckout the [changelog](CHANGELOG.md).
 * Check [git-ftp issues on GitHub] for open issues.
 * Follow this project on twitter [@gitftp].
 
