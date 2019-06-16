@@ -62,6 +62,8 @@ CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
 CURL_DISABLE_EPSV="0"
 CURL_PROXY=""
+LFTP_PROTOCOL=""
+LFTP_COMMAND_SETTINGS=""
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
@@ -896,6 +898,20 @@ handle_remote_protocol_options() {
 	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS+=("-k")
 }
 
+handle_lftp_settings() {
+	LFTP_PROTOCOL="$REMOTE_PROTOCOL"
+	# Options for lftp if using FTPES
+	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
+		LFTP_PROTOCOL="ftp"
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-force true && "
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-protect-data true && "
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-protect-list true && "
+	fi
+
+	[ "$CURL_INSECURE" != "0" ] && LFTP_COMMAND_SETTINGS+="set ssl:verify-certificate no && "
+	LFTP_COMMAND_SETTINGS+="set ftp:list-options -a &&"
+}
+
 init_new_repository() {
 	[ -z "$URL" ] && print_error_and_die "Error: give a URL to snapshot." "$ERROR_USAGE"
 
@@ -1133,12 +1149,19 @@ download_remote_updates () {
 
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n')"
+		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n') "
 	fi
-	ignore+=" --exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
+	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
-	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
-	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}" 2>&1)"
+	handle_lftp_settings
+	
+	local lftp_cd=""
+	[ -n $REMOTE_PATH ] && lftp_cd="cd ${REMOTE_PATH} &&"
+	local lftp_action="mirror $mirror_options $delete $ignoreall $include $ignore . $SYNCROOT &&"
+	local lftp_exit="wait all && exit"
+	
+	lftp_command="$LFTP_COMMAND_SETTINGS $lftp_cd $lftp_action $lftp_exit"
+	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${LFTP_PROTOCOL}://${REMOTE_HOST}/" 2>&1)"
 	print_info "$out"
 }
 

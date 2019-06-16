@@ -9,6 +9,8 @@ Version 1.6.0-UNRELEASED
 * Pass ssh-keys to submodules if used
 * Add support for config `disable-epsv`
 * Allow `true` and `false` for boolean configurations (`insecure`, `disable-epsv`)
+* Add support for option `--insecure` for LFTP actions (download and pull)
+* Add support for FTPES for LFTP actions (download and pull)
 
 Version 1.5.2
 =============

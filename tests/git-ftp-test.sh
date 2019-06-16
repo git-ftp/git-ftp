@@ -890,6 +890,21 @@ test_download() {
 	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
 }
 
+test_download_insecure() {
+	skip_without lftp
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	$CURL -T external.txt $CURL_URL/ 2> /dev/null
+	rtrn=$?
+	assertEquals 0 $rtrn
+	rm external.txt
+	$GIT_FTP download --insecure  > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+}
+
 test_download_untracked() {
 	skip_without lftp
 	cd $GIT_PROJECT_PATH
