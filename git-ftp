@@ -818,8 +818,10 @@ submodule_catchup() {
 }
 
 set_submodule_args() {
-	# Duplicate the current required parameters
-	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
+	args=(--user "$REMOTE_USER")
+	[ -n "$REMOTE_PASSWD" ] && args+=(--passwd "$REMOTE_PASSWD")
+	[ -n "$CURL_PRIVATE_KEY" ] && args+=(--key "$CURL_PRIVATE_KEY")
+	[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
 
 	# Do not ask any questions for submodules
 	args+=(--force)
@@ -832,6 +834,7 @@ set_submodule_args() {
 		fi
 	fi
 
+	[ $CURL_INSECURE -eq 1 ] && args+=(--insecure)
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
