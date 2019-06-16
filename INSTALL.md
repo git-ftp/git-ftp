@@ -69,7 +69,7 @@ apt-get update
 See https://aur.archlinux.org/packages/?O=0&C=0&SeB=nd&K=git-ftp&SB=v&SO=d&PP=50&do_Search=Go
 
 
-## MacOS
+## macOS
 
 First, ensure you have installed Xcode and command line tools. Command line tools can be download at https://developer.apple.com/download/more/ or via command: 
 
@@ -81,10 +81,35 @@ Using homebrew:
 
 ```sh
 brew install git
-brew install curl --with-libssh2
 brew install brotli
 brew install git-ftp
 ```
+
+### SFTP on macOS
+
+The default version of curl coming with macOS does not support SFTP (`Protocol sftp not supported or disabled in libcurl`).
+So if you require SFTP support you can compile curl with SFTP support on your own.
+First download a [curl source package](http://curl.haxx.se/download.html) from the website and unpack the archive.
+Then you can start installing some dependencies and finally building curl:
+
+```sh
+cd /your/unpacked/archive
+
+brew install openssl
+brew install libssh2
+
+./configure -q --with-libssh2 --with-ssl=/usr/local/opt/openssl
+make
+make install
+```
+
+To check the result you can run `curl --version`. This will give you some information about curl including a list of supported protocols.
+In this list, `ftp`, `ftps`, `http`, `https` and of course `sftp` should be present.
+
+It might happen that the default curl is still executed, because it is taking precedence over your custom build in `/usr/local/bin`.
+You can fix this by adding `export PATH=/usr/local/bin:$PATH` to your `~/.bash_profile`.
+
+_Thanks to Andrew Berls for the [original post](http://andrewberls.com/blog/post/adding-sftp-support-to-curl) on this._
 
 ## Windows
 

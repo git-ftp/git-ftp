@@ -2,6 +2,10 @@
 %
 % 2019-05-06
 
+This is the manual for version 1.6.0-UNRELEASED.
+Please consider the [changelog](../CHANGELOG.md) or select your version from
+the _Branch > Tags_ select above to see the manual for another version.
+
 # NAME
 
 Git-ftp - Git powered FTP client written as shell script.
@@ -564,6 +568,13 @@ to authenticate.
 	machine ftp.example.com
 	login john
 	password SECRET
+
+With git-ftp the credentials stored in this file are used if no username is set.
+For example, if you set up your .netrc file like this you can just call
+
+	git ftp init ftp.example.com
+
+Of course this can be combined with the [defaults feature](#defaults) to set config defaults for other options as well.
 
 # EXIT CODES
 
