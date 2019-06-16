@@ -1640,7 +1640,7 @@ do
 						REMOTE_PASSWD="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -p." "$ERROR_MISSING_ARGUMENTS"
+						print_error_and_die "Too few arguments for option -p. Maybe the manual will help: https://github.com/git-ftp/git-ftp/blob/master/man/git-ftp.1.md#passwords" "$ERROR_MISSING_ARGUMENTS"
 					fi
 					;;
 			esac

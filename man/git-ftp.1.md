@@ -569,7 +569,11 @@ If your password contains special characters you have to take it with care. In m
 
 Mostly `--ask-passwd` works even if `--passwd` does not work. So maybe you can give this a try.
 
-Quoting also works if setting the [default](#defaults) with `git config`:
+If your password starts with a hyphen/dash (`-`) even quoting might fail.
+This is [by design](https://github.com/git-ftp/git-ftp/issues/468) and will not be fixed.
+In this case you can use one of the other options to set your password: the defaults feature using `git config`, `--ask-passwd` or `~/.netrc`.
+
+Quoting also works if a [default](#defaults) is set with `git config`:
 
 	$ git config git-ftp.password '#my$fancy!secret'
 
