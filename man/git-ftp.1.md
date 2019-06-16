@@ -291,6 +291,7 @@ Everyone likes examples:
 	$ git config git-ftp.key ~/.ssh/id_rsa
 	$ git config git-ftp.keychain user@example.com
 	$ git config git-ftp.remote-root htdocs
+	$ git config git-ftp.disable-epsv 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
