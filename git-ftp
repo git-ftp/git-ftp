@@ -820,10 +820,8 @@ submodule_catchup() {
 set_submodule_args() {
 	args=(--user "$REMOTE_USER")
 	[ -n "$REMOTE_PASSWD" ] && args+=(--passwd "$REMOTE_PASSWD")
-	if [ "$REMOTE_PROTOCOL" = "sftp" ] && [ -n "$CURL_PRIVATE_KEY" ]; then
-		args+=(--key "$CURL_PRIVATE_KEY")
-		[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
-	fi
+	[ -n "$CURL_PRIVATE_KEY" ] && args+=(--key "$CURL_PRIVATE_KEY")
+	[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
 
 	# Do not ask any questions for submodules
 	args+=(--force)
