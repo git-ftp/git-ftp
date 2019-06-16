@@ -6,6 +6,8 @@ Version 1.6.0-UNRELEASED
 * Fix submodule handling
 * Pass insecure-flag to submodules
 * Pass ssh-keys to submodules if used
+* Add support for config `disable-epsv`
+* Allow `true` and `false` for boolean configurations (`insecure`, `disable-epsv`)
 
 Version 1.5.2
 =============
