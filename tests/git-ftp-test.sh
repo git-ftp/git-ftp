@@ -116,7 +116,7 @@ test_prints_version() {
 
 test_unknown_protocol() {
 	output="$($GIT_FTP_CMD init badProtocol://localhost/ 2>&1)"
-	assertEquals 6 $?
+	assertEquals $ERROR_UNKNOWN_PROTOCOL $?
 	assertEquals "fatal: Protocol unknown 'badProtocol://'." "$output"
 }
 
@@ -156,7 +156,7 @@ test_init_invalid_password() {
 	init="$($GIT_FTP_CMD init -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
 	rtrn=$?
 	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
-	assertEquals 4 $rtrn
+	assertEquals $ERROR_UPLOAD $rtrn
 }
 
 test_init_invalid_user() {
@@ -164,7 +164,7 @@ test_init_invalid_user() {
 	init="$($GIT_FTP_CMD init -u invalidUser -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
 	rtrn=$?
 	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
-	assertEquals 4 $rtrn
+	assertEquals $ERROR_UPLOAD $rtrn
 }
 
 test_inits_and_pushes() {
@@ -177,7 +177,7 @@ test_inits_and_pushes() {
 	# this should fail
 	init2=$($GIT_FTP init 2>&1)
 	rtrn=$?
-	assertEquals 2 $rtrn
+	assertEquals $ERROR_USAGE $rtrn
 	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
 
 	# make some changes
@@ -196,7 +196,7 @@ test_auto_init() {
 	assertTrue ' upload "test 1.txt"' "remote_file_equals 'test 1.txt'"
 
 	init2="$($GIT_FTP init 2>&1)"
-	assertEquals 2 $?
+	assertEquals $ERROR_USAGE $?
 	assertEquals "fatal: Commit found, use 'git ftp push' to sync. Exiting..." "$init2"
 
 	# make some changes
@@ -212,7 +212,7 @@ test_pushes_and_fails() {
 	push="$($GIT_FTP push 2>&1)"
 	rtrn=$?
 	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Access to resource denied. This usually means that the file or directory does not exist. Wrong path? exiting..." "$push"
-	assertEquals 5 $rtrn
+	assertEquals $ERROR_DOWNLOAD $rtrn
 }
 
 test_push_invalid_password() {
@@ -222,7 +222,7 @@ test_push_invalid_password() {
 	init="$($GIT_FTP_CMD push -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
 	rtrn=$?
 	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
-	assertEquals 5 $rtrn
+	assertEquals $ERROR_DOWNLOAD $rtrn
 }
 
 test_push_invalid_user() {
@@ -231,7 +231,7 @@ test_push_invalid_user() {
 	init="$($GIT_FTP_CMD push -u invalidUser -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
 	rtrn=$?
 	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
-	assertEquals 5 $rtrn
+	assertEquals $ERROR_DOWNLOAD $rtrn
 }
 
 test_push_nothing() {
@@ -299,7 +299,7 @@ test_push_unknown_commit_say_nothing() {
 	git commit -a -m "change" > /dev/null 2>&1
 
 	push="$(echo '' | $GIT_FTP push)"
-	assertEquals 2 $?
+	assertEquals $ERROR_USAGE $?
 	assertContains 'Unknown SHA1 object' "$push"
 	assertContains 'Do you want to ignore' "$push"
 	assertFalse ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
@@ -346,7 +346,7 @@ test_catchup_invalid_credentials() {
 	init="$($GIT_FTP_CMD catchup -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
 	rtrn=$?
 	assertEquals "fatal: Could not upload. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
-	assertEquals 4 $rtrn
+	assertEquals $ERROR_UPLOAD $rtrn
 }
 
 test_defaults() {
@@ -414,11 +414,11 @@ test_scopes() {
 
 test_invalid_scope_name() {
 	out=$($GIT_FTP_CMD init -s invalid:scope 2>&1)
-	assertEquals 2 $?
+	assertEquals $ERROR_USAGE $?
 	assertEquals "fatal: Invalid scope name 'invalid:scope'." "$out"
 
 	out=$($GIT_FTP_CMD add-scope invalid:scope 2>&1)
-	assertEquals 2 $?
+	assertEquals $ERROR_USAGE $?
 	assertEquals 'fatal: Invalid scope name. Only these characters are allowed: 0-9 a-z A-Z - _ /' "$out"
 }
 
@@ -456,7 +456,7 @@ test_overwrite_defaults_by_scopes_emtpy_string() {
 
 	init=$($GIT_FTP_CMD init -s testing 2>/dev/null)
 	rtrn=$?
-	assertEquals 3 $rtrn
+	assertEquals $ERROR_MISSING_ARGUMENTS $rtrn
 }
 
 test_scopes_uses_password_by_cli() {
@@ -926,7 +926,7 @@ test_download_untracked() {
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	touch 'untracked.file'
 	$GIT_FTP download > /dev/null 2>&1
-	assertEquals 8 $?
+	assertEquals $ERROR_GIT $?
 	assertFalse ' external file downloaded' "[ -f 'external.txt' ]"
 	assertTrue ' untracked file deleted' "[ -r 'untracked.file' ]"
 }
@@ -1092,7 +1092,7 @@ test_snapshot_fail() {
 	skip_without lftp
 	$GIT_FTP init -n
 	$GIT_FTP snapshot -n
-	assertEquals 2 $?
+	assertEquals $ERROR_USAGE $?
 }
 
 test_snapshot() {
@@ -1199,12 +1199,12 @@ test_pre_push() {
 	git commit -a -m 'new content' -q
 	echo 'exit 1' > "$hook"
 	out="$($GIT_FTP push -n)"
-	assertEquals 9 "$?"
+	assertEquals $ERROR_HOOK $?
 	assertEquals "" "$out"
 
 	# ignore hook
 	out="$($GIT_FTP push -n --no-verify)"
-	assertEquals 0 "$?"
+	assertEquals 0 $?
 	assertEquals "" "$out"
 }
 
@@ -1339,7 +1339,7 @@ test_post_push_fail() {
 	chmod +x "$hook"
 	$GIT_FTP init -n --enable-post-errors
 	rtrn=$?
-	assertEquals 9 $rtrn
+	assertEquals $ERROR_HOOK $rtrn
 }
 
 disabled_test_file_named_dash() {
