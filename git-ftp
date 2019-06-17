@@ -83,6 +83,7 @@ declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
 declare -i INSECURE=0
 declare -i CURL_DISABLE_EPSV=0
+declare -i NO_COMMIT=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -1167,6 +1168,15 @@ set_curl_proxy() {
 	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
 }
 
+set_merge_args() {
+	local config="$(get_config no-commit)"
+	[ -n "$config" ] && NO_COMMIT=1
+	
+	if [ $NO_COMMIT -eq 1 ]; then
+		MERGE_ARGS="$MERGE_ARGS --no-commit --no-ff"
+	fi
+}
+
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
@@ -1387,6 +1397,7 @@ action_pull() {
 	check_curl_access
 	set_deployed_sha1
 	handle_fetch
+	set_merge_args
 	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
@@ -1768,8 +1779,8 @@ do
 			write_log "Using active mode."
 			;;
 		--no-commit)
-			MERGE_ARGS="$MERGE_ARGS --no-commit"
-			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
+			NO_COMMIT=1
+			write_log "Adding --no-commit to merge arguments"
 			;;
 		--changed-only)
 			DOWNLOAD_CHANGED_ONLY=1

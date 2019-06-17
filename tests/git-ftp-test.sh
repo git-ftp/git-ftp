@@ -1017,6 +1017,40 @@ test_pull_no_commit() {
 	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
 }
 
+test_pull_no_commit_config() {
+	git config git-ftp.no-commit true
+	skip_without lftp
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	$CURL -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	echo 'own content' > internal.txt
+	git add . > /dev/null 2>&1
+	git commit -a -m "local modification" > /dev/null 2>&1
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+	$GIT_FTP pull > /dev/null 2>&1
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
+}
+
+test_pull_no_commit_external_only() {
+	skip_without lftp
+	$GIT_FTP init > /dev/null
+	echo 'foreign content' > external.txt
+	$CURL -T external.txt $CURL_URL/ 2> /dev/null
+	rm external.txt
+	LOCAL_SHA1=$(git log -n 1 --pretty=format:%H)
+	out="$($GIT_FTP pull --no-commit 2>&1)"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue ' external file not downloaded' "[ -r 'external.txt' ]"
+	assertEquals $LOCAL_SHA1 $(git log -n 1 --pretty=format:%H)
+	echo "$out" | grep --quiet "Fast-forward"
+	assertEquals "Fast-forward commit was performed." 1 $?
+}
+
 test_pull_dry_run() {
 	skip_without lftp
 	$GIT_FTP init > /dev/null
