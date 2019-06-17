@@ -151,6 +151,22 @@ test_init_fails() {
 	#assertEquals 1 $error_count
 }
 
+test_init_invalid_password() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	init="$($GIT_FTP_CMD init -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals 4 $rtrn
+}
+
+test_init_invalid_user() {
+	REMOTE_BASE_URL_DISPLAY="ftp://invalidUser:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	init="$($GIT_FTP_CMD init -u invalidUser -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals 4 $rtrn
+}
+
 test_inits_and_pushes() {
 	cd $GIT_PROJECT_PATH
 
@@ -197,7 +213,26 @@ test_pushes_and_fails() {
 	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP push 2>&1)"
 	rtrn=$?
-	assertEquals "fatal: Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push., exiting..." "$push"
+	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Access to resource denied. This usually means that the file or directory does not exist. Wrong path? exiting..." "$push"
+	assertEquals 5 $rtrn
+}
+
+test_push_invalid_password() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	$GIT_FTP init -n
+	push=$($GIT_FTP push)
+	init="$($GIT_FTP_CMD push -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals 5 $rtrn
+}
+
+test_push_invalid_user() {
+	REMOTE_BASE_URL_DISPLAY="ftp://invalidUser:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	$GIT_FTP init -n
+	init="$($GIT_FTP_CMD push -u invalidUser -p $GIT_FTP_PASSWD $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
 	assertEquals 5 $rtrn
 }
 
@@ -306,6 +341,17 @@ test_push_unknown_commit_say_yes() {
 	assertContains 'Unknown SHA1 object' "$push"
 	assertContains 'Do you want to ignore' "$push"
 	assertTrue ' test 1.txt uploaded' "remote_file_equals 'test 1.txt'"
+}
+
+test_catchup_invalid_credentials() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	cd $GIT_PROJECT_PATH
+	$GIT_FTP init -n
+	push=$($GIT_FTP push)
+	init="$($GIT_FTP_CMD catchup -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
+	rtrn=$?
+	assertEquals "fatal: Could not upload. Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals 4 $rtrn
 }
 
 test_defaults() {

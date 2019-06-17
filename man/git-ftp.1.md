@@ -87,13 +87,13 @@ different and handles only those files. That saves time and bandwidth.
 :	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
-:	FTP password. See `-P` for interactive password prompt.
+:	FTP password. See `-P` for interactive password prompt. ([note](#passwords))
 
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
 
-`-k [[user]@[account]]`, `--keychain [[user]@[account]]`
-:	FTP password from KeyChain (Mac OS X only).
+`-k [[account]@[host]]`, `--keychain [[account]@[host]]`
+:	FTP password from KeyChain (macOS only).
 
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
@@ -300,6 +300,8 @@ Everyone likes examples:
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 	$ git ftp push
+
+If you run into issues with setting up your password please check this [note](#passwords).
 
 # SCOPES
 
@@ -559,7 +561,23 @@ hook. This hook is **not** bypassed by the --no-verify option.
 It is meant primarily for notification and its exit status does not have any
 effect.
 
-# NETRC
+# PASSWORDS
+
+If your password contains special characters you have to take it with care. In most cases it is a good idea to quote passwords with single quotes:
+
+	--passwd '#my$fancy!secret'
+
+Mostly `--ask-passwd` works even if `--passwd` does not work. So maybe you can give this a try.
+
+If your password starts with a hyphen/dash (`-`) even quoting might fail.
+This is [by design](https://github.com/git-ftp/git-ftp/issues/468) and will not be fixed.
+In this case you can use one of the other options to set your password: the defaults feature using `git config`, `--ask-passwd` or `~/.netrc`.
+
+Quoting also works if a [default](#defaults) is set with `git config`:
+
+	$ git config git-ftp.password '#my$fancy!secret'
+
+## NETRC
 
 In the backend, Git-ftp uses curl.
 This means `~/.netrc` could be used beside the other options of Git-ftp
@@ -576,6 +594,43 @@ For example, if you set up your .netrc file like this you can just call
 	git ftp init ftp.example.com
 
 Of course this can be combined with the [defaults feature](#defaults) to set config defaults for other options as well.
+
+## Keychain on macOS
+
+On macOS you can use the built in keychain to store and get your passwords.
+
+You can use this feature by using the option `--keychain` in your command:
+
+	$ git ftp init --keychain account@host ftpes://host
+
+You can omit the value for this option. Then git-ftp will guess the account and hostname from user and url.
+
+Or you can set a config for this, so you don’t need to repeat yourself (see [defaults](#defaults) for details):
+
+	$ git config git-ftp.keychain account@host
+
+You can omit the hostname here. If there is no `@` in the config value git-ftp will guess the hostname from url.
+
+If you run a command using the keychain feature, the system might ask you if git-ftp is allowed to access the keychain entry.
+If the keychain is locked you have to enter the keychain password (not the value of the entry), sometimes twice.
+
+If your password is not in your keychain yet it is recommended adding it using the following command:
+
+	$ security add-internet-password -a account -r "ftp " -s host -w secr3t
+
+The options are:
+- `-a`: user account
+- `-r`: protocol; has to be exactly 4 characters long, so if you use `FTP` it should be `"ftp "`, for `FTPS` and `FTPES` use `ftps`
+  and for SSH with password auth you can use `"ftp "` as well.
+- `-s`: your host name; includes subdomains but no paths
+- `-w`: password
+
+You can omit the option `-r` and everything will work fine, but the _Keychain Access_ Utility will not show the server in the field “Where:”.
+This is only shown if `-r` and `-s` are set both. \
+If you create a keychain entry with the _Keychain Access_ Utility it creates a generic password and not an internet password.
+Therefore, unfortunately, this will not work.
+
+Please not that the keychain entry can not be used for password protected private keys in SSH.
 
 # EXIT CODES
 
