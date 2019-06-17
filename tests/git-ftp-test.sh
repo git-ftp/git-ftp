@@ -168,7 +168,6 @@ test_init_invalid_user() {
 }
 
 test_inits_and_pushes() {
-	cd $GIT_PROJECT_PATH
 
 	# this should pass
 	init=$($GIT_FTP init)
@@ -210,7 +209,6 @@ test_auto_init() {
 }
 
 test_pushes_and_fails() {
-	cd $GIT_PROJECT_PATH
 	push="$($GIT_FTP push 2>&1)"
 	rtrn=$?
 	assertEquals "fatal: Could not get last commit. Use 'git ftp init' for the initial push. Access to resource denied. This usually means that the file or directory does not exist. Wrong path? exiting..." "$push"
@@ -252,7 +250,6 @@ test_push_nothing() {
 }
 
 test_push_added() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	# add a file
 	file='newfile.txt'
@@ -265,7 +262,6 @@ test_push_added() {
 }
 
 test_push_twice() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	# make some changes
 	echo "1" >> "./test 1.txt"
@@ -345,7 +341,6 @@ test_push_unknown_commit_say_yes() {
 
 test_catchup_invalid_credentials() {
 	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init -n
 	push=$($GIT_FTP push)
 	init="$($GIT_FTP_CMD catchup -u $GIT_FTP_USER -p wrongPassword $GIT_FTP_URL 2>&1)"
@@ -355,7 +350,6 @@ test_catchup_invalid_credentials() {
 }
 
 test_defaults() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password $GIT_FTP_PASSWD
 	git config git-ftp.url $GIT_FTP_URL
@@ -366,7 +360,6 @@ test_defaults() {
 }
 
 test_defaults_uses_url_by_cli() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password $GIT_FTP_PASSWD
 	git config git-ftp.url notexisits
@@ -378,7 +371,6 @@ test_defaults_uses_url_by_cli() {
 
 test_defaults_uses_user_by_cli() {
 	[ -z "$GIT_FTP_USER" ] && startSkipping
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user johndoe
 	git config git-ftp.password $GIT_FTP_PASSWD
 	git config git-ftp.url $GIT_FTP_URL
@@ -390,7 +382,6 @@ test_defaults_uses_user_by_cli() {
 
 test_defaults_uses_password_by_cli() {
 	[ -z "$GIT_FTP_PASSWD" ] && startSkipping
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password wrongpasswd
 	git config git-ftp.url $GIT_FTP_URL
@@ -410,7 +401,6 @@ test_deployedsha1file_rename() {
 }
 
 test_scopes() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password wrongpasswd
 	git config git-ftp.url $GIT_FTP_URL
@@ -433,7 +423,6 @@ test_invalid_scope_name() {
 }
 
 test_scopes_using_branchname_as_scope() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.production.user $GIT_FTP_USER
 	git config git-ftp.production.password $GIT_FTP_PASSWD
 	git config git-ftp.production.url $GIT_FTP_URL
@@ -448,7 +437,6 @@ test_scopes_using_nested_branchname() {
 	add=$($GIT_FTP_CMD add-scope nested/branch ftp://localhost/ 2>&1)
 	assertEquals 0 $?
 
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.nested/branch.user $GIT_FTP_USER
 	git config git-ftp.nested/branch.password $GIT_FTP_PASSWD
 	git config git-ftp.nested/branch.url $GIT_FTP_URL
@@ -460,7 +448,6 @@ test_scopes_using_nested_branchname() {
 }
 
 test_overwrite_defaults_by_scopes_emtpy_string() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password $GIT_FTP_PASSWD
 	git config git-ftp.url $GIT_FTP_URL
@@ -473,7 +460,6 @@ test_overwrite_defaults_by_scopes_emtpy_string() {
 }
 
 test_scopes_uses_password_by_cli() {
-	cd $GIT_PROJECT_PATH
 	git config git-ftp.user $GIT_FTP_USER
 	git config git-ftp.password wrongpasswd
 	git config git-ftp.url $GIT_FTP_URL
@@ -495,7 +481,6 @@ test_scopes_add() {
 }
 
 test_delete() {
-	cd $GIT_PROJECT_PATH
 
 	init=$($GIT_FTP init)
 
@@ -522,7 +507,6 @@ test_delete() {
 }
 
 test_ignore_single_file() {
-	cd $GIT_PROJECT_PATH
 	echo "test 1.txt" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
@@ -543,7 +527,6 @@ test_ignore_single_file_force_unknown_commit() {
 }
 
 test_ignore_dir() {
-	cd $GIT_PROJECT_PATH
 	echo "dir 1/*" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
@@ -553,7 +536,6 @@ test_ignore_dir() {
 }
 
 test_ignore_pattern() {
-	cd $GIT_PROJECT_PATH
 	echo "test*" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
@@ -565,7 +547,6 @@ test_ignore_pattern() {
 }
 
 test_ignore_pattern_single() {
-	cd $GIT_PROJECT_PATH
 	echo 'test' > 'test'
 	echo 'test' > .git-ftp-ignore
 	git add .
@@ -581,7 +562,6 @@ test_ignore_pattern_single() {
 }
 
 test_ignore_wildcard_files() {
-	cd $GIT_PROJECT_PATH
 	echo "test *.txt" > .git-ftp-ignore
 
 	init=$($GIT_FTP init)
@@ -641,7 +621,6 @@ test_include_directory_always() {
 }
 
 test_include_whitespace_init() {
-	cd $GIT_PROJECT_PATH
 	echo 'unversioned' > unversioned.txt
 	echo 'unversioned.txt' >> .gitignore
 	echo 'unversioned.txt:test X.txt' > .git-ftp-include
@@ -652,7 +631,6 @@ test_include_whitespace_init() {
 }
 
 test_include_push() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	echo 'unversioned' > unversioned.txt
 	echo 'unversioned.txt' >> .gitignore
@@ -685,7 +663,6 @@ test_include_push_delete() {
 }
 
 test_include_ignore_init() {
-	cd $GIT_PROJECT_PATH
 	echo 'htaccess' > .htaccess
 	echo 'htaccess.prod' > .htaccess.prod
 	echo '.htaccess:.htaccess.prod' > .git-ftp-include
@@ -698,7 +675,6 @@ test_include_ignore_init() {
 }
 
 test_include_ignore_push() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	echo 'htaccess' > .htaccess
 	echo 'htaccess.prod' > .htaccess.prod
@@ -722,7 +698,6 @@ test_include_ignore_all_push() {
 }
 
 test_include_ftp_ignore_init() {
-	cd $GIT_PROJECT_PATH
 	echo 'htaccess' > .htaccess
 	echo 'htaccess.prod' > .htaccess.prod
 	echo '.htaccess:.htaccess.prod' > .git-ftp-include
@@ -735,7 +710,6 @@ test_include_ftp_ignore_init() {
 }
 
 test_include_ftp_ignore_push() {
-	cd $GIT_PROJECT_PATH
 	init=$($GIT_FTP init)
 	echo 'htaccess' > .htaccess
 	echo 'htaccess.prod' > .htaccess.prod
@@ -775,7 +749,6 @@ test_include_syncroot_push() {
 
 # addresses issue #41
 test_include_similar() {
-	cd $GIT_PROJECT_PATH
 	echo 'unversioned' > foo.html
 	echo '/foo.html' >> .gitignore
 	echo 'foo.html:templates/foo.html' > .git-ftp-include
@@ -833,7 +806,6 @@ test_include_syncroot() {
 }
 
 test_hidden_file_only() {
-	cd $GIT_PROJECT_PATH
 	echo "test" > .htaccess
 	git add . > /dev/null 2>&1
 	git commit -a -m "init" > /dev/null 2>&1
@@ -902,7 +874,6 @@ test_file_with_dash() {
 }
 
 test_syncroot() {
-	cd $GIT_PROJECT_PATH
 	syncroot='foo bar'
 	mkdir "$syncroot" && echo "test" > "$syncroot/syncroot.txt"
 	git add . > /dev/null 2>&1
@@ -923,7 +894,6 @@ test_syncroot_config() {
 
 test_download() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' > external.txt
 	$CURL -T external.txt $CURL_URL/ 2> /dev/null
@@ -938,7 +908,6 @@ test_download() {
 
 test_download_insecure() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' > external.txt
 	$CURL -T external.txt $CURL_URL/ 2> /dev/null
@@ -953,7 +922,6 @@ test_download_insecure() {
 
 test_download_untracked() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	touch 'untracked.file'
@@ -965,7 +933,6 @@ test_download_untracked() {
 
 test_download_syncroot() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	mkdir foobar && echo "test" > foobar/syncroot.txt
 	git add . > /dev/null 2>&1
 	git commit -a -m "syncroot test" > /dev/null 2>&1
@@ -982,7 +949,6 @@ test_download_syncroot() {
 
 test_download_dry_run() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	$GIT_FTP download --dry-run > /dev/null 2>&1
@@ -992,7 +958,6 @@ test_download_dry_run() {
 
 test_pull() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' > external.txt
 	$CURL -T external.txt $CURL_URL/ 2> /dev/null
@@ -1009,7 +974,6 @@ test_pull() {
 
 test_pull_nothing() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	$GIT_FTP pull > /dev/null 2>&1
 	assertEquals 0 $?
@@ -1017,7 +981,6 @@ test_pull_nothing() {
 
 test_pull_branch() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' > external.txt
 	$CURL -T external.txt $CURL_URL/ 2> /dev/null
@@ -1039,7 +1002,6 @@ test_pull_branch() {
 
 test_pull_no_commit() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' > external.txt
 	$CURL -T external.txt $CURL_URL/ 2> /dev/null
@@ -1057,7 +1019,6 @@ test_pull_no_commit() {
 
 test_pull_dry_run() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	echo 'own content' > internal.txt
@@ -1072,7 +1033,6 @@ test_pull_dry_run() {
 
 test_pull_untracked() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	echo 'own content' > internal.txt
@@ -1087,7 +1047,6 @@ test_pull_untracked() {
 
 test_pull_stash() {
 	skip_without lftp
-	cd $GIT_PROJECT_PATH
 	$GIT_FTP init > /dev/null
 	echo 'foreign content' | $CURL -T - $CURL_URL/external.txt 2> /dev/null
 	echo 'own content' > internal.txt
@@ -1384,7 +1343,6 @@ test_post_push_fail() {
 }
 
 disabled_test_file_named_dash() {
-	cd $GIT_PROJECT_PATH
 	echo "foobar" > -
 	assertTrue 'test failed: file named - not there as expected' "[ -f '$GIT_PROJECT_PATH/-' ]"
 	git add . > /dev/null 2>&1
