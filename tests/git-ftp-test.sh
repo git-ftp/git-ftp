@@ -1231,10 +1231,24 @@ test_insecure_from_config() {
 	assertEquals 0 $?
 }
 
+test_insecure_from_config_false() {
+	git config git-ftp.insecure 0
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '0'"
+	assertEquals 0 $?
+}
+
 test_insecure_from_config_boolean() {
 	git config git-ftp.insecure true
 	out="$($GIT_FTP init -v 2>/dev/null)"
 	echo "$out" | grep --quiet "Insecure is '1'"
+	assertEquals 0 $?
+}
+
+test_insecure_from_config_boolean_false() {
+	git config git-ftp.insecure false
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Insecure is '0'"
 	assertEquals 0 $?
 }
 
@@ -1276,11 +1290,25 @@ test_epsv_from_config() {
 	assertEquals 0 $?
 }
 
+test_epsv_from_config_false() {
+	git config git-ftp.disable-epsv 0
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Disable EPSV is '1'."
+	assertEquals 1 $?
+}
+
 test_epsv_from_config_boolean() {
 	git config git-ftp.disable-epsv true
 	out="$($GIT_FTP init -v 2>/dev/null)"
 	echo "$out" | grep --quiet "Disable EPSV is '1'."
 	assertEquals 0 $?
+}
+
+test_epsv_from_config_boolean_false() {
+	git config git-ftp.disable-epsv false
+	out="$($GIT_FTP init -v 2>/dev/null)"
+	echo "$out" | grep --quiet "Disable EPSV is '1'."
+	assertEquals 1 $?
 }
 
 test_epsv_options() {
