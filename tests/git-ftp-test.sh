@@ -1311,6 +1311,37 @@ test_insecure_submodule() {
 	assertEquals 2 $count
 }
 
+test_dirty_repository(){
+	echo "uncommitted change." >> ./"test 1.txt"
+	echo "uncommitted file." >> ./new.txt
+	out="$($GIT_FTP init 2>&1)"
+	assertEquals $ERROR_GIT $?
+	echo "$out" | grep --quiet "Dirty repository: Having uncommitted changes. Exiting..."
+	assertEquals 0 $?
+}
+
+test_auto_stash(){
+	echo "uncommitted change." >> ./"test 1.txt"
+	echo "uncommitted file." >> ./new.txt
+	$GIT_FTP init -n --auto-stash
+	assertEquals 0 $?
+}
+
+test_auto_stash_config(){
+	git config git-ftp.auto-stash true
+	echo "uncommitted change." >> ./"test 1.txt"
+	echo "uncommitted file." >> ./new.txt
+	$GIT_FTP init -n
+	assertEquals 0 $?
+}
+
+test_auto_stash_no_changes(){
+	out="$($GIT_FTP init -n --auto-stash 2>&1)"
+	assertEquals 0 $?
+	echo "$out" | grep --quiet "No stash entries found."
+	assertEquals 1 $?
+}
+
 test_epsv_defaults_value() {
 	out="$($GIT_FTP init -v 2>/dev/null)"
 	echo "$out" | grep --quiet "Disabling EPSV."
