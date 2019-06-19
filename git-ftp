@@ -81,6 +81,7 @@ declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
+declare -i AUTO_STASH=0
 declare -i INSECURE=0
 declare -i CURL_DISABLE_EPSV=0
 declare -i NO_COMMIT=0
@@ -1280,6 +1281,16 @@ set_current_branch() {
 	CURRENT_BRANCH="$current"
 }
 
+set_stash() {
+	local stash_config="$(get_config auto-stash)"
+	[ -n "$stash_config" ] && AUTO_STASH="$(boolean $stash_config)"
+	[ $AUTO_STASH -eq 1 ] && git stash push --include-untracked -q -m "Stashed by Git-ftp"
+}
+
+unset_stash(){
+	[ $AUTO_STASH -eq 1 ] && [ $(git stash list -n 1 | grep -q "Stashed by Git-ftp") ] && git stash pop -q
+}
+
 fetch_remote() {
 	download_remote_updates
 	[ $DRY_RUN -ne 1 ] || return
@@ -1312,6 +1323,7 @@ handle_fetch() {
 action_init() {
 	check_git_version
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1327,11 +1339,13 @@ action_init() {
 	release_remote_lock
 	post_push_hook
 	unset_branch
+	unset_stash
 }
 
 action_push() {
 	check_git_version
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1346,10 +1360,12 @@ action_push() {
 	release_remote_lock
 	post_push_hook
 	unset_branch
+	unset_stash
 }
 
 action_catchup() {
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1358,6 +1374,7 @@ action_catchup() {
 	upload_local_sha1
 	submodule_catchup
 	unset_branch
+	unset_stash
 }
 
 action_show() {
@@ -1808,6 +1825,12 @@ do
 			if [ $AUTO_INIT -eq 0 ]; then
 				AUTO_INIT=1
 				write_log "Auto init if needed."
+			fi
+			;;
+		--auto-stash)
+			if [ $AUTO_STASH -eq 0 ]; then
+				AUTO_STASH=1
+				write_log "Stash changes if needed."
 			fi
 			;;
 		-x|--proxy*)
