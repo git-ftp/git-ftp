@@ -57,10 +57,8 @@ LOCAL_SHA1=""
 SYNCROOT=""
 SNAPSHOT_DIR=""
 CURL_PROTOCOL=""
-CURL_INSECURE="0"
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
-CURL_DISABLE_EPSV="0"
 CURL_PROXY=""
 LFTP_PROTOCOL=""
 LFTP_COMMAND_SETTINGS=""
@@ -71,6 +69,7 @@ TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
+declare -a GIT_SUBMODULES
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DOWNLOAD_CHANGED_ONLY=0
@@ -81,8 +80,10 @@ declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
-declare -a GIT_SUBMODULES
 declare -i AUTO_INIT=0
+declare -i INSECURE=0
+declare -i CURL_DISABLE_EPSV=0
+declare -i NO_COMMIT=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -454,7 +455,7 @@ set_default_curl_options() {
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		CURL_ARGS+=(-P "-")
 	else
-		if [ "$CURL_DISABLE_EPSV" != "0" ]; then
+		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
 			CURL_ARGS+=(--disable-epsv)
 		fi
 	fi
@@ -891,12 +892,12 @@ set_submodule_args() {
 	if [ $ACTIVE_MODE -eq 1 ]; then
 		args+=(--active)
 	else
-		if [ "$CURL_DISABLE_EPSV" != "0" ]; then
+		if [ $CURL_DISABLE_EPSV -eq 1 ]; then
 			args+=(--disable-epsv)
 		fi
 	fi
 
-	[ $CURL_INSECURE -eq 1 ] && args+=(--insecure)
+	[ $INSECURE -eq 1 ] && args+=(--insecure)
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
@@ -941,7 +942,7 @@ handle_remote_protocol_options() {
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS+=("-k")
+	[ $INSECURE -eq 1 ] && REMOTE_CMD_OPTIONS+=("-k")
 }
 
 handle_lftp_settings() {
@@ -954,7 +955,7 @@ handle_lftp_settings() {
 		LFTP_COMMAND_SETTINGS+="set ftp:ssl-protect-list true && "
 	fi
 
-	[ "$CURL_INSECURE" != "0" ] && LFTP_COMMAND_SETTINGS+="set ssl:verify-certificate no && "
+	[ $INSECURE -eq 1 ] && LFTP_COMMAND_SETTINGS+="set ssl:verify-certificate no && "
 	LFTP_COMMAND_SETTINGS+="set ftp:list-options -a &&"
 }
 
@@ -1114,11 +1115,11 @@ set_remotes() {
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
 
-	set_curl_insecure
-	write_log "Insecure is '$CURL_INSECURE'."
+	set_insecure
+	write_log "Insecure is '$INSECURE'."
 	
 	set_curl_disable_epsv
-	[ "$CURL_DISABLE_EPSV" != "0" ] && write_log "Disable EPSV is '$CURL_DISABLE_EPSV'."
+	[ $CURL_DISABLE_EPSV -eq 1 ] && write_log "Disable EPSV is '$CURL_DISABLE_EPSV'."
 
 	set_curl_proxy
 	write_log "Proxy is '$CURL_PROXY'."
@@ -1152,9 +1153,9 @@ urlencode() {
 	echo "${encoded}"
 }
 
-set_curl_insecure() {
+set_insecure() {
 	local config="$(get_config insecure)"
-	[ -n "$config" ] && CURL_INSECURE="$(boolean $config)"
+	[ -n "$config" ] && INSECURE="$(boolean $config)"
 }
 
 set_curl_disable_epsv() {
@@ -1165,6 +1166,15 @@ set_curl_disable_epsv() {
 set_curl_proxy() {
 	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(get_config proxy)"
 	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
+}
+
+set_merge_args() {
+	local config="$(get_config no-commit)"
+	[ -n "$config" ] && NO_COMMIT=1
+	
+	if [ $NO_COMMIT -eq 1 ]; then
+		MERGE_ARGS="$MERGE_ARGS --no-commit --no-ff"
+	fi
 }
 
 get_protocol_of_url() {
@@ -1387,6 +1397,7 @@ action_pull() {
 	check_curl_access
 	set_deployed_sha1
 	handle_fetch
+	set_merge_args
 	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
@@ -1706,7 +1717,7 @@ do
 			exit 0
 			;;
 		--insecure)
-			CURL_INSECURE=1
+			INSECURE=1
 			write_log "Insecure SSL/TLS connection allowed"
 			;;
 		--cacert*)
@@ -1768,8 +1779,8 @@ do
 			write_log "Using active mode."
 			;;
 		--no-commit)
-			MERGE_ARGS="$MERGE_ARGS --no-commit"
-			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
+			NO_COMMIT=1
+			write_log "Adding --no-commit to merge arguments"
 			;;
 		--changed-only)
 			DOWNLOAD_CHANGED_ONLY=1

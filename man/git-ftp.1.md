@@ -56,6 +56,7 @@ different and handles only those files. That saves time and bandwidth.
 `pull` (EXPERIMENTAL)
 :	Downloads changes from the remote host into a separate commit
 	and merges that into your current branch.
+	If you just want to download the files without a merge, consider `download`.
 	This feature needs lftp to be installed.
 
 `snapshot` (EXPERIMENTAL)
@@ -164,6 +165,9 @@ different and handles only those files. That saves time and bandwidth.
 
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
+	A commit is made anyway, but the merge is interrupted.
+	If you just want to download the files you could also consider the action
+	`download`.
 
 `--changed-only`
 :	During the ftp mirror operation during a pull command, consider only
@@ -296,6 +300,7 @@ Everyone likes examples:
 	$ git config git-ftp.keychain user@example.com
 	$ git config git-ftp.remote-root htdocs
 	$ git config git-ftp.disable-epsv 1
+	$ git config git-ftp.no-commit 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
