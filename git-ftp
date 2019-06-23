@@ -1831,7 +1831,7 @@ do
 		*)
 			# Pass thru anything that may be meant for fetch.
 			if [ -n "$1" ]; then
-				if [ -z "$URL" ]; then
+				if [ -z "$URL" ] && echo "$1" | egrep -q -v '^(--?[A-Za-z0-9-]+)$'; then
 					URL="$1"
 				elif [ "$ACTION" == "snapshot" -a -z "$SNAPSHOT_DIR" ]; then
 					SNAPSHOT_DIR="$1"
