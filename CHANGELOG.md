@@ -4,7 +4,7 @@ Version 1.6.0-UNRELEASED
 * Change exit code when remote cannot be accessed from 5 (ERROR_DOWNLOAD) to 4 (ERROR_UPLOAD)
 * Fix directory creation with SFTP
 * Fix submodule handling
-* Fix/Add suport for nested branch names by allowing `/` in scope names
+* Fix/Add support for nested branch names by allowing `/` in scope names
 * Pass insecure-flag to submodules
 * Pass ssh-keys to submodules if used
 * Add support for config `disable-epsv` and `no-commit`
