@@ -71,6 +71,7 @@ TMP_GITFTP_INCLUDE=""
 TMP_STASH_TOKEN=""
 declare -a CURL_ARGS
 declare -a GIT_SUBMODULES
+declare -a GIT_VERSION
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DOWNLOAD_CHANGED_ONLY=0
@@ -1062,6 +1063,12 @@ unset_branch() {
 	fi
 }
 
+set_git_version() {
+	local version="$(git --version | cut -d ' ' -f 3)"
+	GIT_VERSION[0]="$(echo "$version" | cut -d '.' -f 1)"
+	GIT_VERSION[1]="$(echo "$version" | cut -d '.' -f 2)"
+}
+
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	[ -z "$SYNCROOT" ] && SYNCROOT="."
@@ -1285,8 +1292,16 @@ set_current_branch() {
 set_stash() {
 	local stash_config="$(get_config auto-stash)"
 	[ -n "$stash_config" ] && AUTO_STASH="$(boolean $stash_config)"
-	[ $AUTO_STASH -eq 1 ] && TMP_STASH_TOKEN="$(date +%s)"
-	[ $AUTO_STASH -eq 1 ] && git stash push --include-untracked -q -m "Stashed by Git-ftp. Token: $TMP_STASH_TOKEN"
+
+	if [ $AUTO_STASH -eq 1 ]; then
+		TMP_STASH_TOKEN="$(date +%s)"
+		local stash_message="Stashed by Git-ftp. Token: $TMP_STASH_TOKEN"
+		if [ "${GIT_VERSION[0]}" -le 2 ] && [ "${GIT_VERSION[1]}" -lt 13 ]; then
+			git stash save --include-untracked -q "$stash_message"
+		else
+			git stash push --include-untracked -q -m "$stash_message"
+		fi
+	fi
 }
 
 unset_stash(){
@@ -1485,9 +1500,8 @@ check_deployed_sha1() {
 }
 
 check_git_version() {
-	local GIT_VERSION="$(git --version | cut -d ' ' -f 3)"
-	local MAJOR="$(echo "$GIT_VERSION" | cut -d '.' -f 1)"
-	local MINOR="$(echo "$GIT_VERSION" | cut -d '.' -f 2)"
+	local MAJOR="${GIT_VERSION[0]}"
+	local MINOR="${GIT_VERSION[1]}"
 	if [ "$MAJOR" -lt 2 ] && [ "$MINOR" -lt 7 ]; then
 		print_error_and_die "Git is too old, 1.7.0 or higher supported only." "$ERROR_GIT"
 	fi
@@ -1529,6 +1543,7 @@ check_lftp_available() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_git_version
 	set_syncroot
 	cache_git_submodules
 	handle_action
