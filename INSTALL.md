@@ -37,6 +37,24 @@ git checkout "$(git tag | grep '^[0-9]*\.[0-9]*\.[0-9]*$' | tail -1)"
 sudo make install
 ```
 
+## Linux/Unix based systems using direct download
+
+Another way is to download the shell script directly and place it in your `bin`
+directory:
+
+```sh
+curl https://raw.githubusercontent.com/git-ftp/git-ftp/master/git-ftp > /bin/git-ftp
+chmod 755 /bin/git-ftp
+```
+
+Maybe `sudo` is required to do this.
+Please note that this will install the most recent version, even if its
+unreleased. To install a specific version replace `master` with the version tag.
+
+Uninstall:
+```sh
+rm /bin/git-ftp
+```
 
 ## Debian, Ubuntu and others using apt
 
