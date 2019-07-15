@@ -68,6 +68,7 @@ TMP_CURL_DELETE_FILE=""
 TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
+TMP_STASH_TOKEN=""
 declare -a CURL_ARGS
 declare -a GIT_SUBMODULES
 declare -i VERBOSE=0
@@ -1284,11 +1285,12 @@ set_current_branch() {
 set_stash() {
 	local stash_config="$(get_config auto-stash)"
 	[ -n "$stash_config" ] && AUTO_STASH="$(boolean $stash_config)"
-	[ $AUTO_STASH -eq 1 ] && git stash push --include-untracked -q -m "Stashed by Git-ftp"
+	[ $AUTO_STASH -eq 1 ] && TMP_STASH_TOKEN="$(date +%s)"
+	[ $AUTO_STASH -eq 1 ] && git stash push --include-untracked -q -m "Stashed by Git-ftp. Token: $TMP_STASH_TOKEN"
 }
 
 unset_stash(){
-	[ $AUTO_STASH -eq 1 ] && [ $(git stash list -n 1 | grep -q "Stashed by Git-ftp") ] && git stash pop -q
+	[ $AUTO_STASH -eq 1 ] && [ $(git stash list -n 1 | grep -q "Stashed by Git-ftp. Token: $TMP_STASH_TOKEN") ] && git stash pop -q
 }
 
 fetch_remote() {
