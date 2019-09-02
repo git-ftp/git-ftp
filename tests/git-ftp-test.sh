@@ -687,7 +687,7 @@ test_include_ignore_push() {
 	assertFalse ' .htaccess.prod was uploaded' "remote_file_exists '.htaccess.prod'"
 }
 
-# Testing Github issue #245
+# Testing GitHub issue #245
 test_include_ignore_all_push() {
 	init=$($GIT_FTP init)
 	echo 'always include me' > untracked.txt
