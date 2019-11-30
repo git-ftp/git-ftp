@@ -48,7 +48,7 @@ markComment: >
 #   Your comment here.
 
 # Comment to post when closing a stale Issue or Pull Request.
- closeComment: >
+closeComment: >
    This issue will get closed for now but please feel free to re-open it if 
    you still have this problem with Git-ftp.
 
