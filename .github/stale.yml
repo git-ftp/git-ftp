@@ -19,6 +19,7 @@ exemptLabels:
   - discussion
   - confirmed
   - in_progress
+  - needs_testing
   - Windows
   - ci
   - SFTP
