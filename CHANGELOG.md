@@ -12,6 +12,8 @@ Version 1.6.0-UNRELEASED
 * Add support for option `--insecure` for LFTP actions (download and pull)
 * Add support for FTPES for LFTP actions (download and pull)
 * Add better error messages for curl errors
+* Support --no-commit option for pull action
+* Documentation updates
 
 Version 1.5.2
 =============

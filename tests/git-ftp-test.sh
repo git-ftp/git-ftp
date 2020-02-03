@@ -17,7 +17,7 @@
 # Or you can write it in one line:
 #     TEST_CASES='test_displays_usage' GIT_FTP_PASSWD='s3cr3t' ./git-ftp-test.sh
 
-readonly VERSION='1.6.0-UNRELEASED'
+readonly VERSION='1.6.0'
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes

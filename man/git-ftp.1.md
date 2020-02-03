@@ -1,6 +1,6 @@
-% GIT-FTP(1) Git-ftp 1.6.0-UNRELEASED
+% GIT-FTP(1) Git-ftp 1.6.0
 %
-% 2019-05-06
+% 2020-02-03
 
 This is the manual for version 1.6.0-UNRELEASED.
 Please consider the [changelog](../CHANGELOG.md) or select your version from
