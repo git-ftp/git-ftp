@@ -24,7 +24,7 @@
 readonly DEFAULT_PROTOCOL="ftp"
 readonly REMOTE_LCK_FILE="$(basename "$0").lck"
 readonly SYSTEM="$(uname)"
-readonly VERSION='1.4.1-UNRELEASED'
+readonly VERSION='1.6.0'
 
 # ------------------------------------------------------------
 # Defaults
@@ -52,14 +52,16 @@ KEYCHAIN_USER=""
 KEYCHAIN_HOST=""
 DEPLOYED_SHA1_FILE=".git-ftp.log"
 DEPLOYED_SHA1=""
+PREV_DEPLOYED_SHA1=""
 LOCAL_SHA1=""
 SYNCROOT=""
 SNAPSHOT_DIR=""
 CURL_PROTOCOL=""
-CURL_INSECURE="0"
 CURL_PUBLIC_KEY=""
 CURL_PRIVATE_KEY=""
-CURL_DISABLE_EPSV=0
+CURL_PROXY=""
+LFTP_PROTOCOL=""
+LFTP_COMMAND_SETTINGS=""
 TMP_DIR=""
 TMP_CURL_UPLOAD_FILE=""
 TMP_CURL_DELETE_FILE=""
@@ -67,6 +69,7 @@ TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
 declare -a CURL_ARGS
+declare -a GIT_SUBMODULES
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DOWNLOAD_CHANGED_ONLY=0
@@ -76,8 +79,11 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
-declare -a GIT_SUBMODULES
+declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
+declare -i INSECURE=0
+declare -i CURL_DISABLE_EPSV=0
+declare -i NO_COMMIT=0
 
 # ------------------------------------------------------------
 # Constant Exit Error Codes
@@ -190,9 +196,11 @@ OPTIONS
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
+	--enable-post-errors	Fails if post-ftp-push hook raises an error
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
 	--version		Prints version.
+	-x, --proxy		Use the specified proxy.
 
 
 EXAMPLES
@@ -244,6 +252,20 @@ is_submodule() {
 	echo "${GIT_SUBMODULES[@]}" | grep -Fxq -- "$1"
 }
 
+boolean() {
+	case "$1" in
+		"true")
+			echo "1"
+			;;
+		"false")
+			echo "0"
+			;;
+		*)
+			echo $1
+			;;
+	esac
+}
+
 ask_for_passwd() {
 	echo -n "Password: "
 	stty -echo > /dev/null 2>&1
@@ -264,11 +286,14 @@ get_keychain_password () {
 		fi
 
 		[ -z "$KEYCHAIN_USER" ] && print_error_and_die "Missing keychain account." "$ERROR_MISSING_ARGUMENTS"
-		CURL_ARGS=(-a "$KEYCHAIN_USER")
-		[ -n "$KEYCHAIN_HOST" ] && CURL_ARGS+=(-s "$KEYCHAIN_HOST")
+
+		local KEYCHAIN_ARGS=(-a "$KEYCHAIN_USER")
+		[ -n "$KEYCHAIN_HOST" ] && KEYCHAIN_ARGS+=(-s "$KEYCHAIN_HOST")
+
+		write_log "Read password from keychain."
 
 		local pass
-		if pass="$(security find-internet-password "${CURL_ARGS[@]}" -g 2>&1 > /dev/null)"; then
+		if pass="$(security find-internet-password "${KEYCHAIN_ARGS[@]}" -g 2>&1 > /dev/null)"; then
 			without_prefix="${pass#password: \"}"
 			REMOTE_PASSWD="${without_prefix%\"}"
 		else
@@ -280,10 +305,54 @@ get_keychain_password () {
 }
 
 # Checks if last command was successful
+#
+# $1 - error message
+# $2 - error code to produce
+#
 check_exit_status() {
-	if [ $? -ne 0 ]; then
-		print_error_and_die "$1, exiting..." "$2"
+	check_exit_status_not_equals $? 0 "$1" "$2"
+}
+
+# Checks if exit status equals a given value. If false sends exit command.
+#
+# $1 - status code to check
+# $2 - code to test against
+# $3 - error message
+# $4 - error code to produce
+#
+check_exit_status_equals() {
+	if [ $1 -eq $2 ]; then
+		print_error_and_die "$3, exiting..." "$4"
 	fi
+}
+
+# Checks if exit status not equals a given value
+#
+# $1 - status code to check
+# $2 - code to test against
+# $3 - error message
+# $4 - error code to produce
+#
+check_exit_status_not_equals() {
+	if [ $1 -ne $2 ]; then
+		print_error_and_die "$3, exiting..." "$4"
+	fi
+}
+
+# Checks if a given curl exit code was successful and if not exits with a nice error message (in some cases)
+#
+# $1 - exit code to check
+# $2 - message: a custom message that is put in front of the error message
+# $3 - error code: code to exit with if $1 is bad
+#
+check_curl_exit_status() {
+	case $1 in
+		0) ;;
+		9) print_error_and_die "$2 Access to resource denied. This usually means that the file or directory does not exist. Wrong path? exiting..." "$3" ;;
+		67) print_error_and_die "$2 Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$3" ;;
+		78) print_error_and_die "$2 The resource does not exist. exiting..." "$3" ;;
+		*) print_error_and_die "$2 Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Network down? Wrong URL? exiting..." "$3" ;;
+	esac
 }
 
 get_config() {
@@ -317,7 +386,7 @@ get_config() {
 }
 
 set_deployed_sha1_file() {
-	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file .git-ftp.log)"
+	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file "$DEPLOYED_SHA1_FILE")"
 }
 
 # Simple log func
@@ -379,6 +448,9 @@ set_default_curl_options() {
 	CURL_ARGS=("${REMOTE_CMD_OPTIONS[@]}")
 	IFS="$OIFS"
 	CURL_ARGS+=(--globoff)
+	if [ -n "$CURL_PROXY" ]; then
+		CURL_ARGS+=(--proxy "$CURL_PROXY")
+	fi
 	if [ -z "$REMOTE_USER" ]; then
 		CURL_ARGS+=(--netrc)
 	fi
@@ -404,7 +476,6 @@ upload_file() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/${REMOTE_PATH}${DEST_FILE}")
 	curl "${CURL_ARGS[@]}"
-	check_exit_status "Could not upload file: '${REMOTE_PATH}$DEST_FILE'." "$ERROR_UPLOAD"
 }
 
 upload_file_buffered() {
@@ -479,27 +550,40 @@ upload_local_sha1() {
 	write_log "Uploading commit log to $REMOTE_BASE_URL_DISPLAY/${REMOTE_PATH}$DEPLOYED_SHA1_FILE."
 	if [ $DRY_RUN -ne 1 ]; then
 		echo "$LOCAL_SHA1" | upload_file - "$DEPLOYED_SHA1_FILE"
-		check_exit_status "Could not upload." "$ERROR_UPLOAD"
+		check_curl_exit_status $? "Could not upload." "$ERROR_UPLOAD"
 	fi
 	print_info "Last deployment changed from $DEPLOYED_SHA1 to $LOCAL_SHA1.";
+	PREV_DEPLOYED_SHA1="$DEPLOYED_SHA1"
 	DEPLOYED_SHA1="$LOCAL_SHA1"
 }
 
 pre_push_hook() {
-	hook='.git/hooks/pre-ftp-push'
+	local hooks_dir="$(git config core.hooksPath)"
+	if [ -z "$hooks_dir" ];then
+		hooks_dir=".git/hooks"
+	fi
+	local hook="$hooks_dir/pre-ftp-push"
+
 	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
-		scope="${SCOPE:-$REMOTE_HOST}"
-		write_log "Trigger pre-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		print_status | $hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1" || exit "$ERROR_HOOK"
+		local scope="${SCOPE:-$REMOTE_HOST}"
+		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
+		write_log "Trigger pre-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $DEPLOYED_SHA1"
+		print_status | $hook "$scope" "$url" "$LOCAL_SHA1" "$DEPLOYED_SHA1" || exit "$ERROR_HOOK"
 	fi
 }
 
 post_push_hook() {
-	hook='.git/hooks/post-ftp-push'
+	local hooks_dir="$(git config core.hooksPath)"
+	if [ -z "$hooks_dir" ];then
+		hooks_dir=".git/hooks"
+	fi
+	local hook="$hooks_dir/post-ftp-push"
+
 	if [ -e "$hook" ]; then
-		scope="${SCOPE:-$REMOTE_HOST}"
-		write_log "Trigger post-ftp-push hook with: $scope, $REMOTE_URL, $LOCAL_SHA1, $DEPLOYED_SHA1"
-		$hook "$scope" "$REMOTE_URL" "$LOCAL_SHA1" "$DEPLOYED_SHA1"
+		local scope="${SCOPE:-$REMOTE_HOST}"
+		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
+		write_log "Trigger post-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $PREV_DEPLOYED_SHA1"
+		$hook "$scope" "$url" "$LOCAL_SHA1" "$PREV_DEPLOYED_SHA1" || [ "$ENABLE_POST_HOOK_ERRORS" -eq 0 ] || exit "$ERROR_HOOK"
 	fi
 }
 
@@ -590,7 +674,7 @@ set_deployed_sha1_failable() {
 
 set_deployed_sha1() {
 	set_deployed_sha1_failable
-	check_exit_status "Could not get last commit. Network down? Wrong URL? Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
+	check_curl_exit_status $? "Could not get last commit. Use 'git ftp init' for the initial push." "$ERROR_DOWNLOAD"
 	write_log "Last deployed SHA1 for $REMOTE_HOST/$REMOTE_PATH is $DEPLOYED_SHA1."
 }
 
@@ -800,8 +884,10 @@ submodule_catchup() {
 }
 
 set_submodule_args() {
-	# Duplicate the current required parameters
-	args=(--user "$REMOTE_USER" --passwd "$REMOTE_PASSWD")
+	args=(--user "$REMOTE_USER")
+	[ -n "$REMOTE_PASSWD" ] && args+=(--passwd "$REMOTE_PASSWD")
+	[ -n "$CURL_PRIVATE_KEY" ] && args+=(--key "$CURL_PRIVATE_KEY")
+	[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
 
 	# Do not ask any questions for submodules
 	args+=(--force)
@@ -814,6 +900,7 @@ set_submodule_args() {
 		fi
 	fi
 
+	[ $INSECURE -eq 1 ] && args+=(--insecure)
 	[ $IGNORE_DEPLOYED -eq 1 ] && args+=(--all)
 
 	if [ $VERBOSE -eq 1 ]; then
@@ -858,7 +945,21 @@ handle_remote_protocol_options() {
 	fi
 
 	# Require users' explicit consent for insecure connections
-	[ "$CURL_INSECURE" != "0" ] && REMOTE_CMD_OPTIONS+=("-k")
+	[ $INSECURE -eq 1 ] && REMOTE_CMD_OPTIONS+=("-k")
+}
+
+handle_lftp_settings() {
+	LFTP_PROTOCOL="$REMOTE_PROTOCOL"
+	# Options for lftp if using FTPES
+	if [ "$REMOTE_PROTOCOL" = "ftpes" ]; then
+		LFTP_PROTOCOL="ftp"
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-force true && "
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-protect-data true && "
+		LFTP_COMMAND_SETTINGS+="set ftp:ssl-protect-list true && "
+	fi
+
+	[ $INSECURE -eq 1 ] && LFTP_COMMAND_SETTINGS+="set ssl:verify-certificate no && "
+	LFTP_COMMAND_SETTINGS+="set ftp:list-options -a &&"
 }
 
 init_new_repository() {
@@ -964,10 +1065,12 @@ unset_branch() {
 
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
+	[ -z "$SYNCROOT" ] && SYNCROOT="."
 	if [ "$SYNCROOT" ]; then
 		[ -d "$SYNCROOT" ] || print_error_and_die "'$SYNCROOT' is not a directory! Exiting..." "$ERROR_GIT"
 		SYNCROOT="$(echo "$SYNCROOT" | sed 's#/*$##')/"
 	fi
+	write_log "Syncroot is '$SYNCROOT'."
 }
 
 set_sftp_config() {
@@ -1015,8 +1118,14 @@ set_remotes() {
 	set_remote_cacert
 	write_log "CACert is '$REMOTE_CACERT'."
 
-	set_curl_insecure
-	write_log "Insecure is '$CURL_INSECURE'."
+	set_insecure
+	write_log "Insecure is '$INSECURE'."
+
+	set_curl_disable_epsv
+	[ $CURL_DISABLE_EPSV -eq 1 ] && write_log "Disable EPSV is '$CURL_DISABLE_EPSV'."
+
+	set_curl_proxy
+	write_log "Proxy is '$CURL_PROXY'."
 
 	set_remote_protocol
 	set_remote_path
@@ -1024,9 +1133,6 @@ set_remotes() {
 
 	REMOTE_BASE_URL="$CURL_PROTOCOL://$REMOTE_LOGIN$REMOTE_HOST"
 	REMOTE_BASE_URL_DISPLAY="$REMOTE_PROTOCOL://$DISPLAY_LOGIN$REMOTE_HOST"
-
-	set_syncroot
-	write_log "Syncroot is '$SYNCROOT'."
 
 	set_deployed_sha1_file
 	write_log "The remote sha1 is saved in file '$DEPLOYED_SHA1_FILE'."
@@ -1050,9 +1156,30 @@ urlencode() {
 	echo "${encoded}"
 }
 
-set_curl_insecure() {
-	[ -z "$CURL_INSECURE" ] && CURL_INSECURE="$(get_config insecure)"
+set_insecure() {
+	local config="$(get_config insecure)"
+	[ -n "$config" ] && INSECURE="$(boolean $config)"
 }
+
+set_curl_disable_epsv() {
+	local config="$(get_config disable-epsv)"
+	[ -n "$config" ] && CURL_DISABLE_EPSV="$(boolean $config)"
+}
+
+set_curl_proxy() {
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(get_config proxy)"
+	[ -z "$CURL_PROXY" ] && CURL_PROXY="$(git config --get http.proxy)"
+}
+
+set_merge_args() {
+	local config="$(get_config no-commit)"
+	[ -n "$config" ] && NO_COMMIT=1
+
+	if [ $NO_COMMIT -eq 1 ]; then
+		MERGE_ARGS="$MERGE_ARGS --no-commit --no-ff"
+	fi
+}
+
 get_protocol_of_url() {
 	echo "$1" | tr '[:upper:]' '[:lower:]' | egrep '^(ftp|sftp|ftps|ftpes)://' | cut -d ':' -f 1
 }
@@ -1081,12 +1208,19 @@ download_remote_updates () {
 
 	ignore=""
 	if [ -f '.git-ftp-ignore' ]; then
-		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n')"
+		ignore="$(grep -v '^#' .git-ftp-ignore | awk 'NF' | sed 's/^\(.*\)$/--exclude-glob "\1" /' | tr -d '\r\n') "
 	fi
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
-	lftp_command="set ftp:list-options -a && mirror$mirror_options $delete $ignoreall $include $ignore . $SYNCROOT && wait all && exit"
-	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${REMOTE_PROTOCOL}://${REMOTE_HOST}/${REMOTE_PATH}" 2>&1)"
+	handle_lftp_settings
+
+	local lftp_cd=""
+	[ -n $REMOTE_PATH ] && lftp_cd="cd ${REMOTE_PATH} &&"
+	local lftp_action="mirror $mirror_options $delete $ignoreall $include $ignore . $SYNCROOT &&"
+	local lftp_exit="wait all && exit"
+
+	lftp_command="$LFTP_COMMAND_SETTINGS $lftp_cd $lftp_action $lftp_exit"
+	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${LFTP_PROTOCOL}://${REMOTE_HOST}/" 2>&1)"
 	print_info "$out"
 }
 
@@ -1184,6 +1318,7 @@ action_init() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	check_remote_access
 	check_deployed_sha1
 	set_local_sha1
@@ -1203,6 +1338,7 @@ action_push() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1_for_push
 	set_local_sha1
 	set_changed_files
@@ -1220,6 +1356,7 @@ action_catchup() {
 	check_is_dirty_repository
 	set_branch
 	set_remotes
+	check_curl_access
 	set_local_sha1
 	upload_local_sha1
 	submodule_catchup
@@ -1228,6 +1365,7 @@ action_catchup() {
 
 action_show() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git show "$DEPLOYED_SHA1"
@@ -1235,6 +1373,7 @@ action_show() {
 
 action_log() {
 	set_remotes
+	check_curl_access
 	DEPLOYED_SHA1="$(get_file_content "$DEPLOYED_SHA1_FILE")"
 	check_exit_status "Could not get uploaded log file" "$ERROR_DOWNLOAD"
 	git log "$DEPLOYED_SHA1"
@@ -1246,6 +1385,7 @@ action_download() {
 	check_is_dirty_repository
 	check_for_untracked_files
 	set_remotes
+	check_curl_access
 	remote_lock
 	download_remote_updates
 	release_remote_lock
@@ -1257,14 +1397,17 @@ action_pull() {
 	check_is_dirty_repository
 	set_current_branch
 	set_remotes
+	check_curl_access
 	set_deployed_sha1
 	handle_fetch
+	set_merge_args
 	git merge $MERGE_ARGS $LOCAL_SHA1
 }
 
 action_snapshot() {
 	check_lftp_available
 	set_remotes
+	check_curl_access
 	init_new_repository
 	download_remote_updates
 	commit_snapshot
@@ -1283,13 +1426,36 @@ action_remove_scope() {
 # ------------------------------------------------------------
 # Checks
 # ------------------------------------------------------------
+check_curl_access() {
+	write_log "Check if curl is functional."
+	command -v curl >/dev/null 2>&1
+	check_exit_status "curl is not available" "$ERROR_DOWNLOAD"
+
+	local curl_protocol="$REMOTE_PROTOCOL"
+	# The ftpes protocol is FTP + SSL
+	if [ "$curl_protocol" == "ftpes" ]; then
+		curl_protocol="ftp"
+		curl --version | grep "^Features: " | grep -qw "SSL"
+		check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
+	fi
+	curl --version | grep "^Protocols: " | grep -qw "$curl_protocol"
+	check_exit_status "Protocol '$REMOTE_PROTOCOL' not supported by curl" "$ERROR_DOWNLOAD"
+}
 check_remote_access() {
 	write_log "Check if $REMOTE_BASE_URL_DISPLAY is accessible."
 	set_default_curl_options
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
 	curl "${CURL_ARGS[@]}" > /dev/null
-	check_exit_status "Can't access remote '$REMOTE_BASE_URL_DISPLAY'" "$ERROR_DOWNLOAD"
+
+	local EXIT_CODE=$?
+	if [ "$REMOTE_PROTOCOL" == "sftp" ] && [ $EXIT_CODE -eq 78 ]; then
+		write_log "Create $REMOTE_PATH"
+		curl "${CURL_ARGS[@]}" -Q "MKDIR $REMOTE_PATH" > /dev/null
+		EXIT_CODE=$?
+	fi
+
+	check_curl_exit_status "$EXIT_CODE" "" "$ERROR_UPLOAD"
 }
 
 check_deployed_sha1() {
@@ -1347,6 +1513,7 @@ check_lftp_available() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_syncroot
 	cache_git_submodules
 	handle_action
 	cleanup
@@ -1369,8 +1536,8 @@ do
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
 				SCOPE="$2"
-				if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
-					print_error_and_die "Invalid scope name." "$ERROR_USAGE"
+				if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_/]*$' ; then
+					print_error_and_die "Invalid scope name. Only these characters are allowed: 0-9 a-z A-Z - _ /" "$ERROR_USAGE"
 				fi
 				shift
 			fi
@@ -1413,8 +1580,8 @@ do
 					fi
 					;;
 			esac
-			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_]*$' ; then
-				print_error_and_die "Invalid scope name." "$ERROR_USAGE"
+			if ! echo "$SCOPE" | grep -q '^[-0-9a-zA-Z_/]*$' ; then
+				print_error_and_die "Invalid scope name '${SCOPE}'." "$ERROR_USAGE"
 			fi
 			write_log "Using scope $SCOPE if available"
 			;;
@@ -1487,7 +1654,7 @@ do
 						REMOTE_PASSWD="$2"
 						shift
 					else
-						print_error_and_die "Too few arguments for option -p." "$ERROR_MISSING_ARGUMENTS"
+						print_error_and_die "Too few arguments for option -p. Maybe the manual will help: https://github.com/git-ftp/git-ftp/blob/master/man/git-ftp.1.md#passwords" "$ERROR_MISSING_ARGUMENTS"
 					fi
 					;;
 			esac
@@ -1553,7 +1720,7 @@ do
 			exit 0
 			;;
 		--insecure)
-			CURL_INSECURE=1
+			INSECURE=1
 			write_log "Insecure SSL/TLS connection allowed"
 			;;
 		--cacert*)
@@ -1615,8 +1782,8 @@ do
 			write_log "Using active mode."
 			;;
 		--no-commit)
-			MERGE_ARGS="$MERGE_ARGS --no-commit"
-			write_log "Adding --no-commit to merge arguments: $MERGE_ARGS"
+			NO_COMMIT=1
+			write_log "Adding --no-commit to merge arguments"
 			;;
 		--changed-only)
 			DOWNLOAD_CHANGED_ONLY=1
@@ -1636,11 +1803,33 @@ do
 			EXECUTE_HOOKS=0
 			shift
 			;;
+		--enable-post-errors)
+			ENABLE_POST_HOOK_ERRORS=1
+			shift
+			;;
 		--auto-init)
 			if [ $AUTO_INIT -eq 0 ]; then
 				AUTO_INIT=1
 				write_log "Auto init if needed."
 			fi
+			;;
+		-x|--proxy*)
+			case "$#,$1" in
+				*,*=*)
+					CURL_PROXY=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						CURL_PROXY="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --proxy." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
+			esac
 			;;
 		*)
 			# Pass thru anything that may be meant for fetch.

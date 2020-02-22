@@ -1,6 +1,10 @@
-% GIT-FTP(1) Git-ftp 1.4.1-UNRELEASED
+% GIT-FTP(1) Git-ftp 1.6.0
 %
-% 2017-09-01
+% 2020-02-03
+
+This is the manual for version 1.6.0-UNRELEASED.
+Please consider the [changelog](../CHANGELOG.md) or select your version from
+the _Branch > Tags_ select above to see the manual for another version.
 
 # NAME
 
@@ -36,6 +40,11 @@ different and handles only those files. That saves time and bandwidth.
 `push`
 :	Uploads files that have changed and
 	deletes files that have been deleted since the last upload.
+	If you are using GIT LFS, this uploads LFS link files,
+	not large files (stored on LFS server).
+	To upload the LFS tracked files, run `git lfs pull`
+	before `git ftp push`: LFS link files will be replaced with
+	large files so they can be uploaded.
 
 `download` (EXPERIMENTAL)
 :	Downloads changes from the remote host into your working tree.
@@ -47,6 +56,7 @@ different and handles only those files. That saves time and bandwidth.
 `pull` (EXPERIMENTAL)
 :	Downloads changes from the remote host into a separate commit
 	and merges that into your current branch.
+	If you just want to download the files without a merge, consider `download`.
 	This feature needs lftp to be installed.
 
 `snapshot` (EXPERIMENTAL)
@@ -78,13 +88,13 @@ different and handles only those files. That saves time and bandwidth.
 :	FTP login name. If no argument is given, local user will be taken.
 
 `-p [password]`, `--passwd [password]`
-:	FTP password. See `-P` for interactive password prompt.
+:	FTP password. See `-P` for interactive password prompt. ([note](#passwords))
 
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
 
-`-k [[user]@[account]]`, `--keychain [[user]@[account]]`
-:	FTP password from KeyChain (Mac OS X only).
+`-k [[account]@[host]]`, `--keychain [[account]@[host]]`
+:	FTP password from KeyChain (macOS only).
 
 `-a`, `--all`
 :	Uploads all files of current Git checkout.
@@ -155,6 +165,9 @@ different and handles only those files. That saves time and bandwidth.
 
 `--no-commit`
 :	Stop while merging downloaded changes during the pull action.
+	A commit is made anyway, but the merge is interrupted.
+	If you just want to download the files you could also consider the action
+	`download`.
 
 `--changed-only`
 :	During the ftp mirror operation during a pull command, consider only
@@ -163,11 +176,18 @@ different and handles only those files. That saves time and bandwidth.
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
 
+`--enable-post-errors`
+:	Fails if post-ftp-push raises an error.
+
 `--auto-init`
 :	Automatically run init action when running push action
 
 `--version`
 :	Prints version.
+
+`-x [protocol://]host[:port]`, `--proxy [protocol://]host[:port]`
+:	Use the specified proxy. This option is passed to curl.
+	See the curl manual for more information.
 
 # URL
 
@@ -265,7 +285,7 @@ changes between branch `master` and branch `develop`:
 
 Don't repeat yourself. Setting config defaults for git-ftp in .git/config
 
-	$ git config git-ftp.<(url|user|password|syncroot|cacert|keychain)> <value>
+	$ git config git-ftp.<(url|user|password|syncroot|cacert|keychain|...)> <value>
 
 Everyone likes examples:
 
@@ -278,10 +298,15 @@ Everyone likes examples:
 	$ git config git-ftp.insecure 1
 	$ git config git-ftp.key ~/.ssh/id_rsa
 	$ git config git-ftp.keychain user@example.com
+	$ git config git-ftp.remote-root htdocs
+	$ git config git-ftp.disable-epsv 1
+	$ git config git-ftp.no-commit 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
 	$ git ftp push
+
+If you run into issues with setting up your password please check this [note](#passwords).
 
 # SCOPES
 
@@ -541,7 +566,23 @@ hook. This hook is **not** bypassed by the --no-verify option.
 It is meant primarily for notification and its exit status does not have any
 effect.
 
-# NETRC
+# PASSWORDS
+
+If your password contains special characters you have to take it with care. In most cases it is a good idea to quote passwords with single quotes:
+
+	--passwd '#my$fancy!secret'
+
+Mostly `--ask-passwd` works even if `--passwd` does not work. So maybe you can give this a try.
+
+If your password starts with a hyphen/dash (`-`) even quoting might fail.
+This is [by design](https://github.com/git-ftp/git-ftp/issues/468) and will not be fixed.
+In this case you can use one of the other options to set your password: the defaults feature using `git config`, `--ask-passwd` or `~/.netrc`.
+
+Quoting also works if a [default](#defaults) is set with `git config`:
+
+	$ git config git-ftp.password '#my$fancy!secret'
+
+## NETRC
 
 In the backend, Git-ftp uses curl.
 This means `~/.netrc` could be used beside the other options of Git-ftp
@@ -551,6 +592,50 @@ to authenticate.
 	machine ftp.example.com
 	login john
 	password SECRET
+
+With git-ftp the credentials stored in this file are used if no username is set.
+For example, if you set up your .netrc file like this you can just call
+
+	git ftp init ftp.example.com
+
+Of course this can be combined with the [defaults feature](#defaults) to set config defaults for other options as well.
+
+## Keychain on macOS
+
+On macOS you can use the built in keychain to store and get your passwords.
+
+You can use this feature by using the option `--keychain` in your command:
+
+	$ git ftp init --keychain account@host ftpes://host
+
+You can omit the value for this option. Then git-ftp will guess the account and hostname from user and url.
+
+Or you can set a config for this, so you don’t need to repeat yourself (see [defaults](#defaults) for details):
+
+	$ git config git-ftp.keychain account@host
+
+You can omit the hostname here. If there is no `@` in the config value git-ftp will guess the hostname from url.
+
+If you run a command using the keychain feature, the system might ask you if git-ftp is allowed to access the keychain entry.
+If the keychain is locked you have to enter the keychain password (not the value of the entry), sometimes twice.
+
+If your password is not in your keychain yet it is recommended adding it using the following command:
+
+	$ security add-internet-password -a account -r "ftp " -s host -w secr3t
+
+The options are:
+- `-a`: user account
+- `-r`: protocol; has to be exactly 4 characters long, so if you use `FTP` it should be `"ftp "`, for `FTPS` and `FTPES` use `ftps`
+  and for SSH with password auth you can use `"ftp "` as well.
+- `-s`: your host name; includes subdomains but no paths
+- `-w`: password
+
+You can omit the option `-r` and everything will work fine, but the _Keychain Access_ Utility will not show the server in the field “Where:”.
+This is only shown if `-r` and `-s` are set both. \
+If you create a keychain entry with the _Keychain Access_ Utility it creates a generic password and not an internet password.
+Therefore, unfortunately, this will not work.
+
+Please not that the keychain entry can not be used for password protected private keys in SSH.
 
 # EXIT CODES
 
@@ -597,5 +682,5 @@ The upstream BTS can be found at <https://github.com/git-ftp/git-ftp/issues>.
 # AUTHORS
 
 Git-ftp was started by Rene Moser and is currently maintained by Maikel Linke.
-Numerous conributions have come from Github users.
+Numerous contributions have come from GitHub users.
 See the AUTHORS file for an incomplete list of contributors.

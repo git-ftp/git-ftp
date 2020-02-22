@@ -42,6 +42,7 @@ Further Reading
 
 * Read the [manual](man/git-ftp.1.md) for more options, features and examples.
 * See the [installation instructions](INSTALL.md) for your system.
+* Checkout the [changelog](CHANGELOG.md).
 * Check [git-ftp issues on GitHub] for open issues.
 * Follow this project on twitter [@gitftp].
 
@@ -52,7 +53,7 @@ Limitations
 
 * Windows and OS X: I am very limited in testing on Windows and OS X. Thanks
   for helping me out fixing bugs on these platforms.
-* git-ftp as deployment tool: git-ftp was not designed as centralised
+* git-ftp as deployment tool: git-ftp was not designed as centralized
   deployment tool. While a commit is being pushed and uploaded to the FTP
   server, all files belonging to that revision must remain untouched until
   git-ftp has successfully finished the upload. Otherwise, the contents of the
@@ -64,7 +65,7 @@ Contributions
 
 Don't hesitate to improve this tool.
 Don't forget to add yourself to the [AUTHORS](AUTHORS) file.
-Core functionality is unit tested using shunit2.
+The core functionality is unit tested using shunit2.
 You can find the tests in `tests/`.
 
 Copyright
