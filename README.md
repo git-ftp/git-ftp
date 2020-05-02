@@ -46,7 +46,8 @@ Further Reading
 * Check [git-ftp issues on GitHub] for open issues.
 * Follow this project on twitter [@gitftp].
 
-* Deploy with [Git-ftp and Bitbucket Pipelines](https://www.youtube.com/watch?v=8HZhHtZebdw) (video tutorial).
+* Deploy with [git-ftp and GitHub Actions](https://github.com/marketplace/actions/ftp-deploy)
+* Deploy with [git-ftp and Bitbucket Pipelines](https://www.youtube.com/watch?v=8HZhHtZebdw) (video tutorial).
 
 Limitations
 -----------
