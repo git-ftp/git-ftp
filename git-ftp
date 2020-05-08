@@ -1757,7 +1757,7 @@ do
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
 			REMOTE_CMD_OPTIONS=()
 			;;
-		-vv)
+		-vv|--extra-verbose)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
 			REMOTE_CMD_OPTIONS=("-v")
