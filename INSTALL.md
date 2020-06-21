@@ -189,3 +189,19 @@ change to:
     none / cygdrive binary,posix=0,user 0 0
 
 After this, close all console windows and try again.
+
+## If you encounter Git: ftp is not a command 
+
+Install [Git for Windows](https://git-for-windows.github.io/).
+
+Then simply clone the repository:
+
+```
+git clone https://github.com/git-ftp/git-ftp.git
+```
+
+Then copy the `git-ftp` file to to `C:\Program Files\Git\bin` folder
+
+Then add the `C:\Program Files\Git\bin` to your `%PATH%`
+
+Restart the computer and it's ready to use
