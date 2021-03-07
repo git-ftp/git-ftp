@@ -199,6 +199,7 @@ OPTIONS
 	--enable-post-errors	Fails if post-ftp-push hook raises an error
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
+    --deployedsha1file  The name of the file that keeps the SHA1 hash of the current git commit
 	--version		Prints version.
 	-x, --proxy		Use the specified proxy.
 
@@ -383,7 +384,12 @@ get_config() {
 }
 
 set_deployed_sha1_file() {
-	DEPLOYED_SHA1_FILE="$(get_config deployedsha1file "$DEPLOYED_SHA1_FILE")"
+	DEPLOYED_SHA1_FILE_CONFIG="$(get_config deployedsha1file)"
+	if [ -z "$DEPLOYED_SHA1_FILE_CONFIG" ]; then
+	    DEPLOYED_SHA1_FILE="$(get_config deployedsha1file "$DEPLOYED_SHA1_FILE")" #If none in config, rerun with harcoded value
+    else
+        DEPLOYED_SHA1_FILE=$DEPLOYED_SHA1_FILE_CONFIG
+	fi
 }
 
 # Simple log func
@@ -1809,6 +1815,10 @@ do
 				AUTO_INIT=1
 				write_log "Auto init if needed."
 			fi
+			;;
+		--deployedsha1file)
+			DEPLOYED_SHA1_FILE="$2"
+			shift
 			;;
 		-x|--proxy*)
 			case "$#,$1" in
