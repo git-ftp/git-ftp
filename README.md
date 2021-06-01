@@ -19,15 +19,15 @@ git config git-ftp.user "ftp-user"
 git config git-ftp.password "secr3t"
 
 # Upload all files
-git ftp init
+git-ftp init
 
 # Or if the files are already there
-git ftp catchup
+git-ftp catchup
 
 # Work and deploy
 echo "new content" >> index.txt
 git commit index.txt -m "Add new content"
-git ftp push
+git-ftp push
 # 1 file to sync:
 # [1 of 1] Buffered for upload 'index.txt'.
 # Uploading ...
