@@ -888,6 +888,7 @@ set_submodule_args() {
 	[ -n "$REMOTE_PASSWD" ] && args+=(--passwd "$REMOTE_PASSWD")
 	[ -n "$CURL_PRIVATE_KEY" ] && args+=(--key "$CURL_PRIVATE_KEY")
 	[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
+	[ -n "$SCOPE" ] && args+=(--scope "$SCOPE")
 
 	# Do not ask any questions for submodules
 	args+=(--force)
