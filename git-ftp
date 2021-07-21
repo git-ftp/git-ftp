@@ -875,9 +875,10 @@ submodule_catchup() {
 	print_info "Submodules are $GIT_SUBMODULES"
 	for submodule in "${GIT_SUBMODULES[@]}"
 	do
+		submodule=${SYNCROOT}${submodule/$SYNCROOT/}
 		print_info "Catching up submodule $submodule."
 		(
-			cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+			cd "$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
 		)
 	done
 }
