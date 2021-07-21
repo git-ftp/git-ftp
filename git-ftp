@@ -242,7 +242,7 @@ usage() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"
+	GIT_SUBMODULES=(`echo "$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"`)
 }
 
 is_submodule() {
@@ -876,7 +876,9 @@ submodule_catchup() {
 	for submodule in "${GIT_SUBMODULES[@]}"
 	do
 		print_info "Catching up submodule $submodule."
-		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+		(
+			cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+		)
 	done
 }
 
