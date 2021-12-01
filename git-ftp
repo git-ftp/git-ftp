@@ -1569,7 +1569,7 @@ fi
 while test $# != 0
 do
 	case "$1" in
-		init|push|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
+		init|push|dirty-upload|catchup|show|download|pull|add-scope|remove-scope|log|snapshot)
 			ACTION="$1"
 			# catch scope
 			if [ "$1" == "add-scope" ] || [ "$1" == "remove-scope" ]; then
