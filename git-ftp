@@ -759,8 +759,8 @@ list_changed_files() {
 
 list_dirty_changed_files() {
 	git reset
-	git diff --name-only --no-renames --diff-filter=AM 2>/dev/null > "$TMP_GITFTP_UPLOAD"
-	git diff --name-only --no-renames --diff-filter=D 2>/dev/null > "$TMP_GITFTP_DELETE"
+	git diff --name-only --no-renames --diff-filter=AM -z 2>/dev/null > "$TMP_GITFTP_UPLOAD"
+	git diff --name-only --no-renames --diff-filter=D -z 2>/dev/null > "$TMP_GITFTP_DELETE"
 	if [ ! -s "$TMP_GITFTP_UPLOAD" -a ! -s "$TMP_GITFTP_DELETE" ]; then
 		write_log "No changed files.";
 	fi
