@@ -132,6 +132,9 @@ ACTIONS
 	. push
 		Uploads git-tracked files which have changed since last upload.
 
+	. dirty-upload
+		Uploads all dirty files.
+
 	. download (EXPERIMENTAL)
 		Downloads changes from the remote host into your working tree.
 		WARNING: It can delete local untracked files that are not
@@ -706,6 +709,18 @@ set_changed_files() {
 	fi
 }
 
+set_dirty_changed_files() {
+	set_tmp
+	list_dirty_changed_files
+	add_include_files
+	filter_ignore_files "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE"
+	if [ -s "$TMP_GITFTP_UPLOAD" ] || [ -s "$TMP_GITFTP_DELETE" ]; then
+		write_log "Having files to sync.";
+	else
+		write_log "No files to sync. All changed files ignored.";
+	fi
+}
+
 list_all_files() {
 	git ls-files -z -- "${SYNCROOT:-.}" > "$TMP_GITFTP_UPLOAD"
 	touch "$TMP_GITFTP_DELETE"
@@ -739,6 +754,15 @@ list_changed_files() {
 		exit 0
 	elif [ ! -s "$TMP_GITFTP_UPLOAD" -a ! -s "$TMP_GITFTP_DELETE" ]; then
 		write_log "No changed files, but different commit ID. Changed files ignored or commit amended.";
+	fi
+}
+
+list_dirty_changed_files() {
+	git reset
+	git diff --name-only --no-renames --diff-filter=AM 2>/dev/null > "$TMP_GITFTP_UPLOAD"
+	git diff --name-only --no-renames --diff-filter=D 2>/dev/null > "$TMP_GITFTP_DELETE"
+	if [ ! -s "$TMP_GITFTP_UPLOAD" -a ! -s "$TMP_GITFTP_DELETE" ]; then
+		write_log "No changed files.";
 	fi
 }
 
@@ -998,6 +1022,9 @@ handle_action() {
 			;;
 		push)
 			action_push
+			;;
+		dirty-upload)
+			action_dirty_upload
 			;;
 		catchup)
 			action_catchup
@@ -1345,6 +1372,20 @@ action_push() {
 	upload_local_sha1
 	release_remote_lock
 	post_push_hook
+	unset_branch
+}
+
+action_dirty_upload() {
+	check_git_version
+	check_is_git_project
+	set_branch
+	set_remotes
+	check_curl_access
+	set_local_sha1
+	set_dirty_changed_files
+	remote_lock
+	handle_file_sync
+	release_remote_lock
 	unset_branch
 }
 
