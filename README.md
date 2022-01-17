@@ -37,6 +37,46 @@ git ftp push
 If you encounter any problems, add the `-v` or `-vv` option to see more output.
 The manual may answer some of your questions as well.
 
+A somewhat simpler solution that works with Gitlab to deploy the code of a web page on a web server would look like this. We use the option `--auto-init` with `push` to not have to change the pipeline all the time. 
+
+```yml
+stages:
+  - deploy
+
+deploy-job:
+  stage: deploy
+  only:
+    - master
+  variables:
+    email: "your@example.com"
+    name: "Your Name"
+    user: "www"
+    surl: sftp://web.example.com:22
+    remr: "/home/www/htdocs"
+    prik: "/home/gitlab-runner/.ssh/id_ed25519"
+    pubk: "/home/gitlab-runner/.ssh/id_ed25519.pub"
+    branch: "master
+    remote: "master
+script: 
+    - git config user.email "$email"
+    - git config user.name "$name"
+    - git config git-ftp.user "$user"
+    - git config git-ftp.url "$surl"
+    - git config git-ftp.key "$prik" 
+    - git config git-ftp.pubkey "$pubk
+    - git config git-ftp.insecure 1
+    - git config git-ftp.disable-epsv 1
+    - git config git-ftp.remote-root "$remr
+    - git config git-ftp.branch "$branch
+
+    - git status
+    - git add -v .
+    - git checkout "$branch"
+    - git ftp push -a --auto-init "$surl" --branch "$branch"
+```
+
+
+
 Further Reading
 ---------------
 
