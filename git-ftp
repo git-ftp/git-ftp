@@ -1726,7 +1726,7 @@ do
 					REMOTE_CACERT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
 					;;
 				1,*)
-					print error_and_die "Too few arguments for option --cacert" "$ERROR_MISSING_ARGUMENTS"
+					print_error_and_die "Too few arguments for option --cacert" "$ERROR_MISSING_ARGUMENTS"
 					;;
 				*)
 					if ! echo "$2" | egrep -q '^-'; then
