@@ -478,7 +478,8 @@ upload_file() {
 upload_file_buffered() {
 	local SRC_FILE="$1"
 	local DEST_FILE="${SRC_FILE#$SYNCROOT}"
-	local ENC_DEST_FILE="$(echo "${DEST_FILE//#/%23}" | sed 's/ /%20/g')"
+	local ENC_DEST_FILE="${DEST_FILE//#/%23}"
+	local ENC_DEST_FILE="${ENC_DEST_FILE// /%20}"
 	echo "-T \"./$SRC_FILE\"
 url = \"$REMOTE_BASE_URL/${REMOTE_PATH}${ENC_DEST_FILE}\"" >> "$TMP_CURL_UPLOAD_FILE"
 }
