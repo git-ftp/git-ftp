@@ -77,6 +77,7 @@ declare -i DRY_RUN=0
 declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
+declare -i IGNORE_SIZE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
@@ -182,6 +183,7 @@ OPTIONS
 	-a, --all		Uploads all files, ignores deployed SHA1 hash.
 	-c, --commit		Sets SHA1 hash of last deployed commit by option.
 	-A, --active		Use FTP active mode.
+	-I, --ignore-size	Ignore remote file size when mirroring.
 	-l, --lock		Enable/Disable remote locking.
 	-f, --force		Force, does not ask questions.
 	-n, --silent		Silent mode.
@@ -1190,6 +1192,9 @@ download_remote_updates () {
 	if [ "$VERBOSE" -gt 0 ]; then
 		mirror_options="$mirror_options -v"
 	fi
+	if [ "$IGNORE_SIZE" -eq 1 ]; then
+		mirror_options="$mirror_options --ignore-size"
+	fi
 
 	delete="--delete"
 	include=""
@@ -1777,6 +1782,10 @@ do
 		-A|--active)
 			ACTIVE_MODE=1
 			write_log "Using active mode."
+			;;
+		-I|--ignore-size)
+			IGNORE_SIZE=1
+			write_log "Ignoring file size on remote."
 			;;
 		--no-commit)
 			NO_COMMIT=1
