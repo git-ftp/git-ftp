@@ -873,6 +873,19 @@ test_file_with_dash() {
 	assertFalse "file $dir/$file still exists in $CURL_URL" "remote_file_exists '$dir/$file'"
 }
 
+# issue #633
+test_file_with_spaces() {
+	init=$($GIT_FTP init)
+	# add a file
+	file='file with spaces in filename.txt'
+	echo "1" > "./$file"
+	git add "$file"
+	git commit -m "change" > /dev/null 2>&1
+	push=$($GIT_FTP push)
+	rtrn=$?
+	assertEquals 0 $rtrn
+}
+
 test_syncroot() {
 	syncroot='foo bar'
 	mkdir "$syncroot" && echo "test" > "$syncroot/syncroot.txt"
