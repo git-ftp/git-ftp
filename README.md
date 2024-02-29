@@ -32,6 +32,9 @@ git ftp push
 # [1 of 1] Buffered for upload 'index.txt'.
 # Uploading ...
 # Last deployment changed to ded01b27e5c785fb251150805308d3d0f8117387.
+
+# Or: To avoid 1000 commits per change...
+git ftp dirty-upload
 ```
 
 If you encounter any problems, add the `-v` or `-vv` option to see more output.
