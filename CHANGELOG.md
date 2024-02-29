@@ -7,8 +7,9 @@ Version 1.6.0-UNRELEASED
 * Fix/Add support for nested branch names by allowing `/` in scope names
 * Pass insecure-flag to submodules
 * Pass ssh-keys to submodules if used
-* Add support for config `disable-epsv` and `no-commit`
-* Allow `true` and `false` for boolean configurations (`insecure`, `disable-epsv`, `no-commit`)
+* Add new option `--auto-stash`
+* Add support for config `disable-epsv`, `no-commit` and `auto-stash`
+* Allow `true` and `false` for boolean configurations (`insecure`, `disable-epsv`, `no-commit`, `auto-stash`)
 * Add support for option `--insecure` for LFTP actions (download and pull)
 * Add support for FTPES for LFTP actions (download and pull)
 * Add better error messages for curl errors
