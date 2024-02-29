@@ -40,11 +40,11 @@ different and handles only those files. That saves time and bandwidth.
 `push`
 :	Uploads files that have changed and
 	deletes files that have been deleted since the last upload.
-	If you are using GIT LFS, this uploads LFS link files, 
-	not large files (stored on LFS server). 
+	If you are using GIT LFS, this uploads LFS link files,
+	not large files (stored on LFS server).
 	To upload the LFS tracked files, run `git lfs pull`
-	before `git ftp push`: LFS link files will be replaced with 
-	large files so they can be uploaded.  
+	before `git ftp push`: LFS link files will be replaced with
+	large files so they can be uploaded.
 
 `download` (EXPERIMENTAL)
 :	Downloads changes from the remote host into your working tree.
@@ -84,16 +84,16 @@ different and handles only those files. That saves time and bandwidth.
 
 # OPTIONS
 
-`-u [username]`, `--user [username]`
+`-u [username]`, `--user=[username]`
 :	FTP login name. If no argument is given, local user will be taken.
 
-`-p [password]`, `--passwd [password]`
+`-p [password]`, `--passwd=[password]`
 :	FTP password. See `-P` for interactive password prompt. ([note](#passwords))
 
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
 
-`-k [[account]@[host]]`, `--keychain [[account]@[host]]`
+`-k [[account]@[host]]`, `--keychain=[[account]@[host]]`
 :	FTP password from KeyChain (macOS only).
 
 `-a`, `--all`
@@ -107,10 +107,10 @@ different and handles only those files. That saves time and bandwidth.
 	and a direct connection to the server or an FTP aware firewall. If you
 	don't know what it means, you probably won't need it.
 
-`-b [branch]`, `--branch [branch]`
+`-b [branch]`, `--branch=[branch]`
 :	Push a specific branch
 
-`-s [scope]`, `--scope [scope]`
+`-s [scope]`, `--scope=[scope]`
 :	Using a scope (e.g. dev, production, testing, foobar). See **SCOPE**
 	and **DEFAULTS** section for more information.
 
@@ -133,7 +133,7 @@ different and handles only those files. That saves time and bandwidth.
 `-v`, `--verbose`
 :	Be verbose.
 
-`-vv`
+`-vv`, `--extra-verbose`
 :	Be as verbose as possible. Useful for debug information.
 
 `--remote-root`
@@ -153,7 +153,7 @@ different and handles only those files. That saves time and bandwidth.
 `--insecure`
 :	Don't verify server's certificate.
 
-`--cacert <file>`
+`--cacert=<file>`
 :	Use <file> as CA certificate store.
 	Useful when a server has a self-signed certificate.
 
@@ -185,7 +185,7 @@ different and handles only those files. That saves time and bandwidth.
 `--version`
 :	Prints version.
 
-`-x [protocol://]host[:port]`, `--proxy [protocol://]host[:port]`
+`-x [protocol://]host[:port]`, `--proxy=[protocol://]host[:port]`
 :	Use the specified proxy. This option is passed to curl.
 	See the curl manual for more information.
 
@@ -234,11 +234,11 @@ But be aware of the different
 handling of relative and absolute paths. If the directory `public_html` is in
 the home directory on the server, then upload like this:
 
-	$ git ftp init -u "john" --key "$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
+	$ git ftp init -u "john" --key="$HOME/.ssh/id_rsa" "sftp://example.com/~/public_html"
 
 Otherwise it will use an absolute path, for example:
 
-	$ git ftp init -u "john" --key "$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
+	$ git ftp init -u "john" --key="$HOME/.ssh/id_rsa" "sftp://example.com/var/www"
 
 On some systems Git-ftp fails to verify the server's fingerprint.
 You can then use the `--insecure` option to skip the verification.
@@ -570,17 +570,18 @@ effect.
 
 If your password contains special characters you have to take it with care. In most cases it is a good idea to quote passwords with single quotes:
 
-	--passwd '#my$fancy!secret'
+	--passwd='#my$fancy!secret'
 
 Mostly `--ask-passwd` works even if `--passwd` does not work. So maybe you can give this a try.
 
 If your password starts with a hyphen/dash (`-`) even quoting might fail.
-This is [by design](https://github.com/git-ftp/git-ftp/issues/468) and will not be fixed.
-In this case you can use one of the other options to set your password: the defaults feature using `git config`, `--ask-passwd` or `~/.netrc`.
+This can happen if specified using either the `-p <password>` or `--passwd <password>` syntaxes, and can be avoided by using `--passwd=<password>`, setting the password via git defaults with `git config`, specifying `--ask-passwd` instead, or using `~/.netrc`.
 
-Quoting also works if a [default](#defaults) is set with `git config`:
+Quoting and leading dashes also work if a [default](#defaults) is set with `git config`:
 
 	$ git config git-ftp.password '#my$fancy!secret'
+	$ git config git-ftp.password '-test'
+	$ git config git-ftp.password '--test'
 
 ## NETRC
 
@@ -606,7 +607,7 @@ On macOS you can use the built in keychain to store and get your passwords.
 
 You can use this feature by using the option `--keychain` in your command:
 
-	$ git ftp init --keychain account@host ftpes://host
+	$ git ftp init --keychain=account@host ftpes://host
 
 You can omit the value for this option. Then git-ftp will guess the account and hostname from user and url.
 

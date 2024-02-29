@@ -171,46 +171,103 @@ URL
 
 
 OPTIONS
-	-h, --help		Shows this help screen.
-	-u, --user		FTP login name.
-	-p, --passwd		FTP password.
-	-P, --ask-passwd	Ask for FTP password interactively.
-	-k, --keychain		FTP password from KeyChain (Mac OS X only).
-	-b, --branch		Git branch to push
-	-s, --scope		Using a scope (e.g. dev, production, testing).
-	-D, --dry-run		Dry run: Does not upload anything.
-	-a, --all		Uploads all files, ignores deployed SHA1 hash.
-	-c, --commit		Sets SHA1 hash of last deployed commit by option.
-	-A, --active		Use FTP active mode.
-	-l, --lock		Enable/Disable remote locking.
-	-f, --force		Force, does not ask questions.
-	-n, --silent		Silent mode.
-	-v, --verbose		Verbose mode.
-	-vv			Very verbose or debug mode.
-	--remote-root		Specifies remote root directory
-	--syncroot		Specifies a local directory to sync from as if it were the git project root path.
-	--key			SSH private key file name for SFTP.
-	--pubkey		SSH public key file name. Used with --key option.
-	--insecure		Don't verify server's certificate.
-	--cacert		Specify a <file> as CA certificate store. Useful when a server has got a self-signed certificate.
-	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
-	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
-	--no-verify		Bypass the pre-ftp-push hook.
-	--enable-post-errors	Fails if post-ftp-push hook raises an error
-	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
-	--auto-init		Automatically run init action when running push action
-	--version		Prints version.
-	-x, --proxy		Use the specified proxy.
+	-h, --help
+		Shows this help screen.
 
+	-u <login>, --user=<login>
+		FTP login name.
+
+	-p <pass>, --passwd=<pass>
+		FTP password.
+
+	-P, --ask-passwd
+		Ask for FTP password interactively.
+
+	-k, --keychain
+		FTP password from KeyChain (Mac OS X only).
+
+	-b <branch>, --branch=<branch>
+		Git branch to push.
+
+	-s <scope>, --scope=<scope>
+		Using a scope (e.g. dev, production, testing).
+
+	-D, --dry-run
+		Dry run: Does not upload anything.
+
+	-a, --all
+		Uploads all files, ignores deployed SHA1 hash.
+
+	-c, --commit
+		Sets SHA1 hash of last deployed commit by option.
+
+	-A, --active
+		Use FTP active mode.
+
+	-l, --lock
+		Enable/Disable remote locking.
+
+	-f, --force
+		Force, does not ask questions.
+
+	-n, --silent
+		Silent mode.
+
+	-v, --verbose
+		Verbose mode.
+
+	-vv, --extra-verbose
+		Very verbose or debug mode.
+
+	--remote-root=<remote-path>
+		Specifies remote root directory.
+
+	--syncroot=<local-path>
+		Specifies a local directory to sync from as if it were the git project root path.
+
+	--key=<name>
+		SSH private key file name for SFTP.
+
+	--pubkey=<path>
+		SSH public key file name. Used with --key option.
+
+	--insecure
+		Don't verify server's certificate.
+
+	--cacert=<páth>
+		Specify a <path> as CA certificate store file. Useful when a server has got a self-signed certificate.
+
+	--no-commit
+		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
+
+	--changed-only
+		Download or pull only files changed since the deployed commit while ignoring all other files.
+
+	--no-verify
+		Bypass the pre-ftp-push hook.
+
+	--enable-post-errors
+		Fails if post-ftp-push hook raises an error;
+
+	--disable-epsv
+		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
+
+	--auto-init
+		Automatically run init action when running push action.
+
+	--version
+		Prints version.
+
+	-x <url>, --proxy=<url>
+		Use the specified proxy.
 
 EXAMPLES
 	. git-ftp push -u john ftp://ftp.example.com:4445/public_ftp -p -v
 	. git-ftp push -p -u john -v ftp.example.com:4445:/public_ftp
-	. git-ftp push -p -u john ftp.example.com --branch prod
+	. git-ftp push -p -u john ftp.example.com --branch=prod
 	. git-ftp add-scope production ftp://user:secr3t@ftp.example.com:4445/public_ftp
-	. git-ftp push --scope production
+	. git-ftp push --scope=production
 	. git-ftp remove-scope production
-
 
 SET DEFAULTS
 	. git config git-ftp.user john
@@ -224,11 +281,9 @@ SET DEFAULTS
 	. git config git-ftp.insecure 1
 	. git config git-ftp.keychain user@example.com
 
-
 SET SCOPE DEFAULTS
 	e.g. your scope is 'testing'
 	. git config git-ftp.testing.url ftp.example.local
-
 
 VERSION
 	$VERSION
@@ -1703,7 +1758,7 @@ do
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
 			REMOTE_CMD_OPTIONS=()
 			;;
-		-vv)
+		-vv|--extra-verbose)
 			VERBOSE=1
 			[ -n "$LOG_CACHE" ] && echo -e "$LOG_CACHE"
 			REMOTE_CMD_OPTIONS=("-v")
