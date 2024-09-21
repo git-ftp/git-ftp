@@ -79,6 +79,7 @@ declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
 declare -i EXECUTE_HOOKS=1
+declare -i EXECUTE_POST_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
 declare -i INSECURE=0
@@ -577,7 +578,7 @@ post_push_hook() {
 	fi
 	local hook="$hooks_dir/post-ftp-push"
 
-	if [ -e "$hook" ]; then
+	if [ "$EXECUTE_POST_HOOKS" -eq 1 -a -e "$hook" ]; then
 		local scope="${SCOPE:-$REMOTE_HOST}"
 		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
 		write_log "Trigger post-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $PREV_DEPLOYED_SHA1"
@@ -1799,6 +1800,10 @@ do
 			;;
 		--no-verify)
 			EXECUTE_HOOKS=0
+			shift
+			;;
+		--no-post-hooks)
+			EXECUTE_POST_HOOKS=0
 			shift
 			;;
 		--enable-post-errors)
