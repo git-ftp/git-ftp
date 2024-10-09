@@ -78,7 +78,7 @@ declare -i FORCE=0
 declare -i ENABLE_REMOTE_LCK=0
 declare -i ACTIVE_MODE=0
 declare -i USE_KEYCHAIN=0
-declare -i EXECUTE_HOOKS=1
+declare -i EXECUTE_PRE_HOOKS=1
 declare -i EXECUTE_POST_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
@@ -197,6 +197,7 @@ OPTIONS
 	--no-commit		Perform the merge at the and of pull but do not autocommit, to have the chance to inspect and further tweak the merge result before committing.
 	--changed-only		Download or pull only files changed since the deployed commit while ignoring all other files.
 	--no-verify		Bypass the pre-ftp-push hook.
+	--no-post-hooks		Bypass the post-ftp-push hook.
 	--enable-post-errors	Fails if post-ftp-push hook raises an error
 	--disable-epsv		Tell curl to disable the use of the EPSV command when doing passive FTP transfers. Curl will normally always first attempt to use EPSV before PASV, but with this option, it will not try using EPSV.
 	--auto-init		Automatically run init action when running push action
@@ -563,7 +564,7 @@ pre_push_hook() {
 	fi
 	local hook="$hooks_dir/pre-ftp-push"
 
-	if [ "$EXECUTE_HOOKS" -eq 1 -a -e "$hook" ]; then
+	if [ "$EXECUTE_PRE_HOOKS" -eq 1 -a -e "$hook" ]; then
 		local scope="${SCOPE:-$REMOTE_HOST}"
 		local url="$REMOTE_BASE_URL_DISPLAY/$REMOTE_PATH"
 		write_log "Trigger pre-ftp-push hook with: $scope, $url, $LOCAL_SHA1, $DEPLOYED_SHA1"
@@ -1799,7 +1800,7 @@ do
 			shift
 			;;
 		--no-verify)
-			EXECUTE_HOOKS=0
+			EXECUTE_PRE_HOOKS=0
 			shift
 			;;
 		--no-post-hooks)
