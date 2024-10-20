@@ -176,6 +176,9 @@ different and handles only those files. That saves time and bandwidth.
 `--no-verify`
 :	Bypass the pre-ftp-push hook. See **HOOKS** section.
 
+`--no-post-hooks`
+:	Bypass the post-ftp-push hook. See **HOOKS** section.
+
 `--enable-post-errors`
 :	Fails if post-ftp-push raises an error.
 
@@ -562,9 +565,9 @@ exit 0
 
 `post-ftp-push` is called after the transfer has been finished. The standard
 input is empty, but the parameters are the same as given to the `pre-ftp-push`
-hook. This hook is **not** bypassed by the --no-verify option.
-It is meant primarily for notification and its exit status does not have any
-effect.
+hook. This hook is **not** bypassed by the --no-verify option, but rather can be
+bypassed by the --no-post-hooks. It is meant primarily for notification and its
+exit status does not have any effect.
 
 # PASSWORDS
 
