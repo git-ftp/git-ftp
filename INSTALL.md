@@ -115,8 +115,10 @@ cd /your/unpacked/archive
 
 brew install openssl
 brew install libssh2
+brew install libpsl
 
-./configure -q --with-libssh2 --with-ssl=/usr/local/opt/openssl
+
+./configure --with-libssh2 --with-openssl=$(brew --prefix openssl) --with-libpsl=$(brew --prefix libpsl)
 make
 make install
 ```
