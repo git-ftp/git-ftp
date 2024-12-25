@@ -1417,6 +1417,19 @@ test_post_push_fail() {
 	assertEquals $ERROR_HOOK $rtrn
 }
 
+test_unrecognised_option(){
+	out="$($GIT_FTP init -i 2>&1 )"
+	assertEquals $ERROR_MISSING_ARGUMENTS $?
+	echo "$out" | grep -q "fatal: Unrecognised option: -i"
+	assertEquals 0 $?
+}
+test_unrecognised_option_before_url(){
+	out="$($GIT_FTP_CMD init -u $GIT_FTP_USER -p $GIT_FTP_PASSWD --invalid-option $GIT_FTP_URL 2>&1 )"
+	assertEquals $ERROR_MISSING_ARGUMENTS $?
+	echo "$out" | grep -q "fatal: Unrecognised option: --invalid-option"
+	assertEquals 0 $?
+}
+
 disabled_test_file_named_dash() {
 	echo "foobar" > -
 	assertTrue 'test failed: file named - not there as expected' "[ -f '$GIT_PROJECT_PATH/-' ]"
