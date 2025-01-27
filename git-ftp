@@ -285,7 +285,7 @@ get_keychain_password () {
 		fi
 
 		[ -z "$KEYCHAIN_USER" ] && print_error_and_die "Missing keychain account." "$ERROR_MISSING_ARGUMENTS"
-		
+
 		local KEYCHAIN_ARGS=(-a "$KEYCHAIN_USER")
 		[ -n "$KEYCHAIN_HOST" ] && KEYCHAIN_ARGS+=(-s "$KEYCHAIN_HOST")
 
@@ -1120,7 +1120,7 @@ set_remotes() {
 
 	set_insecure
 	write_log "Insecure is '$INSECURE'."
-	
+
 	set_curl_disable_epsv
 	[ $CURL_DISABLE_EPSV -eq 1 ] && write_log "Disable EPSV is '$CURL_DISABLE_EPSV'."
 
@@ -1174,7 +1174,7 @@ set_curl_proxy() {
 set_merge_args() {
 	local config="$(get_config no-commit)"
 	[ -n "$config" ] && NO_COMMIT=1
-	
+
 	if [ $NO_COMMIT -eq 1 ]; then
 		MERGE_ARGS="$MERGE_ARGS --no-commit --no-ff"
 	fi
@@ -1213,12 +1213,12 @@ download_remote_updates () {
 	ignore+="--exclude=^\.git/ --exclude=^\.git-ftp\.log --exclude=^\.git-ftp-ignore"
 
 	handle_lftp_settings
-	
+
 	local lftp_cd=""
 	[ -n $REMOTE_PATH ] && lftp_cd="cd ${REMOTE_PATH} &&"
 	local lftp_action="mirror $mirror_options $delete $ignoreall $include $ignore . $SYNCROOT &&"
 	local lftp_exit="wait all && exit"
-	
+
 	lftp_command="$LFTP_COMMAND_SETTINGS $lftp_cd $lftp_action $lftp_exit"
 	out="$(lftp $LFTP_OPTIONS -e "$lftp_command" -u "${REMOTE_USER},${REMOTE_PASSWD}" "${LFTP_PROTOCOL}://${REMOTE_HOST}/" 2>&1)"
 	print_info "$out"
@@ -1447,7 +1447,7 @@ check_remote_access() {
 	CURL_ARGS+=(--ftp-create-dirs)
 	CURL_ARGS+=("$REMOTE_BASE_URL/$REMOTE_PATH")
 	curl "${CURL_ARGS[@]}" > /dev/null
-	
+
 	local EXIT_CODE=$?
 	if [ "$REMOTE_PROTOCOL" == "sftp" ] && [ $EXIT_CODE -eq 78 ]; then
 		write_log "Create $REMOTE_PATH"
@@ -1795,9 +1795,23 @@ do
 				write_log "Disabling EPSV."
 			fi
 			;;
-		--remote-root)
-			REMOTE_ROOT="$2"
-			shift
+		--remote-root*)
+			case "$#,$1" in
+				*,*=*)
+					REMOTE_ROOT=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --key." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						REMOTE_ROOT="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --key." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
+			esac
 			;;
 		--no-verify)
 			EXECUTE_PRE_HOOKS=0
