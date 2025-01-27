@@ -185,6 +185,10 @@ different and handles only those files. That saves time and bandwidth.
 `--auto-init`
 :	Automatically run init action when running push action
 
+`--auto-stash`
+:	Automatically stash uncommitted changes before action and apply afterwards.
+	Supported for actions init, push, catchup
+
 `--version`
 :	Prints version.
 
@@ -304,6 +308,7 @@ Everyone likes examples:
 	$ git config git-ftp.remote-root htdocs
 	$ git config git-ftp.disable-epsv 1
 	$ git config git-ftp.no-commit 1
+	$ git config git-ftp.auto-stash 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 

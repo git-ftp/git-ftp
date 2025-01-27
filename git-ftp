@@ -68,8 +68,10 @@ TMP_CURL_DELETE_FILE=""
 TMP_GITFTP_UPLOAD=""
 TMP_GITFTP_DELETE=""
 TMP_GITFTP_INCLUDE=""
+TMP_STASH_TOKEN=""
 declare -a CURL_ARGS
 declare -a GIT_SUBMODULES
+declare -a GIT_VERSION
 declare -i VERBOSE=0
 declare -i IGNORE_DEPLOYED=0
 declare -i DOWNLOAD_CHANGED_ONLY=0
@@ -82,6 +84,7 @@ declare -i EXECUTE_PRE_HOOKS=1
 declare -i EXECUTE_POST_HOOKS=1
 declare -i ENABLE_POST_HOOK_ERRORS=0
 declare -i AUTO_INIT=0
+declare -i AUTO_STASH=0
 declare -i INSECURE=0
 declare -i CURL_DISABLE_EPSV=0
 declare -i NO_COMMIT=0
@@ -1063,6 +1066,12 @@ unset_branch() {
 	fi
 }
 
+set_git_version() {
+	local version="$(git --version | cut -d ' ' -f 3)"
+	GIT_VERSION[0]="$(echo "$version" | cut -d '.' -f 1)"
+	GIT_VERSION[1]="$(echo "$version" | cut -d '.' -f 2)"
+}
+
 set_syncroot() {
 	[ -z "$SYNCROOT" ] && SYNCROOT="$(get_config syncroot)"
 	[ -z "$SYNCROOT" ] && SYNCROOT="."
@@ -1283,6 +1292,25 @@ set_current_branch() {
 	CURRENT_BRANCH="$current"
 }
 
+set_stash() {
+	local stash_config="$(get_config auto-stash)"
+	[ -n "$stash_config" ] && AUTO_STASH="$(boolean $stash_config)"
+
+	if [ $AUTO_STASH -eq 1 ]; then
+		TMP_STASH_TOKEN="$(date +%s)"
+		local stash_message="Stashed by Git-ftp. Token: $TMP_STASH_TOKEN"
+		if [ "${GIT_VERSION[0]}" -le 2 ] && [ "${GIT_VERSION[1]}" -lt 13 ]; then
+			git stash save --include-untracked -q "$stash_message"
+		else
+			git stash push --include-untracked -q -m "$stash_message"
+		fi
+	fi
+}
+
+unset_stash(){
+	[ $AUTO_STASH -eq 1 ] && [ $(git stash list -n 1 | grep -q "Stashed by Git-ftp. Token: $TMP_STASH_TOKEN") ] && git stash pop -q
+}
+
 fetch_remote() {
 	download_remote_updates
 	[ $DRY_RUN -ne 1 ] || return
@@ -1315,6 +1343,7 @@ handle_fetch() {
 action_init() {
 	check_git_version
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1330,11 +1359,13 @@ action_init() {
 	release_remote_lock
 	post_push_hook
 	unset_branch
+	unset_stash
 }
 
 action_push() {
 	check_git_version
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1349,10 +1380,12 @@ action_push() {
 	release_remote_lock
 	post_push_hook
 	unset_branch
+	unset_stash
 }
 
 action_catchup() {
 	check_is_git_project
+	set_stash
 	check_is_dirty_repository
 	set_branch
 	set_remotes
@@ -1361,6 +1394,7 @@ action_catchup() {
 	upload_local_sha1
 	submodule_catchup
 	unset_branch
+	unset_stash
 }
 
 action_show() {
@@ -1469,9 +1503,8 @@ check_deployed_sha1() {
 }
 
 check_git_version() {
-	local GIT_VERSION="$(git --version | cut -d ' ' -f 3)"
-	local MAJOR="$(echo "$GIT_VERSION" | cut -d '.' -f 1)"
-	local MINOR="$(echo "$GIT_VERSION" | cut -d '.' -f 2)"
+	local MAJOR="${GIT_VERSION[0]}"
+	local MINOR="${GIT_VERSION[1]}"
 	if [ "$MAJOR" -lt 2 ] && [ "$MINOR" -lt 7 ]; then
 		print_error_and_die "Git is too old, 1.7.0 or higher supported only." "$ERROR_GIT"
 	fi
@@ -1513,6 +1546,7 @@ check_lftp_available() {
 # Main
 # ------------------------------------------------------------
 main() {
+	set_git_version
 	set_syncroot
 	cache_git_submodules
 	handle_action
@@ -1815,6 +1849,12 @@ do
 			if [ $AUTO_INIT -eq 0 ]; then
 				AUTO_INIT=1
 				write_log "Auto init if needed."
+			fi
+			;;
+		--auto-stash)
+			if [ $AUTO_STASH -eq 0 ]; then
+				AUTO_STASH=1
+				write_log "Stash changes if needed."
 			fi
 			;;
 		-x|--proxy*)
