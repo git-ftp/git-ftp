@@ -244,11 +244,11 @@ usage() {
 }
 
 cache_git_submodules() {
-	GIT_SUBMODULES="$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"
+	GIT_SUBMODULES=(`echo "$(git submodule status -- "$SYNCROOT" 2>/dev/null | grep -v '^-' | awk '{print $2}')"`)
 }
 
 is_submodule() {
-	echo "${GIT_SUBMODULES[@]}" | grep -Fxq -- "$1"
+	echo "${GIT_SUBMODULES[@]}" | grep -Fwq -- "$1"
 }
 
 boolean() {
@@ -878,8 +878,11 @@ submodule_catchup() {
 	print_info "Submodules are $GIT_SUBMODULES"
 	for submodule in "${GIT_SUBMODULES[@]}"
 	do
+		submodule=${SYNCROOT}${submodule/$SYNCROOT/}
 		print_info "Catching up submodule $submodule."
-		cd "${SYNCROOT}$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+		(
+			cd "$submodule" && "$0" "$ACTION" "${args[@]}" "$REMOTE_PROTOCOL://$REMOTE_HOST/${REMOTE_PATH}$submodule"
+		)
 	done
 }
 
@@ -888,6 +891,7 @@ set_submodule_args() {
 	[ -n "$REMOTE_PASSWD" ] && args+=(--passwd "$REMOTE_PASSWD")
 	[ -n "$CURL_PRIVATE_KEY" ] && args+=(--key "$CURL_PRIVATE_KEY")
 	[ -n "$CURL_PUBLIC_KEY" ] && args+=(--pubkey "$CURL_PUBLIC_KEY")
+	[ -n "$SCOPE" ] && args+=(--scope "$SCOPE")
 
 	# Do not ask any questions for submodules
 	args+=(--force)
