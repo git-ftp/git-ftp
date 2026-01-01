@@ -1428,14 +1428,15 @@ disabled_test_file_named_dash() {
 }
 
 remote_file_exists() {
-	$CURL "$CURL_URL/$1" --head > /dev/null
+	local file="$1"
+	$CURL "$CURL_URL/${file// /%20}" --head > /dev/null
 }
 
 remote_file_equals() {
 	local file="$1"
 	local remote="$2"
 	[ -z "$remote" ] && remote="$file"
-	$CURL -s "$CURL_URL/$remote" | diff - -- "$file" > /dev/null
+	$CURL -s "$CURL_URL/${remote// /%20}" | diff - -- "$file" > /dev/null
 }
 
 assertRemoteFileExists() {
