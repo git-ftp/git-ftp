@@ -167,6 +167,59 @@ test_init_invalid_user() {
 	assertEquals $ERROR_UPLOAD $rtrn
 }
 
+test_init_password_command_cli() {
+	git config git-ftp.url "$GIT_FTP_URL"
+	git config git-ftp.user "$GIT_FTP_USER"
+	init="$($GIT_FTP_CMD init --password-command "echo '$GIT_FTP_PASSWD'")"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue 'file does not exist' "remote_file_exists 'test 1.txt'"
+	assertTrue 'file differs' "remote_file_equals 'test 1.txt'"
+}
+
+test_init_invalid_password_command_cli() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	git config git-ftp.url "$GIT_FTP_URL"
+	git config git-ftp.user "$GIT_FTP_USER"
+	init="$($GIT_FTP_CMD init --password-command "echo 'wrong-$GIT_FTP_PASSWD'" 2>&1)"
+	rtrn=$?
+	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals $ERROR_UPLOAD $rtrn
+}
+
+test_init_password_command_config() {
+	git config git-ftp.url "$GIT_FTP_URL"
+	git config git-ftp.user "$GIT_FTP_USER"
+	git config git-ftp.password-command "echo '$GIT_FTP_PASSWD'"
+	init="$($GIT_FTP_CMD init)"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue 'file does not exist' "remote_file_exists 'test 1.txt'"
+	assertTrue 'file differs' "remote_file_equals 'test 1.txt'"
+}
+
+test_init_invalid_password_command_config() {
+	REMOTE_BASE_URL_DISPLAY="ftp://$GIT_FTP_USER:***@$GIT_FTP_HOST$GIT_FTP_PORT"
+	git config git-ftp.url "$GIT_FTP_URL"
+	git config git-ftp.user "$GIT_FTP_USER"
+	git config git-ftp.password-command "echo 'wrong-$GIT_FTP_PASSWD'"
+	init="$($GIT_FTP_CMD init 2>&1)"
+	rtrn=$?
+	assertEquals "fatal:  Can't access remote '$REMOTE_BASE_URL_DISPLAY'. Failed to log in. Correct user and password? exiting..." "$init"
+	assertEquals $ERROR_UPLOAD $rtrn
+}
+
+test_init_password_command_cli_takes_precedence() {
+	git config git-ftp.url "$GIT_FTP_URL"
+	git config git-ftp.user "$GIT_FTP_USER"
+	git config git-ftp.password-command "echo 'wrong-$GIT_FTP_PASSWD'"
+	init="$($GIT_FTP_CMD init --password-command "echo '$GIT_FTP_PASSWD'")"
+	rtrn=$?
+	assertEquals 0 $rtrn
+	assertTrue 'file does not exist' "remote_file_exists 'test 1.txt'"
+	assertTrue 'file differs' "remote_file_equals 'test 1.txt'"
+}
+
 test_inits_and_pushes() {
 
 	# this should pass

@@ -176,6 +176,7 @@ OPTIONS
 	-u, --user		FTP login name.
 	-p, --passwd		FTP password.
 	-P, --ask-passwd	Ask for FTP password interactively.
+	--password-command	FTP password from arbitrary bash command.
 	-k, --keychain		FTP password from KeyChain (Mac OS X only).
 	-b, --branch		Git branch to push
 	-s, --scope		Using a scope (e.g. dev, production, testing).
@@ -1041,9 +1042,13 @@ set_remote_cacert() {
 }
 
 set_remote_password() {
+	[ -z "$PASSWORD_COMMAND" ] && PASSWORD_COMMAND="$(get_config password-command)"
+	[ -z "$REMOTE_PASSWD" ] && [ -n "$PASSWORD_COMMAND" ] && REMOTE_PASSWD=$(bash -c "$PASSWORD_COMMAND")
+
 	KEYCHAIN_USER="$(get_config keychain)"
 	[ -z "$KEYCHAIN_USER" ] || USE_KEYCHAIN=1
 	[ -z "$REMOTE_PASSWD" ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
+
 	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
 }
 
@@ -1661,6 +1666,24 @@ do
 			;;
 		-P|--ask-passwd)
 			ask_for_passwd
+			;;
+		--password-command*)
+			case "$#,$1" in
+				*,*=*)
+					PASSWORD_COMMAND=$(expr "z$1" : 'z-[^=]*=\(.*\)')
+					;;
+				1,*)
+					print_error_and_die "Too few arguments for option --password-command." "$ERROR_MISSING_ARGUMENTS"
+					;;
+				*)
+					if ! echo "$2" | egrep -q '^-'; then
+						PASSWORD_COMMAND="$2"
+						shift
+					else
+						print_error_and_die "Too few arguments for option --password-command." "$ERROR_MISSING_ARGUMENTS"
+					fi
+					;;
+			esac
 			;;
 		-k|--keychain*)
 			USE_KEYCHAIN=1
