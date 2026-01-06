@@ -93,6 +93,9 @@ different and handles only those files. That saves time and bandwidth.
 `-P`, `--ask-passwd`
 :	Ask for FTP password interactively.
 
+`--password-command [command]`
+:	FTP password from arbitrary bash command.
+
 `-k [[account]@[host]]`, `--keychain [[account]@[host]]`
 :	FTP password from KeyChain (macOS only).
 
@@ -602,6 +605,25 @@ For example, if you set up your .netrc file like this you can just call
 	git ftp init ftp.example.com
 
 Of course this can be combined with the [defaults feature](#defaults) to set config defaults for other options as well.
+
+## Password managers
+
+You can use an arbitrary `bash` command to retrieve the password.
+In the following examples, we'll use the password manager [pass](https://www.passwordstore.org/).
+
+You can specify the command with the option `--password-command`:
+
+	$ git ftp init --password-command "pass show host"
+
+Or you can set a config for this, so you don’t need to repeat yourself:
+
+	$ git config git-ftp.password-command "pass show host"
+
+Since it is an arbitrary `bash` command, you can for example use pipes:
+
+	$ git ftp push --password-command "pass show host |head -1"
+
+The command-line option takes precedence over the configured value.
 
 ## Keychain on macOS
 
