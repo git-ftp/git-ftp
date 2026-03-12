@@ -823,6 +823,16 @@ handle_file_sync() {
 	fi
 	sort -z -u -o "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_UPLOAD"
 	sort -z -u -o "$TMP_GITFTP_DELETE" "$TMP_GITFTP_DELETE"
+	# Remove files from the upload list that are also scheduled for delete
+	if [ -s "$TMP_GITFTP_DELETE" ] && [ -s "$TMP_GITFTP_UPLOAD" ]; then
+		local TMP_GITFTP_FILTERED=$(mktemp)
+		while IFS= read -r -d '' FILE_NAME; do
+			if ! grep -zF -- "$FILE_NAME" "$TMP_GITFTP_DELETE" >/dev/null 2>&1; then
+				printf '%s\0' "$FILE_NAME" >> "$TMP_GITFTP_FILTERED"
+			fi
+		done < "$TMP_GITFTP_UPLOAD"
+		mv "$TMP_GITFTP_FILTERED" "$TMP_GITFTP_UPLOAD"
+	fi
 	# Calculate total file count
 	local DONE_ITEMS=0
 	local TOTAL_ITEMS=$(cat "$TMP_GITFTP_UPLOAD" "$TMP_GITFTP_DELETE" | tr -d -c '\0' | wc -c)
