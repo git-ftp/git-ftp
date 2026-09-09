@@ -656,6 +656,9 @@ set_remote_path() {
 		REMOTE_PATH="$REMOTE_ROOT$REMOTE_PATH"
 	fi
 
+	# Strip leading slash to prevent double-slash URLs (e.g. host//path)
+	REMOTE_PATH="${REMOTE_PATH#/}"
+
 	# Add trailing slash if missing
 	if [ ! -z "$REMOTE_PATH" ] && ! echo "$REMOTE_PATH" | grep -E -q "/$"; then
 		write_log "Added missing trailing / in path."
