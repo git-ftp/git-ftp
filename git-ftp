@@ -597,11 +597,27 @@ print_status() {
 	done < "$TMP_GITFTP_DELETE"
 }
 
+host_fqdn() {
+	if out=$(hostname --fqdn 2>/dev/null); then
+		printf '%s\n' "$out"
+	else
+		hostname -f
+	fi
+}
+
+utc_rfc2822() {
+	if out=$(date --utc --rfc-2822 2>/dev/null); then
+		printf '%s\n' "$out"
+	else
+		date -u '+%a, %d %b %Y %H:%M:%S %z'
+	fi
+}
+
 remote_lock() {
 	[ $ENABLE_REMOTE_LCK -ne 1 ] && return
 	[ $FORCE -ne 1 ] && check_remote_lock
 
-	local LCK_MESSAGE="${USER}@$(hostname --fqdn) on $(date --utc --rfc-2822)"
+	local LCK_MESSAGE="${USER}@$(host_fqdn) on $(utc_rfc2822)"
 
 	write_log "Remote locking $LCK_MESSAGE."
 	if [ $DRY_RUN -ne 1 ]; then
