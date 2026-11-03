@@ -1050,6 +1050,9 @@ set_remote_password() {
 	[ -z "$REMOTE_PASSWD" ] && [ $USE_KEYCHAIN -eq 1 ] && get_keychain_password "$KEYCHAIN_USER"
 
 	[ -z "$REMOTE_PASSWD" ] && REMOTE_PASSWD="$(get_config password)"
+	local password_ask="$(get_config ask-password)"
+	[ -n "$password_ask" ] && PASSWORD_ASK=1 || PASSWORD_ASK=0
+	[ -z "$REMOTE_PASSWD" ] && [ "$PASSWORD_ASK" -eq 1 ] && ask_for_passwd
 }
 
 set_branch() {

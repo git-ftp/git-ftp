@@ -307,6 +307,7 @@ Everyone likes examples:
 	$ git config git-ftp.remote-root htdocs
 	$ git config git-ftp.disable-epsv 1
 	$ git config git-ftp.no-commit 1
+	$ git config git-ftp.ask-password 1
 
 After setting those defaults, push to *john@ftp.example.com* is as simple as
 
